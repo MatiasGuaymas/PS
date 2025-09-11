@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}Mi Aplicacion{% endblock %}</title>
-    <meta><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     {%block head %}
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     {% endblock %}
@@ -16,11 +16,10 @@
     </header>
     <nav>
         {% block nav %}
-        {% end block %}
+        {% endblock %}
     </nav>
     <main>
         {% block content %}
-        <!-- Contenido principal aquí -->
         {% endblock %}
     </main>
     <footer>
