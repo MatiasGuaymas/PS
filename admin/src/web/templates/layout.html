@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Mi Aplicacion{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {%block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% endblock %}
+</head>
+<body>
+    <header>
+        {%block header %}
+        <h1>Bienvenido a Mi Aplicacion</h1>
+        {% endblock %}
+    </header>
+    <nav>
+        {% block nav %}
+        {% endblock %}
+    </nav>
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+    <footer>
+        {% block footer %} &copy; {{current_year}} Mi Aplicacion {% endblock %}
+    </footer>
+</body>
+</html>
