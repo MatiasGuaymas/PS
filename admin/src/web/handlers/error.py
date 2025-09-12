@@ -21,7 +21,7 @@ def unauthorized(e):
     message="No autorizado",
     descrpition="Acceso denegado debido a credenciales inválidas.",
   )
-  return render_template('error.html', error=error), 404
+  return render_template('error.html', error=error), 401
 
 def internal_server(e):
   error = HTTPError(
