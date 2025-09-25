@@ -1,8 +1,5 @@
 from flask import Flask
 from flask import render_template
-<<<<<<< Updated upstream
-from src.web.handlers import error
-=======
 from web.handlers import error
 from core import database
 from web.config import config
@@ -11,24 +8,19 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
->>>>>>> Stashed changes
 
 def create_app(env = 'development', static_folder = "../../static"):
 
     app = Flask(__name__, static_folder=static_folder)
-<<<<<<< Updated upstream
-    
-=======
 
     app.config["SQLALCHEMY_ECHO"] = os.getenv("SQLALCHEMY_ECHO")
     app.config.from_object(config[env])
 
     database.init_db(app)
     with app.app_context():
-        # db.drop_all()
+        database.db.drop_all()
         database.db.create_all()
 
->>>>>>> Stashed changes
     @app.route('/')
     def home():
         return render_template('home.html')
