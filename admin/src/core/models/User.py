@@ -1,6 +1,6 @@
 from core.database import db
-from sqlalchemy import Column, Integer, String, Text, DateTime
-from sqlalchemy import func, Boolean as bool
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import func, Boolean
 from sqlalchemy.orm import relationship
 
 
@@ -12,10 +12,18 @@ class User(db.Model):
     first_name = Column(String(50), nullable=False)
     last_name = Column(String(50), nullable=False)
     password = Column(String, nullable=False)
-    active = Column(bool, default=1)
+    active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    sysAdmin = Column(bool, default=0)
-    #role = relationship("Role", backref="users", lazy=True)
-    #Fue solo para probar la base de datos, hay que agregar relacion con Role pero sin la tabla no podia
+    sysAdmin = Column(Boolean, default=False)
+    
+    # RELACIÓN 1: Un Usuario tiene un Rol.
+    role_id = Column(Integer, ForeignKey('roles.id'), nullable=True)
+    
+    # RELACIÓN 2: Un Usuario realiza muchas Auditorías.
+    audits = relationship("Audit", backref="user", lazy=True)
+
+    # RELACIÓN 3: Un Usuario realiza muchas Flags Feature.
+    flags = relationship("Flag", backref="user", lazy=True)
+
     def __repr__(self):
         return f'<User {self.email}>'
