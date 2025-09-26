@@ -8,15 +8,12 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-<<<<<<< Updated upstream
-    "flask (>=3.1.2,<4.0.0)"
-=======
     "flask (>=3.1.2,<4.0.0)",
     "flask-sqlalchemy-lite (>=0.1.0,<0.2.0)",
     "flask-sqlalchemy (>=3.1.1,<4.0.0)",
     "psycopg2-binary (>=2.9.10,<3.0.0)",
-    "dotenv (>=0.9.9,<0.10.0)"
->>>>>>> Stashed changes
+    "dotenv (>=0.9.9,<0.10.0)",
+    "geoalchemy2 (>=0.18.0,<0.19.0)"
 ]
 
 [tool.poetry]

@@ -6,6 +6,7 @@ from web.config import config
 from web.controllers.users import user_blueprint
 import os
 from dotenv import load_dotenv
+from core import seeds
 
 load_dotenv()
 
@@ -20,6 +21,7 @@ def create_app(env = 'development', static_folder = "../../static"):
     with app.app_context():
         database.db.drop_all()
         database.db.create_all()
+        seeds.seed_data()
 
     @app.route('/')
     def home():
