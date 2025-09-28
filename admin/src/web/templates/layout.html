@@ -13,57 +13,66 @@
 </head>
 
 <body>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.11.8/umd/popper.min.js"></script>
-    <script src="{{ url_for('static', filename='bootstrap/dist/js/bootstrap.min.js') }}"></script>
     <header>
-        {%block header %}
-        <div class="dropdown">
-            <button class="dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown"
-                aria-expanded="false">
-                Cuenta
-            </button>
-            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                <li><a class="dropdown-item" href="#">Ver perfil</a></li>
-                <li><a class="dropdown-item" href="#">Cerrar sesión</a></li>
-                <li><a class="dropdown-item" href="#">Iniciar sesión [Temporal, hasta tener sesiones y hacer un display
-                        correcto]</a></li>
-            </ul>
+        <div class="header-left">
+            <img src="https://cdn-icons-png.flaticon.com/512/6325/6325609.png" alt="Logo">
+            <span>Nombre del Sistema</span>
         </div>
-        {% endblock %}
+        <div class="header-right">
+            <div class="dropdown">
+                <button class="dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                    Cuenta
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    <li><a class="dropdown-item" href="#">Ver perfil</a></li>
+                    <li><a class="dropdown-item" href="#">Cerrar sesión</a></li>
+                    <li><a class="dropdown-item" href="#">Iniciar sesión [Temporal, hasta tener sesiones y hacer un
+                            display
+                            correcto]</a></li>
+                </ul>
+            </div>
+        </div>
     </header>
-    <nav class="d-flex flex-column bg-dark text-white vh-100">
-        {% block nav %}
-            <ul class="nav flex-column text-center">
-                <li class="nav-item" title="Gestión de sitios históricos">
-                    <a class="nav-link text-white" href="#">
-                        <i class="bi bi-bank"></i>
-                    </a>
-                </li>
-                <li class="nav-item" title="Validación de propuestas">
-                    <a class="nav-link text-white" href="#">
-                        <i class="bi bi-check-circle"></i>
-                    </a>
-                </li>
-                <li class="nav-item" title="Moderación de reseñas">
-                    <a class="nav-link text-white" href="#">
-                        <i class="bi bi-chat-dots"></i>
-                    </a>
-                </li>
-                <li class="nav-item" title="Gestión de usuarios">
-                    <a class="nav-link text-white" href="#">
-                        <i class="bi bi-people"></i>
-                    </a>
-                </li>
-            </ul>
-        {% endblock %}
-    </nav>
-    <main>
-        {% block content %}
-        {% endblock %}
-    </main>
-    <footer>
-        {% block footer %} &copy; {{current_year}} Altouch {% endblock %}
-    </footer>
+    <div class="layout-sidebar">
+        <nav class="d-flex flex-column bg-dark text-white vh-100">
+            {% block nav %}
+                <ul class="nav flex-column text-center">
+                    <li class="nav-item" title="Gestión de sitios históricos">
+                        <a class="nav-link text-white" href="#">
+                            <i class="bi bi-bank"></i>
+                        </a>
+                    </li>
+                    <li class="nav-item" title="Validación de propuestas">
+                        <a class="nav-link text-white" href="#">
+                            <i class="bi bi-check-circle"></i>
+                        </a>
+                    </li>
+                    <li class="nav-item" title="Moderación de reseñas">
+                        <a class="nav-link text-white" href="#">
+                            <i class="bi bi-chat-dots"></i>
+                        </a>
+                    </li>
+                    <li class="nav-item" title="Gestión de usuarios">
+                        <a class="nav-link text-white" href="#">
+                            <i class="bi bi-people"></i>
+                        </a>
+                    </li>
+                </ul>
+            {% endblock %}
+        </nav>
+    </div>
+    <div class="layout-main">
+        <main>
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+    <div class="layout-footer">
+        <footer class="bg-dark text-white text-center py-3">
+            {% block footer %} &copy; {{current_year}} Altouch {% endblock %}
+        </footer>
+    </div>
 </body>
 
 </html>
