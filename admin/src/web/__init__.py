@@ -4,6 +4,7 @@ from web.handlers import error
 from core import database
 from web.config import config
 from web.controllers.users import user_blueprint
+from web.controllers.roles import roles_blueprint
 import os
 from dotenv import load_dotenv
 from core import seeds
@@ -28,6 +29,7 @@ def create_app(env = 'development', static_folder = "../../static"):
         return render_template('home.html')
     
     app.register_blueprint(user_blueprint)
+    app.register_blueprint(roles_blueprint)
 
     app.register_error_handler(404, error.not_found)
     app.register_error_handler(401, error.unauthorized)

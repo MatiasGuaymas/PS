@@ -1,11 +1,47 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, redirect, url_for
 from core.models.User import User
 from core.database import db
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, session
+from sqlalchemy import text
+from core.models.Role import Role
+
+import bcrypt
 
 
 user_blueprint = Blueprint("users", __name__, url_prefix="/users")
 
+
+def hash_password(password: str) -> bytes:
+    """
+    Hashea una contraseña usando bcrypt.
+    
+    Args:
+        password (str): La contraseña en texto plano.
+    
+    Returns:
+        bytes: La contraseña hasheada.
+    """
+    # Generar un salt único y hashear la contraseña
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed
+
+
+def verify_password(password: str, hashed: bytes) -> bool:
+    """
+    Verifica si una contraseña coincide con su hash.
+    
+    Args:
+        password (str): La contraseña en texto plano.
+        hashed (bytes): La contraseña hasheada previamente.
+    
+    Returns:
+        bool: True si la contraseña coincide, False si no.
+    """
+    try:
+        return bcrypt.checkpw(password.encode('utf-8'), hashed)
+    except Exception:
+        return False
 
 @user_blueprint.route("/", methods=["GET", "POST"])
 def index():
@@ -15,30 +51,34 @@ def index():
         email = request.form.get("email")
         password = request.form.get("password")
         active = request.form.get("active") == "true" 
-        sys_admin = request.form.get("sys_admin") == "true" 
+        role = request.form.get("role")
 
         #Validaciones basicas agregar handlers
         if not first_name or not last_name or not email or not password:
             return "Missing required fields", 400
         if User.query.filter_by(email=email).first():
             return "Email already exists", 400
+        if len(password) < 8:
+            return "Password too short", 400
         
 
         # Crear una nueva instancia de la clase User con los datos recibidos
         new_user = User(
             first_name=first_name,
             last_name=last_name,
-            password=password,
+            password=hash_password(password),
             email=email,
             active=active,
-            sysAdmin=sys_admin,
-            #falta roles
+            role_id=role,
+            sysAdmin=False
         )
         db.session.add(new_user)
         db.session.commit()
         
         users = User.query.all()
         
+        
+
         return render_template(
             "users/index.html", users=users
         ),201
@@ -49,3 +89,77 @@ def index():
         )
     else:
         return "Method not allowed", 405
+
+@user_blueprint.route("/update/<int:user_id>", methods=["GET", "POST"])
+def update(user_id):
+    user = User.query.get_or_404(user_id)
+    
+    if request.method == "GET":
+        return render_template("users/update.html", user=user)
+    
+    elif request.method == "POST":
+        first_name = request.form.get("first_name")
+        last_name = request.form.get("last_name")
+        email = request.form.get("email")
+        password = request.form.get("password")
+        active = request.form.get("active") == "true"
+        role_id = request.form.get("role_id")
+        sys_admin = request.form.get("sysAdmin") == "true"
+        
+        if not first_name or not last_name or not email:
+            return "Missing required fields", 400
+            
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user and existing_user.id != user_id:
+            return "Email already exists", 400
+        
+        user.first_name = first_name
+        user.last_name = last_name
+        user.email = email
+        user.active = active
+        user.role_id = role_id if role_id else None
+        user.sysAdmin = sys_admin
+        
+        if password and len(password) >= 8:
+            user.password = hash_password(password)
+        elif password and len(password) < 8:
+            return "Password too short", 400
+        
+        db.session.commit()
+
+        return redirect(url_for('users.index'))
+    
+    else:
+        return "Method not allowed", 405
+    
+
+
+@user_blueprint.route("/delete/<int:user_id>", methods=["GET", "POST"])
+def delete_user(user_id):
+    try:
+        user = User.query.get_or_404(user_id)
+        
+        db.session.execute(text("""
+            DELETE FROM actions 
+            WHERE audit_id IN (
+                SELECT id FROM audits WHERE user_id = :user_id
+            )
+        """), {"user_id": user_id})
+        
+        db.session.execute(text("""
+            DELETE FROM audits WHERE user_id = :user_id
+        """), {"user_id": user_id})
+        
+        db.session.execute(text("""
+            DELETE FROM flags WHERE user_id = :user_id
+        """), {"user_id": user_id})
+
+        db.session.delete(user)
+        db.session.commit()
+        
+        return redirect(url_for('users.index'))
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error al eliminar usuario: {e}")
+        return f"Error al eliminar usuario: {str(e)}", 500

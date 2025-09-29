@@ -7,7 +7,6 @@
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLMDJc5fD1x3vP2BJKz/42/qVnQ+eDk5c4h5N+Vw/H/Ew4D3q0H2+586LpLw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
@@ -51,7 +50,7 @@
                         </div>
                         
                         <div class="col-md-12 col-lg-2 d-grid">
-                             <button type="submit" class="btn btn-primary fw-bold py-2 rounded-3 shadow-sm">
+                            <button type="submit" class="btn btn-primary fw-bold py-2 rounded-3 shadow-sm">
                                 Crear Usuario
                             </button>
                         </div>
@@ -70,10 +69,9 @@
                         </div>
 
                         <div class="col-md-6 col-lg-4">
-                            <label for="add-sys-admin" class="form-label fw-semibold text-muted">Admin del Sistema</label>
-                            <select id="add-sys-admin" name="sys_admin" class="form-select rounded-3">
-                                <option value="false">No</option>
-                                <option value="true">Sí</option>
+                            <label for="add-role" class="form-label fw-semibold text-muted">Rol</label>
+                            <select id="add-role" name="role" class="form-select rounded-3">
+                                <option value="" selected>Seleccionar Rol</option>
                             </select>
                         </div>
 
@@ -90,6 +88,7 @@
                                 <th scope="col" class="py-3 px-4">Email</th>
                                 <th scope="col" class="py-3 px-4 text-center">Estado</th>
                                 <th scope="col" class="py-3 px-4 text-center">Rol</th>
+                                <th scope="col" class="py-3 px-4 text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -128,6 +127,17 @@
                                         {% endif %}
                                     {% endif %}
                                 </td>
+                                
+                                <td class="py-3 px-4 text-center">
+                                    <div class="d-flex gap-2 justify-content-center">
+                                        <button type="button" class="btn btn-warning btn-sm rounded-2 fw-semibold px-3 btn-editar" data-user-id="{{ user.id }}">
+                                            <i class="fas fa-edit me-1"></i> Editar
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm rounded-2 fw-semibold px-3 btn-borrar" data-user-id="{{ user.id }}">
+                                            <i class="fas fa-trash me-1"></i> Borrar
+                                        </button>
+                                    </div>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -136,7 +146,58 @@
             </div>
         </div>
     </div>
-
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/roles/')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Roles cargados:', data); // Para debug
+                    const roleSelect = document.getElementById('add-role');
+                    data.forEach(role => {
+                        const option = document.createElement('option');
+                        option.value = role.id;
+                        option.textContent = role.name;
+                        roleSelect.appendChild(option);
+                    });
+                })
+                .catch(error => console.error('Error al cargar los roles:', error));
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.btn-editar').forEach(button => {
+                button.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-user-id');
+                    location.href = `/users/update/${userId}`;
+                });
+            });
+            
+            
+            document.querySelectorAll('.btn-borrar').forEach(button => {
+                button.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-user-id');
+                    
+                    if (confirm('¿Estás seguro de que quieres borrar este usuario? Esta acción no se puede deshacer.')) {
+                        fetch(`/users/delete/${userId}`, {
+                            method: 'POST'
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                location.reload();
+                            } else {
+                                alert('Error al borrar el usuario. Por favor, inténtalo de nuevo.');
+                            }
+                        });
+                    }
+                });
+            });
+        });
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>
