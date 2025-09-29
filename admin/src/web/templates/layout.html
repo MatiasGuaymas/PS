@@ -64,15 +64,28 @@
     </div>
     <div class="layout-main">
         <main>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            
             {% block content %}
             {% endblock %}
         </main>
     </div>
     <div class="layout-footer">
-        <footer class="bg-dark text-white text-center py-3">
+        <footer class="bg-dark text-white text-center py-3"
+                style="position:fixed; bottom:0; left:0; width:100%; z-index:100;">
             {% block footer %} &copy; {{current_year}} Nombre del Sistema {% endblock %}
         </footer>
     </div>
+    <script src="{{ url_for('static', filename='bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
 </body>
 
 </html>

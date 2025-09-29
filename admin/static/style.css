@@ -26,6 +26,10 @@ body {
     margin-left: 80px;
 }
 
+.layout-main main {
+    padding-bottom: 80px; 
+}
+
 .layout-footer {
     position: fixed;
     bottom: 0;
