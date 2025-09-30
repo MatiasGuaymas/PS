@@ -20,29 +20,36 @@
 </head>
 <body class="bg-light pt-5 pb-5">
 
-    <div class="container-xl">
-        <div class="card shadow-lg border-0 rounded-4 overflow-hidden mx-auto" style="max-width: 1100px;">
-            
-            <header class="p-4 p-md-5 bg-indigo-700-bs text-white">
-                <h1 class="display-5 fw-bolder mb-1">Gestión de Usuarios</h1>
-                <p class="text-white-50">Panel administrativo para la consulta y el registro de nuevos usurios.</p>
-            </header>
+{% block content %}
+<div class="container-xl">
+    <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden mx-auto">
+        <div class="card-header bg-dark">
+            <h1 class="h3">Gestión de Usuarios</h1>
+            <p>Aquí puedes gestionar los usuarios del sistema.</p>
+        </div>
+        <div class="card-body">
+            <div class="bg-dark card p-4 border rounded-3 shadow-sm mb-5">
+                <h3 class="fw-bold mb-4 border-bottom pb-2">Registrar Nuevo Usuario</h3>
+                <form id="add-user-form" class="row g-3 align-items-end" action="{{ url_for('users.index')}}"
+                    method="post">
 
-            <div class="p-4 p-md-5">
+                    <div class="col-md-6 col-lg-3">
+                        <label for="add-first-name" class="form-label fw-semibold">Nombre</label>
+                        <input type="text" id="add-first-name" name="first_name" placeholder="Ej: Juan" required
+                            class="form-control rounded-3">
+                    </div>
 
-                <div class="card p-4 border rounded-3 shadow-sm mb-5">
-                    <h2 class="h4 fw-bold text-dark mb-4 border-bottom pb-2">Registrar Nuevo Usuario</h2>
-                    <form id="add-user-form" class="row g-3 align-items-end" action="{{ url_for('users.index')}}" method="post">
-                        
-                        <div class="col-md-6 col-lg-3">
-                            <label for="add-first-name" class="form-label fw-semibold text-muted">Nombre</label>
-                            <input type="text" id="add-first-name" name="first_name" placeholder="Ej: Juan" required class="form-control rounded-3">
-                        </div>
+                    <div class="col-md-6 col-lg-3">
+                        <label for="add-last-name" class="form-label fw-semibold ">Apellido</label>
+                        <input type="text" id="add-last-name" name="last_name" placeholder="Ej: Pérez" required
+                            class="form-control rounded-3">
+                    </div>
 
-                        <div class="col-md-6 col-lg-3">
-                            <label for="add-last-name" class="form-label fw-semibold text-muted">Apellido</label>
-                            <input type="text" id="add-last-name" name="last_name" placeholder="Ej: Pérez" required class="form-control rounded-3">
-                        </div>
+                    <div class="col-md-12 col-lg-4">
+                        <label for="add-email" class="form-label fw-semibold ">Email</label>
+                        <input type="email" id="add-email" name="email" placeholder="ejemplo@dominio.com" required
+                            class="form-control rounded-3">
+                    </div>
 
                         <div class="col-md-12 col-lg-4">
                             <label for="add-email" class="form-label fw-semibold text-muted">Email</label>
@@ -75,8 +82,13 @@
                             </select>
                         </div>
 
-                    </form>
-                </div>
+                    <div class="col-md-6 col-lg-4">
+                        <label for="add-active" class="form-label fw-semibold ">Estado</label>
+                        <select id="add-active" name="active" class="form-select rounded-3">
+                            <option value="true">Activo</option>
+                            <option value="false">Inactivo</option>
+                        </select>
+                    </div>
 
                 <div class="d-flex justify-content-between align-items-center mb-4 pt-4 border-top">
                     <h2 class="h4 fw-bold text-dark mb-0">Listado de Usuarios</h2>
