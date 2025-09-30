@@ -1,10 +1,10 @@
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify
 from core.models.User import User
 from core.database import db
-from sqlalchemy.orm import joinedload, session
+from sqlalchemy.orm import joinedload
 from sqlalchemy import text
 from core.models.Role import Role
-
+import bcrypt
 import bcrypt
 
 
@@ -163,3 +163,68 @@ def delete_user(user_id):
         db.session.rollback()
         print(f"Error al eliminar usuario: {e}")
         return f"Error al eliminar usuario: {str(e)}", 500
+
+@user_blueprint.route("/search/", methods=["GET"])
+def search_users():
+    """
+    Endpoint para buscar usuarios por criterios específicos.
+    Parámetros de query:
+    - email: busca en email
+    - status: 'active' o 'inactive'
+    - role: ID del rol o nombre del rol
+    """
+    try:
+        email = request.args.get('email', '').strip()
+        status = request.args.get('status', '').strip()
+        role = request.args.get('role', '').strip()
+        
+        query = User.query.options(joinedload(User.role))
+        
+        
+        if email:
+            query = query.filter(User.email.ilike(f'%{email}%'))
+        
+        if status:
+            if status.lower() == 'active':
+                query = query.filter(User.active == True)
+            elif status.lower() == 'inactive':
+                query = query.filter(User.active == False)
+        
+        if role:
+            query = query.filter(User.role_id == int(role))
+        
+        users = query.all()
+        
+        users_data = []
+        for user in users:
+            user_data = {
+                'id': user.id,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'email': user.email,
+                'active': user.active,
+                'sysAdmin': user.sysAdmin,
+                'created_at': user.created_at.isoformat() if user.created_at else None,
+                'role': {
+                    'id': user.role.id,
+                    'name': user.role.name
+                } if user.role else None
+            }
+            users_data.append(user_data)
+        
+        return jsonify({
+            'success': True,
+            'users': users_data,
+            'total': len(users_data),
+            'filters': {
+                'email': email,
+                'status': status,
+                'role': role
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500

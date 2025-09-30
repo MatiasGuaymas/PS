@@ -78,7 +78,21 @@
                     </form>
                 </div>
 
-                <h2 class="h4 fw-bold text-dark mb-4 pt-4 border-top">Listado de Usuarios</h2>
+                <div class="d-flex justify-content-between align-items-center mb-4 pt-4 border-top">
+                    <h2 class="h4 fw-bold text-dark mb-0">Listado de Usuarios</h2>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="search-email" placeholder="Buscar por email..." class="form-control form-control-sm" style="width: 200px;">
+                        <select id="filter-status" class="form-select form-select-sm" style="width: 130px;">
+                            <option value="">Todos los estados</option>
+                            <option value="active">Activos</option>
+                            <option value="inactive">Inactivos</option>
+                        </select>
+                        <select id="filter-role" class="form-select form-select-sm" style="width: 150px;">
+                            <option value="">Todos los roles</option>
+                        </select>
+                        <button id="boton-buscar">Buscar</button>
+                    </div>
+                </div>
                 <div id="table-container" class="table-responsive rounded-3 shadow-sm">
                     <table class="table table-striped table-hover align-middle mb-0">
                         <thead class="table-light">
@@ -156,14 +170,23 @@
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Roles cargados:', data); // Para debug
-                    const roleSelect = document.getElementById('add-role');
+                    const addRoleSelect = document.getElementById('add-role');
                     data.forEach(role => {
                         const option = document.createElement('option');
                         option.value = role.id;
                         option.textContent = role.name;
-                        roleSelect.appendChild(option);
+                        addRoleSelect.appendChild(option);
                     });
+
+                    const filterRoleSelect = document.getElementById('filter-role');
+                    if (filterRoleSelect) {
+                        data.forEach(role => {
+                            const option = document.createElement('option');
+                            option.value = role.id; 
+                            option.textContent = role.name;
+                            filterRoleSelect.appendChild(option);
+                        });
+                    }
                 })
                 .catch(error => console.error('Error al cargar los roles:', error));
         });
@@ -196,6 +219,69 @@
                     }
                 });
             });
+        });
+    </script>
+    <script>
+        function filterUsers() {
+            const email = document.getElementById('search-email').value;
+            const status = document.getElementById('filter-status').value;
+            const role = document.getElementById('filter-role').value;
+            
+            const params = new URLSearchParams();
+            if (email) params.append('email', email);
+            if (status) params.append('status', status);
+            if (role) params.append('role', role);
+            
+            fetch(`/users/search/?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateUserTable(data.users);
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function updateUserTable(users) {
+            const tbody = document.querySelector('tbody');
+            tbody.innerHTML = ''; 
+            
+            users.forEach(user => {
+                const row = createUserRow(user); 
+                tbody.appendChild(row);
+            });
+        }
+
+        function createUserRow(user) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="py-3 px-4 fw-bold text-dark">${user.id}</td>
+                <td class="py-3 px-4">${user.first_name} ${user.last_name}</td>
+                <td class="py-3 px-4 font-monospace small">${user.email}</td>
+                <td class="py-3 px-4 text-center">
+                    <span class="badge ${user.active ? 'text-bg-success' : 'text-bg-danger'} py-2 px-3">
+                        ${user.active ? 'Activo' : 'Inactivo'}
+                    </span>
+                </td>
+                <td class="py-3 px-4 text-center">
+                    ${user.role ? `<span class="badge text-bg-info py-2 px-3">${user.role.name}</span>` : '<span class="badge text-bg-secondary py-2 px-3">Sin rol</span>'}
+                </td>
+                <td class="py-3 px-4 text-center">
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button type="button" class="btn btn-warning btn-sm btn-editar" data-user-id="${user.id}">
+                            <i class="fas fa-edit me-1"></i> Editar
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm btn-borrar" data-user-id="${user.id}">
+                            <i class="fas fa-trash me-1"></i> Borrar
+                        </button>
+                    </div>
+                </td>
+            `;
+            return row;
+        }
+    </script>
+    <script>
+        document.getElementById('boton-buscar').addEventListener('click', function(event) {
+            event.preventDefault(); 
+            filterUsers(); 
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
