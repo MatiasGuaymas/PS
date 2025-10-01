@@ -166,13 +166,6 @@ def delete_user(user_id):
 
 @user_blueprint.route("/search/", methods=["GET"])
 def search_users():
-    """
-    Endpoint para buscar usuarios por criterios específicos.
-    Parámetros de query:
-    - email: busca en email
-    - status: 'active' o 'inactive'
-    - role: ID del rol o nombre del rol
-    """
     try:
         email = request.args.get('email', '').strip()
         status = request.args.get('status', '').strip()
