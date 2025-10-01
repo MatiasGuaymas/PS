@@ -2,6 +2,7 @@ from core.database import db
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from core.models.Flag import Flag
+from datetime import datetime, timezone
 
 class FlagService:
     """
@@ -33,25 +34,23 @@ class FlagService:
         return flag is not None and flag.is_enabled
 
 
-    def toggle_feature_flag(flag_id: int, new_state: bool, user) -> Optional[Flag]:
-        """
-        Cambia el estado de una flag (is_enabled) y actualiza
-        el last_edit y el user_id.
-        """
-        flag = FlagService.get_flag_by_id(flag_id)
-        if flag is None:
+    def toggle_feature_flag(id, is_enabled, user):
+        """Cambia el estado de un flag y registra quien lo cambio"""
+        feature_flag = FlagService.get_flag_by_id(id)
+        # Si no se encuentra
+        if not feature_flag:
             return None
+        # Si es mantenimiento y esta activo, se borra el mensaje de estado, para ingresar otro al momento de activarlo nuevamente
+        if feature_flag.is_maintenance():
+            if feature_flag.is_enabled:
+                feature_flag.maintenance_message = ""
+        feature_flag.is_enabled = is_enabled
+        feature_flag.user_id = user
+        feature_flag.last_edit = datetime.now(timezone.utc)
         
-        flag.is_enabled = new_state
-        flag.user_id = user.id  # Actualiza quién hizo el cambio
+        db.session.commit()
+        return feature_flag
 
-        try:
-            db.session.commit()
-            return flag
-        except Exception as e:
-            db.session.rollback() #Mirar
-            raise e
-    
     def set_maintenance_message(flag_id: int, message: str) -> Optional[Flag]:
         """
         Establece o actualiza el mensaje de mantenimiento de una flag.

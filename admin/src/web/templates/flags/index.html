@@ -125,9 +125,7 @@
         const modalFlagIdInput = document.getElementById('modal-current-flag-id');
         const maintenanceMessageInput = document.getElementById('maintenance-message');
         
-        // URL BASE con un placeholder único que reemplazaremos en JS
-        const FEATURE_FLAG_URL_BASE = "{{ url_for('feature-flags.index') }}".replace('index', '');
-
+        const TOGGLE_URL_TEMPLATE = "{{ url_for('feature-flags.toggle', flag_id=0) }}"; 
         // 1. Escucha cambios en todos los switches
         toggleSwitches.forEach(switchElement => {
             switchElement.addEventListener('change', function(event) {
@@ -136,8 +134,7 @@
                 const isMaintenance = this.dataset.isMaintenance === 'true'; 
                 const newState = this.checked;
                 
-                const actionUrl = `${FEATURE_FLAG_URL_BASE}${flagId}/toggle`; 
-                // A. Lógica de Activación de Mantenimiento (Requiere Modal)
+                const actionUrl = TOGGLE_URL_TEMPLATE.replace('0', flagId);                // A. Lógica de Activación de Mantenimiento (Requiere Modal)
                 if (isMaintenance && newState) {
                     // Prevenir el comportamiento predeterminado (el POST)
                     // y dejar que el modal lo maneje después de obtener el mensaje.

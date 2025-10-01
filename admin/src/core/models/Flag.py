@@ -26,8 +26,7 @@ class Flag(db.Model):
              return False
         # Se asume que cualquier flag cuyo nombre contenga 'maintenance_mode' es de mantenimiento.
         return 'maintenance_mode' in self.name.lower()
-
-
+    
     def has_message(self) -> bool:
         """Verifica si la flag tiene un mensaje configurado."""
         return bool(self.message and self.message.strip())
