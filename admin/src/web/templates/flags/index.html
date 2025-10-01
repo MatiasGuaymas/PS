@@ -1,0 +1,196 @@
+{% extends "layout.html" %}
+
+{% block title %}Panel de Feature Flags{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4 text-center">Gestión de Feature Flags</h1>
+
+    {# Bloque para mostrar los mensajes flash #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                    {{ message | safe }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th class="text-center">Estado</th>
+                    <th class="text-center">Mensaje (si aplica)</th>
+                    <th>ID Usuario</th>
+                    <th class="text-center">Toggle</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for flag in flags %}
+                
+                {% set is_maint = flag.is_maintenance %} 
+                
+                <tr id="flag-row-{{ flag.id }}" class="{{ 'table-warning' if flag.is_enabled and is_maint else '' }}">
+                    <td><strong>{{ flag.name }}</strong></td>
+                    <td>{{ flag.description }}</td>
+                    
+                    {# Estado en verde/rojo #}
+                    <td class="text-center">
+                        {% if flag.is_enabled %}
+                            <span class="badge bg-success">ACTIVO</span>
+                        {% else %}
+                            <span class="badge bg-danger">INACTIVO</span>
+                        {% endif %}
+                    </td>
+                    
+                    <td>
+                        {# El mensaje solo se muestra si es de mantenimiento #}
+                        {% if is_maint %}
+                            <small class="text-muted">{{ flag.message or 'N/A' }}</small>
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small>{{ flag.user_id or 'Sistema/Seeds' }}</small>
+                    </td>
+
+                    {# Toggle de Acción #}
+                    <td class="text-center">
+                        <div class="form-check form-switch d-inline-block">
+                            <input 
+                                class="form-check-input toggle-switch-input" 
+                                type="checkbox" 
+                                role="switch" 
+                                id="flagSwitch-{{ flag.id }}"
+                                data-flag-id="{{ flag.id }}"
+                                data-is-maintenance="{{ 'true' if is_maint else 'false' }}"
+                                {% if flag.is_enabled %}checked{% endif %}
+                            >
+                            <label class="form-check-label visually-hidden" for="flagSwitch-{{ flag.id }}">Toggle</label>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{# ... El modal  ... #}
+<div class="modal fade" id="maintenanceModal" tabindex="-1" aria-labelledby="maintenanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="maintenance-form" method="POST">
+                {# Campo oculto para asegurar que el JS sepa qué switch revertir #}
+                <input type="hidden" id="modal-current-flag-id" name="flag_id_in_modal" value=""> 
+
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title" id="maintenanceModalLabel">Activar Modo Mantenimiento</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-danger">Debe ingresar un mensaje de mantenimiento para activar esta funcionalidad.</p>
+                    <div class="mb-3">
+                        <label for="maintenance-message" class="form-label">Mensaje de Mantenimiento:</label>
+                        <textarea class="form-control" id="maintenance-message" name="message" rows="3" maxlength="100" required></textarea>
+                        <small class="text-muted">Máximo 100 caracteres (según tu modelo).</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    {# Botón para cancelar y revertir el switch #}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Activar y Guardar Mensaje</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleSwitches = document.querySelectorAll('.toggle-switch-input');
+        const maintenanceModalEl = document.getElementById('maintenanceModal');
+        // Inicializar el objeto Modal de Bootstrap.
+        // Asegúrate de tener el script de Bootstrap 5 cargado ANTES que este script.
+        const maintenanceModal = new bootstrap.Modal(maintenanceModalEl); 
+        const maintenanceForm = document.getElementById('maintenance-form');
+        const modalFlagIdInput = document.getElementById('modal-current-flag-id');
+        const maintenanceMessageInput = document.getElementById('maintenance-message');
+        
+        // URL BASE con un placeholder único que reemplazaremos en JS
+        const FEATURE_FLAG_URL_BASE = "{{ url_for('feature-flags.index') }}".replace('index', '');
+
+        // 1. Escucha cambios en todos los switches
+        toggleSwitches.forEach(switchElement => {
+            switchElement.addEventListener('change', function(event) {
+                const flagId = this.dataset.flagId;
+                // Convertir la cadena 'true'/'false' a booleano
+                const isMaintenance = this.dataset.isMaintenance === 'true'; 
+                const newState = this.checked;
+                
+                const actionUrl = `${FEATURE_FLAG_URL_BASE}${flagId}/toggle`; 
+                // A. Lógica de Activación de Mantenimiento (Requiere Modal)
+                if (isMaintenance && newState) {
+                    // Prevenir el comportamiento predeterminado (el POST)
+                    // y dejar que el modal lo maneje después de obtener el mensaje.
+                    event.preventDefault(); 
+                    
+                    // 1. Configurar el modal:
+                    // Guardamos el ID en el input oculto para usarlo en la acción del POST y la reversión
+                    modalFlagIdInput.value = flagId; 
+                    // Configuramos la acción del formulario del modal
+                    maintenanceForm.action = actionUrl;
+                    // Limpiamos el mensaje previo
+                    maintenanceMessageInput.value = '';
+                    
+                    // 2. Mostrar el modal
+                    maintenanceModal.show();
+                    
+                } else {
+                    // B. Lógica de Desactivación O Activación de Flags Normales (Envío Directo)
+                    
+                    // Crear y enviar formulario dinámico (¡Funciona correctamente!)
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = actionUrl;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        });
+        
+
+        // 2. Manejar el cierre del modal (CANCELACIÓN O CIERRE MANUAL)
+        maintenanceModalEl.addEventListener('hidden.bs.modal', function () {
+            const flagId = modalFlagIdInput.value;
+            const currentSwitch = document.getElementById(`flagSwitch-${flagId}`);
+
+            // Si el modal se cerró sin enviar el formulario (que causa una redirección), 
+            // el switch debe revertirse a su estado original (desactivado).
+            if (currentSwitch) {
+                currentSwitch.checked = false;
+            }
+
+            // Limpiar la referencia
+            modalFlagIdInput.value = '';
+        });
+
+        // 3. Manejar el envío del formulario dentro del modal
+        maintenanceForm.addEventListener('submit', function(event) {
+            // No hacemos nada especial aquí, simplemente dejamos que el formulario 
+            // se envíe al endpoint /toggle, que es lo que el controller espera.
+            // Si Flask lo procesa bien, hará la redirección.
+            // Si hay un error, el 'hidden.bs.modal' NO se disparará (porque la página se recarga)
+            // y la página mostrará el flash error, dejando el switch en el estado que la DB dictó (OFF).
+        });
+    });
+</script>
+{% endblock %}
