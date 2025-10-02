@@ -106,9 +106,6 @@ def seed_data():
         Role_permission(role_id=r_user.id, permission_id=s_index.id),
     ]
 
-    rp_sysadmin_permissions = [
-    ]
-
     db.session.add_all(rp_admin_user_permissions + rp_editor_permissions + rp_user_permissions)
     db.session.flush()
 
