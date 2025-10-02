@@ -2,7 +2,10 @@
 
 {% block content %}
 <h2>Registrar Sitio Histórico</h2>
-<form method="POST" action="{{ url_for('sites.index') }}">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<form method="POST" action="{{ url_for('sites.create') }}">
   <div class="mb-3">
     <label for="site_name" class="form-label">Nombre del sitio</label>
     <input type="text" class="form-control" id="site_name" name="site_name" required>
@@ -24,12 +27,17 @@
     <input type="text" class="form-control" id="province" name="province" required>
   </div>
   <div class="mb-3">
-    <label for="latitude" class="form-label">Latitud</label>
-    <input type="text" class="form-control" id="latitude" name="latitude" required>
-  </div>
-  <div class="mb-3">
-    <label for="longitude" class="form-label">Longitud</label>
-    <input type="text" class="form-control" id="longitude" name="longitude" required>
+    <label for="location" class="form-label">Ubicación</label>
+    <div id="map" style="height: 400px; width: 100%; border: 1px solid #ccc;"></div>
+    <div class="mt-2">
+      <small class="text-muted">Haz clic en el mapa para seleccionar la ubicación</small>
+    </div>
+    <input type="hidden" id="latitude" name="latitude" required>
+    <input type="hidden" id="longitude" name="longitude" required>
+    <div class="mt-2">
+      <span class="badge bg-info">Latitud: <span id="lat-display">No seleccionada</span></span>
+      <span class="badge bg-info ms-2">Longitud: <span id="lon-display">No seleccionada</span></span>
+    </div>
   </div>
   <div class="mb-3">
     <label for="state_id" class="form-label">Estado de conservación</label>
@@ -51,7 +59,6 @@
       <option value="1">Arquitectura</option>
       <option value="2">Infraestructura</option>
       <option value="3">Sitio arqueológico</option>
-      <!-- Agrega más categorías según tu base de datos -->
     </select>
   </div>
   <div class="mb-3">
@@ -61,7 +68,6 @@
       <option value="false">No</option>
     </select>
   </div>
-  <!-- Etiquetas (puedes mejorar esto con un multiselect en el futuro) -->
   <div class="mb-3">
     <label for="tags" class="form-label">Etiquetas</label>
     <select class="form-control" id="tags" name="tags" multiple>
@@ -72,4 +78,66 @@
   </div>
   <button type="submit" class="btn btn-primary">Registrar</button>
 </form>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// Inicializar mapa
+var map = L.map('map').setView([-34.6037, -58.3816], 10); // Buenos Aires por defecto
+
+// Agregar capa de tiles
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(map);
+
+var marker = null;
+
+// Función para manejar clics en el mapa
+map.on('click', function(e) {
+    var lat = e.latlng.lat;
+    var lon = e.latlng.lng;
+    
+    // Actualizar campos ocultos
+    document.getElementById('latitude').value = lat;
+    document.getElementById('longitude').value = lon;
+    
+    // Actualizar display
+    document.getElementById('lat-display').textContent = lat.toFixed(6);
+    document.getElementById('lon-display').textContent = lon.toFixed(6);
+    
+    // Agregar/actualizar marcador
+    if (marker) {
+        map.removeLayer(marker);
+    }
+    marker = L.marker([lat, lon]).addTo(map);
+});
+
+// Función para centrar en ubicación actual
+function getCurrentLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            var lat = position.coords.latitude;
+            var lon = position.coords.longitude;
+            
+            map.setView([lat, lon], 15);
+            
+            // Simular clic en la ubicación actual
+            map.fire('click', {latlng: L.latLng(lat, lon)});
+        });
+    }
+}
+
+// Botón para ubicación actual
+document.addEventListener('DOMContentLoaded', function() {
+    var locationBtn = document.createElement('button');
+    locationBtn.type = 'button';
+    locationBtn.className = 'btn btn-outline-primary btn-sm mt-2';
+    locationBtn.innerHTML = '📍 Usar mi ubicación actual';
+    locationBtn.onclick = getCurrentLocation;
+    
+    document.getElementById('map').parentNode.appendChild(locationBtn);
+});
+</script>
+
 {% endblock %}
