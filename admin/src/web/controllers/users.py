@@ -1,9 +1,12 @@
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash
+from flask import session
 from core.models.User import User
 from core.database import db
 from sqlalchemy.orm import joinedload
 from sqlalchemy import text
 from core.models.Role import Role
+from src.web.handlers.auth import is_authenticated
+from src.web.handlers.auth import login_required
 import bcrypt
 import bcrypt
 
@@ -24,6 +27,7 @@ def verify_password(password: str, hashed: bytes) -> bool:
         return False
 
 @user_blueprint.route("/", methods=["GET", "POST"])
+@login_required
 def index():
     if request.method == "POST":
         first_name = request.form.get("first_name")
@@ -71,6 +75,7 @@ def index():
         return "Method not allowed", 405
 
 @user_blueprint.route("/update/<int:user_id>", methods=["GET", "POST"])
+@login_required
 def update(user_id):
     user = User.query.get_or_404(user_id)
     
@@ -115,6 +120,7 @@ def update(user_id):
 
 
 @user_blueprint.route("/delete/<int:user_id>", methods=["GET", "POST"])
+@login_required
 def delete_user(user_id):
     try:
         user = User.query.get_or_404(user_id)

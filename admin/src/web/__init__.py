@@ -10,6 +10,7 @@ from web.controllers.roles import roles_blueprint
 from src.web.controllers.sites import sites_blueprint
 from src.web.controllers.tags import tags_blueprint
 from src.web.controllers.auth import bp as auth_bp
+from src.web.handlers.auth import is_authenticated
 
 import bcrypt
 import os
@@ -48,5 +49,7 @@ def create_app(env = 'development', static_folder = "../../static"):
     app.register_error_handler(404, error.not_found)
     app.register_error_handler(401, error.unauthorized)
     app.register_error_handler(500, error.internal_server)
+    
+    app.jinja_env.globals['is_authenticated'] = is_authenticated
 
     return app
