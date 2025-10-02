@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Altouch{% endblock %}</title>
-    {%block head %}
+    {% block head %}
     <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/dist/css/bootstrap.min.css')}}">
     <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap-icons/font/bootstrap-icons.min.css')}}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">

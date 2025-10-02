@@ -1,9 +1,12 @@
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash
+from flask import session
 from core.models.User import User
 from core.database import db
 from sqlalchemy.orm import joinedload
 from sqlalchemy import text
 from core.models.Role import Role
+from src.web.handlers.auth import is_authenticated
+from src.web.handlers.auth import login_required
 import bcrypt
 import bcrypt
 
@@ -12,38 +15,19 @@ user_blueprint = Blueprint("users", __name__, url_prefix="/users")
 
 
 def hash_password(password: str) -> bytes:
-    """
-    Hashea una contraseña usando bcrypt.
-    
-    Args:
-        password (str): La contraseña en texto plano.
-    
-    Returns:
-        bytes: La contraseña hasheada.
-    """
-    # Generar un salt único y hashear la contraseña
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
     return hashed
 
 
 def verify_password(password: str, hashed: bytes) -> bool:
-    """
-    Verifica si una contraseña coincide con su hash.
-    
-    Args:
-        password (str): La contraseña en texto plano.
-        hashed (bytes): La contraseña hasheada previamente.
-    
-    Returns:
-        bool: True si la contraseña coincide, False si no.
-    """
     try:
         return bcrypt.checkpw(password.encode('utf-8'), hashed)
     except Exception:
         return False
 
 @user_blueprint.route("/", methods=["GET", "POST"])
+@login_required
 def index():
     if request.method == "POST":
         first_name = request.form.get("first_name")
@@ -91,6 +75,7 @@ def index():
         return "Method not allowed", 405
 
 @user_blueprint.route("/update/<int:user_id>", methods=["GET", "POST"])
+@login_required
 def update(user_id):
     user = User.query.get_or_404(user_id)
     
@@ -135,6 +120,7 @@ def update(user_id):
 
 
 @user_blueprint.route("/delete/<int:user_id>", methods=["GET", "POST"])
+@login_required
 def delete_user(user_id):
     try:
         user = User.query.get_or_404(user_id)
@@ -166,13 +152,6 @@ def delete_user(user_id):
 
 @user_blueprint.route("/search/", methods=["GET"])
 def search_users():
-    """
-    Endpoint para buscar usuarios por criterios específicos.
-    Parámetros de query:
-    - email: busca en email
-    - status: 'active' o 'inactive'
-    - role: ID del rol o nombre del rol
-    """
     try:
         email = request.args.get('email', '').strip()
         status = request.args.get('status', '').strip()
