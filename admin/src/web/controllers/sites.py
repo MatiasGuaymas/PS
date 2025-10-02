@@ -129,3 +129,88 @@ def delete(site_id):
     db.session.delete(site)
     db.session.commit()
     return redirect(url_for("sites.index"))
+
+@sites_blueprint.route("/search", methods=["GET"])
+def search():
+    # Filtros del querystring
+    site_name = request.args.get("site_name")
+    city = request.args.get("city")
+    province = request.args.get("province")
+    state_id = request.args.get("state_id")
+    tags = request.args.getlist("tags")
+    registration_from = request.args.get("registration_from")
+    registration_to = request.args.get("registration_to")
+    error_msg = None
+    active = request.args.get("active")
+    orden = request.args.get("order_by", "site_name")
+    sentido = request.args.get("sentido", "asc")
+    page = request.args.get("page", 1, type=int)
+
+    # Consulta base
+    query = Site.query
+    
+    if registration_from and registration_to:
+        try:
+            from datetime import datetime
+            date_from = datetime.strptime(registration_from, "%Y-%m-%d")
+            date_to = datetime.strptime(registration_to, "%Y-%m-%d")
+            if date_from > date_to:
+                error_msg = "La fecha 'desde' no puede ser mayor que la fecha 'hasta'."
+        except Exception:
+            error_msg = "Formato de fecha inválido."
+
+    # Filtros combinados
+    if not error_msg:
+        if site_name:
+            query = query.filter(
+                (Site.site_name.ilike(f"%{site_name}%")) |
+                (Site.short_desc.ilike(f"%{site_name}%"))
+            )
+        if city:
+            query = query.filter(Site.city.ilike(f"%{city}%"))
+        if province:
+            query = query.filter(Site.province == province)
+        if state_id:
+            query = query.filter(Site.state_id == state_id)
+        if registration_from:
+            query = query.filter(Site.registration >= registration_from)
+        if registration_to:
+            query = query.filter(Site.registration <= registration_to)
+        if active:
+            query = query.filter(Site.active == True)
+        if tags:
+            query = query.join(Site.tags).filter(Tag.id.in_(tags))
+
+    # Orden
+    if orden == "site_name":
+        order_col = Site.site_name
+    elif orden == "city":
+        order_col = Site.city
+    elif orden == "province":
+        order_col = Site.province
+    elif orden == "registration":
+        order_col = Site.registration
+    else:
+        order_col = Site.site_name
+
+    if sentido == "desc":
+        order_col = order_col.desc()
+    else:
+        order_col = order_col.asc()
+
+    if not error_msg:
+        query = query.order_by(order_col)
+        sites = query.paginate(page=page, per_page=5)
+    else:
+        sites = None
+
+    # Provincias únicas para el selector
+    provincias = [row[0] for row in db.session.query(Site.province).distinct().order_by(Site.province).all()]
+
+    return render_template(
+        "sites/list.html",
+        sites=sites,
+        filtros=request.args,
+        provincias=provincias,
+        error_msg=error_msg
+    )
