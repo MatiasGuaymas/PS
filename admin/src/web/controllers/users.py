@@ -12,32 +12,12 @@ user_blueprint = Blueprint("users", __name__, url_prefix="/users")
 
 
 def hash_password(password: str) -> bytes:
-    """
-    Hashea una contraseña usando bcrypt.
-    
-    Args:
-        password (str): La contraseña en texto plano.
-    
-    Returns:
-        bytes: La contraseña hasheada.
-    """
-    # Generar un salt único y hashear la contraseña
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
     return hashed
 
 
 def verify_password(password: str, hashed: bytes) -> bool:
-    """
-    Verifica si una contraseña coincide con su hash.
-    
-    Args:
-        password (str): La contraseña en texto plano.
-        hashed (bytes): La contraseña hasheada previamente.
-    
-    Returns:
-        bool: True si la contraseña coincide, False si no.
-    """
     try:
         return bcrypt.checkpw(password.encode('utf-8'), hashed)
     except Exception:

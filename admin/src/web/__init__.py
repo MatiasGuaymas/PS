@@ -9,6 +9,7 @@ from src.web.controllers.sites import sites_blueprint
 from src.web.controllers.tags import tags_blueprint
 from src.web.controllers.auth import bp as auth_bp
 
+import bcrypt
 import os
 from dotenv import load_dotenv
 from core import seeds
