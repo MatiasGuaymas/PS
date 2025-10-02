@@ -40,10 +40,9 @@ class FlagService:
         # Si no se encuentra
         if not feature_flag:
             return None
-        # Si es mantenimiento y esta activo, se borra el mensaje de estado, para ingresar otro al momento de activarlo nuevamente
-        if feature_flag.is_maintenance():
-            if feature_flag.is_enabled:
-                feature_flag.maintenance_message = ""
+        if feature_flag.is_maintenance and not is_enabled:
+            # Si el nuevo estado es DESACTIVADO, limpiamos el mensaje.
+            feature_flag.message = ""
         feature_flag.is_enabled = is_enabled
         feature_flag.user_id = user
         feature_flag.last_edit = datetime.now(timezone.utc)
@@ -60,13 +59,7 @@ class FlagService:
             return None
         
         flag.message = message
-
-        try:
-            db.session.commit()
-            return flag
-        except Exception as e:
-            db.session.rollback()
-            raise e
+        return flag        
         
     def create_flag(name: str, description: str, user_id: int, value: bool = True, message: Optional[str] = None) -> Flag:
         """

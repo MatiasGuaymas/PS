@@ -30,7 +30,7 @@ def toggle(flag_id):
         
         new_state = not flag.is_enabled
         # Si es de tipo mantenimiento y el nuevo estado es activado y no tiene mensaje
-        if flag.is_maintenance and new_state and not flag.has_message:
+        if flag.is_maintenance and new_state :
             message = request.form.get("message", "").strip()
             if not message:
                 flash("Debe ingresar un mensaje de mantenimiento", "error")
@@ -42,7 +42,7 @@ def toggle(flag_id):
 
         FlagService.toggle_feature_flag(flag_id, new_state, user)
         flash(
-            f"Flag '{flag.description}' cambiado a {'ON' if new_state else 'OFF'}",
+            f"Flag '{flag.name}' cambiado a {'ON' if new_state else 'OFF'}",
             "success",
         )
         return redirect(url_for("feature-flags.index"))

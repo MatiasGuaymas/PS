@@ -18,7 +18,7 @@ class Flag(db.Model):
     # Puede ser null si se carga desde seeds.
     user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
 
-    
+    @property
     #Preguntar si puedo tener methods en el modelo
     def is_maintenance(self) -> bool:
         """Determina si la flag es de mantenimiento."""
@@ -26,7 +26,7 @@ class Flag(db.Model):
              return False
         # Se asume que cualquier flag cuyo nombre contenga 'maintenance_mode' es de mantenimiento.
         return 'maintenance_mode' in self.name.lower()
-    
+    @property
     def has_message(self) -> bool:
         """Verifica si la flag tiene un mensaje configurado."""
         return bool(self.message and self.message.strip())

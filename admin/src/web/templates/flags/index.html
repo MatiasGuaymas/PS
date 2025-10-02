@@ -49,12 +49,7 @@
                     </td>
                     
                     <td>
-                        {# El mensaje solo se muestra si es de mantenimiento #}
-                        {% if is_maint %}
-                            <small class="text-muted">{{ flag.message or 'N/A' }}</small>
-                        {% else %}
-                            N/A
-                        {% endif %}
+                        <small class="text-muted">{{ flag.message or 'No hay un mensaje' }}</small>
                     </td>
                     <td>
                         <small>{{ flag.user_id or 'Sistema/Seeds' }}</small>
@@ -182,11 +177,6 @@
 
         // 3. Manejar el envío del formulario dentro del modal
         maintenanceForm.addEventListener('submit', function(event) {
-            // No hacemos nada especial aquí, simplemente dejamos que el formulario 
-            // se envíe al endpoint /toggle, que es lo que el controller espera.
-            // Si Flask lo procesa bien, hará la redirección.
-            // Si hay un error, el 'hidden.bs.modal' NO se disparará (porque la página se recarga)
-            // y la página mostrará el flash error, dejando el switch en el estado que la DB dictó (OFF).
         });
     });
 </script>
