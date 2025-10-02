@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h2>Editar Tag</h2>
+<form method="POST">
+  <div class="mb-3">
+    <label for="name" class="form-label">Nombre</label>
+    <input type="text" class="form-control" id="name" name="name" value="{{ tag.name }}" required minlength="3" maxlength="50">
+  </div>
+  <button type="submit" class="btn btn-primary">Guardar cambios</button>
+  <a href="{{ url_for('tags.index') }}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}
