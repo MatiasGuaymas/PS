@@ -1,5 +1,7 @@
 from flask import Flask
 from flask import render_template
+from flask_session import Session
+
 from web.handlers import error
 from core import database
 from web.config import config
@@ -15,6 +17,8 @@ from dotenv import load_dotenv
 from core import seeds
 
 load_dotenv()
+
+session = Session()
 
 def create_app(env = 'development', static_folder = "../../static"):
 
