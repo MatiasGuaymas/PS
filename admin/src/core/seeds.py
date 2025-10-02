@@ -15,6 +15,8 @@ from core.models.Action import Action
 from core.models.Flag import Flag
 from core.models.User import User
 
+import bcrypt
+
 
 def seed_data():
     # 1) Roles
@@ -72,9 +74,9 @@ def seed_data():
     db.session.add_all([st1, st2, st3])
 
     # 9) Users (necesitan role_id)
-    u1 = User(email='admin@example.com', first_name='Admin', last_name='Uno', password='adminpass', active=True, sysAdmin=True, role_id=r_admin.id)
-    u2 = User(email='user@example.com', first_name='Usuario', last_name='Dos', password='userpass', active=True, sysAdmin=False, role_id=r_user.id)
-    u3 = User(email='editor@example.com', first_name='Invitado', last_name='Tres', password='guestpass', active=False, sysAdmin=False, role_id=r_editor.id)
+    u1 = User(email='admin@example.com', first_name='Admin', last_name='Uno', password=bcrypt.hashpw('adminpass'.encode('utf-8'), bcrypt.gensalt()), active=True, sysAdmin=True, role_id=r_admin.id)
+    u2 = User(email='user@example.com', first_name='Usuario', last_name='Dos', password=bcrypt.hashpw('userpass'.encode('utf-8'), bcrypt.gensalt()), active=True, sysAdmin=False, role_id=r_user.id)
+    u3 = User(email='editor@example.com', first_name='Invitado', last_name='Tres', password=bcrypt.hashpw('guestpass'.encode('utf-8'), bcrypt.gensalt()), active=False, sysAdmin=False, role_id=r_editor.id)
     db.session.add_all([u1, u2, u3])
     db.session.flush()
 
@@ -92,9 +94,9 @@ def seed_data():
     db.session.add_all([act1, act2, act3])
 
     # 12) Flags (vinculadas a usuarios)
-    f1 = Flag(name='needs_attention', description='Requiere atención', value=True, message='Grieta en la fachada', user_id=u1.id)
-    f2 = Flag(name='closed', description='Cerrado temporalmente', value=False, message='Restauración', user_id=u2.id)
-    f3 = Flag(name='ok', description='En buen estado', value=True, message='Revisado recientemente', user_id=u3.id)
+    f1 = Flag(name='admin_maintenance_mode', description='Panel de administración en mantenimiento', is_enabled=False, message='Grieta en la fachada', user_id=u1.id)
+    f2 = Flag(name='portal_maintenance_mode', description='Portal en mantenimiento', is_enabled=False, message='Restauración', user_id=u1.id)
+    f3 = Flag(name='reviews_enabled', description='Habilitar reseñas de usuarios', is_enabled=True, message='etapa 2', user_id=u1.id)
     db.session.add_all([f1, f2, f3])
 
     db.session.commit()
