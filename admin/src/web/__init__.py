@@ -28,6 +28,8 @@ def create_app(env = 'development', static_folder = "../../static"):
     app.config.from_object(config[env])
 
     database.init_db(app)
+    session.init_app(app)
+
     with app.app_context():
         database.db.drop_all()
         database.db.create_all()
