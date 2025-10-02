@@ -9,8 +9,10 @@ from web.controllers.users import user_blueprint
 from web.controllers.roles import roles_blueprint
 from src.web.controllers.sites import sites_blueprint
 from src.web.controllers.tags import tags_blueprint
+from src.web.controllers.flags import feature_flag_blueprint
 from src.web.controllers.auth import bp as auth_bp
 from src.web.handlers.auth import is_authenticated
+
 
 import bcrypt
 import os
@@ -44,6 +46,7 @@ def create_app(env = 'development', static_folder = "../../static"):
     app.register_blueprint(roles_blueprint)
     app.register_blueprint(sites_blueprint)
     app.register_blueprint(tags_blueprint)
+    app.register_blueprint(feature_flag_blueprint)
     app.register_blueprint(auth_bp)
     
     app.register_error_handler(404, error.not_found)

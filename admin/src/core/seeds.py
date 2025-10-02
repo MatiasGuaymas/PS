@@ -94,9 +94,9 @@ def seed_data():
     db.session.add_all([act1, act2, act3])
 
     # 12) Flags (vinculadas a usuarios)
-    f1 = Flag(name='needs_attention', description='Requiere atención', value=True, message='Grieta en la fachada', user_id=u1.id)
-    f2 = Flag(name='closed', description='Cerrado temporalmente', value=False, message='Restauración', user_id=u2.id)
-    f3 = Flag(name='ok', description='En buen estado', value=True, message='Revisado recientemente', user_id=u3.id)
+    f1 = Flag(name='admin_maintenance_mode', description='Panel de administración en mantenimiento', is_enabled=False, message='Grieta en la fachada', user_id=u1.id)
+    f2 = Flag(name='portal_maintenance_mode', description='Portal en mantenimiento', is_enabled=False, message='Restauración', user_id=u1.id)
+    f3 = Flag(name='reviews_enabled', description='Habilitar reseñas de usuarios', is_enabled=True, message='etapa 2', user_id=u1.id)
     db.session.add_all([f1, f2, f3])
 
     db.session.commit()
