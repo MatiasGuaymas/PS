@@ -53,22 +53,64 @@ def seed_data():
     t_show = Permission(name="tag_show")
 
     # Permisos para flags
-    f_index = Permission(name='flag_index')
-    f_update = Permission(name='flag_update')
+    # f_index = Permission(name='flag_index')
+    # f_update = Permission(name='flag_update')
+    # Lo dejo comentado porque el SysAdmin no es un Rol como tal, no le puedo asignar permisos
+
+    # Permisos para la exportación
+    e_export = Permission(name='exporter_export')
 
     db.session.add_all([
         u_index, u_new, u_update, u_destroy, u_show, u_deactivate,
         s_index, s_new, s_update, s_destroy, s_show, s_export, s_history, s_restore,
         t_index, t_new, t_update, t_destroy, t_show,
-        f_index, f_update
+      #  f_index, f_update
     ])
     db.session.flush()
 
     # 3) Role-Permissions
-    rp1 = Role_permission(role_id=r_admin.id, permission_id=p_read.id)
-    rp2 = Role_permission(role_id=r_admin.id, permission_id=p_write.id)
-    rp3 = Role_permission(role_id=r_user.id, permission_id=p_read.id)
-    db.session.add_all([rp1, rp2, rp3])
+    # Role-Permissions para Administradores
+    rp_admin_user_permissions = [
+        Role_permission(role_id=r_admin.id, permission_id=u_index.id),
+        Role_permission(role_id=r_admin.id, permission_id=u_new.id),
+        Role_permission(role_id=r_admin.id, permission_id=u_update.id),
+        Role_permission(role_id=r_admin.id, permission_id=u_destroy.id),
+        Role_permission(role_id=r_admin.id, permission_id=u_show.id),
+        Role_permission(role_id=r_admin.id, permission_id=u_deactivate.id),
+        Role_permission(role_id=r_admin.id, permission_id=s_destroy.id),        
+        Role_permission(role_id=r_admin.id, permission_id=s_new.id),
+        Role_permission(role_id=r_admin.id, permission_id=s_update.id),                
+        Role_permission(role_id=r_admin.id, permission_id=t_index.id),           
+        Role_permission(role_id=r_admin.id, permission_id=t_new.id),
+        Role_permission(role_id=r_admin.id, permission_id=t_update.id),
+        Role_permission(role_id=r_admin.id, permission_id=t_destroy.id),  
+        Role_permission(role_id=r_admin.id, permission_id=t_show.id),    
+        Role_permission(role_id=r_admin.id, permission_id=e_export.id),    
+                                              
+    ]
+
+    # Role-Permissions para Editores
+    rp_editor_permissions = [
+        Role_permission(role_id=r_editor.id, permission_id=s_index.id),
+        Role_permission(role_id=r_editor.id, permission_id=s_update.id),
+        Role_permission(role_id=r_editor.id, permission_id=s_show.id),
+        Role_permission(role_id=r_admin.id, permission_id=t_index.id),           
+        Role_permission(role_id=r_admin.id, permission_id=t_new.id),
+        Role_permission(role_id=r_admin.id, permission_id=t_update.id),
+        Role_permission(role_id=r_admin.id, permission_id=t_destroy.id),  
+        Role_permission(role_id=r_admin.id, permission_id=t_show.id), 
+    ]
+
+    # Role-Permissions para Usuarios Públicos
+    rp_user_permissions = [
+        Role_permission(role_id=r_user.id, permission_id=s_index.id),
+    ]
+
+    rp_sysadmin_permissions = [
+    ]
+
+    db.session.add_all(rp_admin_user_permissions + rp_editor_permissions + rp_user_permissions)
+    db.session.flush()
 
     # 4) Categories
     c_arq = Category(name='Arquitectura')
@@ -103,6 +145,7 @@ def seed_data():
     st2 = HistoricSiteTag(site_id=site2.id, tag_id=tag2.id)
     st3 = HistoricSiteTag(site_id=site3.id, tag_id=tag3.id)
     db.session.add_all([st1, st2, st3])
+    db.session.flush()
 
     # 9) Users (necesitan role_id)
     u1 = User(email='admin@example.com', first_name='Admin', last_name='Uno', password=bcrypt.hashpw('adminpass'.encode('utf-8'), bcrypt.gensalt()), active=True, sysAdmin=True, role_id=r_admin.id)
