@@ -155,12 +155,21 @@
                                 
                                 <td class="py-3 px-4 text-center">
                                     <div class="d-flex gap-2 justify-content-center">
-                                        <button type="button" class="btn btn-warning btn-sm rounded-2 fw-semibold px-3 btn-editar" data-user-id="{{ user.id }}">
+                                        <button type="button" class="btn btn-primary btn-sm rounded-2 fw-semibold px-3 btn-editar" data-user-id="{{ user.id }}">
                                             <i class="fas fa-edit me-1"></i> Editar
                                         </button>
                                         <button type="button" class="btn btn-danger btn-sm rounded-2 fw-semibold px-3 btn-borrar" data-user-id="{{ user.id }}">
                                             <i class="fas fa-trash me-1"></i> Borrar
                                         </button>
+                                        {% if user.active %}
+                                            <button type="button" class="btn btn-warning btn-sm rounded-2 fw-semibold px-3 btn-bloquear" data-user-id="{{ user.id }}">
+                                                <i class="fas fa-trash me-1"></i> Bloquear
+                                            </button>
+                                        {% else %}
+                                          <button type="button" class="btn btn-success btn-sm rounded-2 fw-semibold px-3 btn-bloquear" data-user-id="{{ user.id }}">
+                                                <i class="fas fa-trash me-1"></i> Desbloquear
+                                            </button>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>
@@ -228,6 +237,23 @@
                             }
                         });
                     }
+                });
+            });
+
+            document.querySelectorAll('.btn-bloquear').forEach(button => {
+                button.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-user-id');
+                    
+                    fetch(`/users/deactivate/${userId}`, {
+                        method: 'POST'
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            location.reload();
+                        } else {
+                            alert('Error al bloquear el usuario. Por favor, inténtalo de nuevo.');
+                        }
+                    });
                 });
             });
         });

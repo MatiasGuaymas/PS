@@ -27,10 +27,41 @@ def seed_data():
     db.session.flush()
 
     # 2) Permissions
-    p_read = Permission(name='read')
-    p_write = Permission(name='write')
-    p_manage = Permission(name='manage')
-    db.session.add_all([p_read, p_write, p_manage])
+    # Permisos sobre Usuarios
+    u_index = Permission(name="user_index")
+    u_new = Permission(name="user_new")
+    u_update = Permission(name="user_update")
+    u_destroy = Permission(name="user_destroy")
+    u_show = Permission(name="user_show")
+    u_deactivate = Permission(name="user_deactivate")
+
+    # Permisos para sitios históricos
+    s_index = Permission(name="site_index")
+    s_new = Permission(name="site_new")
+    s_update = Permission(name="site_update")
+    s_destroy = Permission(name="site_destroy")
+    s_show = Permission(name="site_show")
+    s_export = Permission(name="site_export")
+    s_history = Permission(name="site_history")
+    s_restore = Permission(name="site_restore")
+
+    # Permisos para tags
+    t_index = Permission(name="tag_index")
+    t_new = Permission(name="tag_new")
+    t_update = Permission(name="tag_update")
+    t_destroy = Permission(name="tag_destroy")
+    t_show = Permission(name="tag_show")
+
+    # Permisos para flags
+    f_index = Permission(name='flag_index')
+    f_update = Permission(name='flag_update')
+
+    db.session.add_all([
+        u_index, u_new, u_update, u_destroy, u_show, u_deactivate,
+        s_index, s_new, s_update, s_destroy, s_show, s_export, s_history, s_restore,
+        t_index, t_new, t_update, t_destroy, t_show,
+        f_index, f_update
+    ])
     db.session.flush()
 
     # 3) Role-Permissions
