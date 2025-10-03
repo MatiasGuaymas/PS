@@ -15,11 +15,11 @@ def authenticate():
     params = request.form
     user = UserService.authenticate_user(params.get("email"), params.get("password"))
     if not user:
-        flash("Invalid credentials", "error")
+        flash("Credenciales incorrectas", "danger")
         return redirect(url_for("auth.login"))
     
     session["user"] = user.email
-    flash("Logged in successfully", "success")
+    flash("Has iniciado sesión correctamente", "success")
     return redirect(url_for("users.index"))
 
     
@@ -31,6 +31,6 @@ def logout():
         session.clear()
         flash("Has cerrado sesión correctamente.", "success")
     else:
-        flash("No hay ninguna session iniciada.", "error")
+        flash("No hay ninguna session iniciada.", "danger")
     return redirect(url_for("auth.login"))
     

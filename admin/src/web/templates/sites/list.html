@@ -79,15 +79,15 @@
 
   {% if sites and sites.total > 0 %}
   <p>{{ sites.total }} resultados encontrados.</p>
-  <table class="table table-striped">
-    <thead>
+  <table class="table table-striped table-hover align-middle">
+    <thead class="table-dark">
       <tr>
-        <th>Nombre</th>
-        <th>Ciudad</th>
-        <th>Provincia</th>
-        <th>Estado de conservación</th>
-        <th>Visibilidad</th>
-        <th>Acciones</th>
+        <th scope="col">Nombre</th>
+        <th scope="col">Ciudad</th>
+        <th scope="col">Provincia</th>
+        <th scope="col">Estado de conservación</th>
+        <th scope="col">Visibilidad</th>
+        <th scope="col">Acciones</th>
       </tr>
     </thead>
     <tbody>
@@ -96,14 +96,22 @@
         <td>{{ site.site_name }}</td>
         <td>{{ site.city }}</td>
         <td>{{ site.province }}</td>
-        <td>{{ site.state.name if site.state else '' }}</td>
-        <td>{% if site.active %}<span class="badge bg-success">Visible</span>{% else %}<span class="badge bg-secondary">Oculto</span>{% endif %}</td>
+        <td>{{ site.state.name if site.state else 'N/A' }}</td>
         <td>
-          <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-info btn-sm">Ver</a>
-          <a href="{{ url_for('sites.edit', site_id=site.id) }}" class="btn btn-warning btn-sm">Editar</a>
-          <form method="POST" action="{{ url_for('sites.delete', site_id=site.id) }}" style="display:inline;">
-            <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
-          </form>
+          {% if site.active %}
+          <span class="badge bg-success">Visible</span>
+          {% else %}
+          <span class="badge bg-secondary">Oculto</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="btn-group" role="group">
+            <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-info btn-sm">Ver</a>
+            <a href="{{ url_for('sites.edit', site_id=site.id) }}" class="btn btn-warning btn-sm">Editar</a>
+            <form method="POST" action="{{ url_for('sites.delete', site_id=site.id) }}" style="display:inline;">
+              <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+            </form>
+          </div>
         </td>
       </tr>
       {% endfor %}

@@ -73,12 +73,6 @@ footer {
     padding: 10px 0;
 }
 
-.card {
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    background-color: var(--bs-surface);
-    color: var(--bs-on-surface);
-}
-
 header .header-right .dropdown-toggle {
     color: white; 
     background-color: transparent; 
@@ -97,11 +91,17 @@ button {
     color: var(--bs-on-primary);
 }
 
-button:hover {
-    background-color: var(--bs-primary-variant);
-}
-
 .alert {
     background-color: var(--bs-error);
     color: var(--bs-on-error);
+}
+
+.alert-success {
+    background-color: #198754; /* Green */
+    color: #FFFFFF; /* White text */
+}
+
+.alert-danger {
+    background-color: #dc3545; /* Red */
+    color: #FFFFFF; /* White text */
 }

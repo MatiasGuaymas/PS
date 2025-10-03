@@ -215,7 +215,7 @@ def deactivate_user(user_id):
         user = User.query.get_or_404(user_id);
 
         if(user.role_id == 1):
-            flash("No se puede bloquear el usuario de un administrador", "error");
+            flash("No se puede bloquear el usuario de un administrador", "danger");
             return redirect(url_for("users.index"));
         
         user.active = not user.active;
