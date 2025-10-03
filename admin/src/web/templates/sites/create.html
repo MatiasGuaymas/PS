@@ -3,6 +3,12 @@
 {% block content %}
 <h2>Registrar Sitio Histórico</h2>
 
+{% if error %}
+<div class="alert alert-danger" role="alert">
+  <i class="bi bi-exclamation-triangle"></i> {{ error }}
+</div>
+{% endif %}
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <form method="POST" action="{{ url_for('sites.create') }}">
@@ -27,7 +33,7 @@
     <input type="text" class="form-control" id="province" name="province" required>
   </div>
   <div class="mb-3">
-    <label for="location" class="form-label">Ubicación</label>
+    <label for="location" class="form-label">Ubicación <span class="text-danger">*</span></label>
     <div id="map" style="height: 400px; width: 100%; border: 1px solid #ccc;"></div>
     <div class="mt-2">
       <small class="text-muted">Haz clic en el mapa para seleccionar la ubicación</small>
@@ -37,6 +43,9 @@
     <div class="mt-2">
       <span class="badge bg-info">Latitud: <span id="lat-display">No seleccionada</span></span>
       <span class="badge bg-info ms-2">Longitud: <span id="lon-display">No seleccionada</span></span>
+    </div>
+    <div id="coords-error" class="text-danger mt-1" style="display: none;">
+      <i class="bi bi-exclamation-triangle"></i> Debe seleccionar una ubicación en el mapa
     </div>
   </div>
   <div class="mb-3">
@@ -70,13 +79,23 @@
   </div>
   <div class="mb-3">
     <label for="tags" class="form-label">Etiquetas</label>
-    <select class="form-control" id="tags" name="tags" multiple>
+    <div id="tags-container" class="tags-multiselect" style="border: 1px solid #4b0082; border-radius: 4px; padding: 8px; min-height: 120px; background-color: #2d2d2d; max-height: 200px; overflow-y: auto;">
       {% for tag in tags %}
-        <option value="{{ tag.id }}">{{ tag.name }}</option>
+        <div class="tag-option" data-value="{{ tag.id }}" style="padding: 6px 12px; margin: 2px; background-color: #3d3d3d; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: inline-block;">
+          {{ tag.name }}
+        </div>
       {% endfor %}
-    </select>
+    </div>
+    <input type="hidden" id="tags" name="tags" value="">
+    <small class="form-text text-muted">
+      <i class="bi bi-info-circle"></i> 
+      Haz clic en las etiquetas para seleccionarlas. Las seleccionadas se verán resaltadas.
+    </small>
   </div>
-  <button type="submit" class="btn btn-primary">Registrar</button>
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary">Registrar</button>
+    <a href="{{ url_for('sites.index') }}" class="btn btn-secondary">Cancelar</a>
+  </div>
 </form>
 
 
@@ -111,6 +130,10 @@ map.on('click', function(e) {
         map.removeLayer(marker);
     }
     marker = L.marker([lat, lon]).addTo(map);
+    
+    // Ocultar mensaje de error si estaba visible
+    document.getElementById('coords-error').style.display = 'none';
+    document.getElementById('map').style.borderColor = '#ccc';
 });
 
 // Función para centrar en ubicación actual
@@ -137,7 +160,91 @@ document.addEventListener('DOMContentLoaded', function() {
     locationBtn.onclick = getCurrentLocation;
     
     document.getElementById('map').parentNode.appendChild(locationBtn);
+    
+    // Inicializar selección múltiple de tags
+    initializeTagSelection();
+    
+    // Validación del formulario antes del envío
+    var form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        var latInput = document.getElementById('latitude');
+        var lonInput = document.getElementById('longitude');
+        
+        // Verificar si se han seleccionado coordenadas
+        if (!latInput.value || !lonInput.value) {
+            e.preventDefault();
+            document.getElementById('coords-error').style.display = 'block';
+            document.getElementById('map').style.borderColor = '#dc3545';
+            return false;
+        } else {
+            document.getElementById('coords-error').style.display = 'none';
+            document.getElementById('map').style.borderColor = '#ccc';
+        }
+        
+        // Verificar que las coordenadas sean válidas
+        try {
+            var lat = parseFloat(latInput.value);
+            var lon = parseFloat(lonInput.value);
+            
+            if (isNaN(lat) || isNaN(lon)) {
+                e.preventDefault();
+                alert('Las coordenadas seleccionadas no son válidas.');
+                return false;
+            }
+            
+            if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                e.preventDefault();
+                alert('Las coordenadas seleccionadas están fuera del rango válido.');
+                return false;
+            }
+        } catch (error) {
+            e.preventDefault();
+            alert('Error al validar las coordenadas.');
+            return false;
+        }
+    });
 });
+
+// Función para inicializar la selección múltiple de tags
+function initializeTagSelection() {
+    const tagOptions = document.querySelectorAll('.tag-option');
+    const hiddenInput = document.getElementById('tags');
+    const selectedTags = new Set();
+    
+    tagOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            const value = this.getAttribute('data-value');
+            
+            if (selectedTags.has(value)) {
+                // Deseleccionar
+                selectedTags.delete(value);
+                this.style.backgroundColor = '#3d3d3d';
+                this.style.border = 'none';
+            } else {
+                // Seleccionar
+                selectedTags.add(value);
+                this.style.backgroundColor = '#6a0dad';
+                this.style.border = '2px solid #bb86fc';
+            }
+            
+            // Actualizar input hidden con los valores seleccionados
+            hiddenInput.value = Array.from(selectedTags).join(',');
+        });
+        
+        // Estilo hover
+        option.addEventListener('mouseenter', function() {
+            if (!selectedTags.has(this.getAttribute('data-value'))) {
+                this.style.backgroundColor = '#4d4d4d';
+            }
+        });
+        
+        option.addEventListener('mouseleave', function() {
+            if (!selectedTags.has(this.getAttribute('data-value'))) {
+                this.style.backgroundColor = '#3d3d3d';
+            }
+        });
+    });
+}
 </script>
 
 {% endblock %}
