@@ -147,5 +147,137 @@ footer {
     font-size: 1rem;
     border-top: 2px solid #4b0082;
     letter-spacing: 1px;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.5);
+}
+
+/* Estilos para el selector de tags */
+.tags-multiselect {
+    background-color: #2d2d2d;
+    border: 1px solid #4b0082;
+    border-radius: 4px;
+    padding: 8px;
+    min-height: 120px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.tag-option {
+    padding: 6px 12px;
+    margin: 2px;
+    background-color: #3d3d3d;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-block;
+    color: #e0e0e0;
+    font-size: 0.9rem;
+}
+
+.tag-option:hover {
+    background-color: #4d4d4d;
+}
+
+.tag-option.selected {
+    background-color: #6a0dad;
+    border: 2px solid #bb86fc;
+    color: #fff;
+}
+
+.form-text {
+    color: #bbb !important;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.bi-info-circle {
+    color: #bb86fc;
+}
+
+/* Estilos para badges de tags en la vista de detalle */
+.badge {
+    background-color: #6a0dad !important;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: normal;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    display: inline-block;
+}
+
+.badge:hover {
+    background-color: #4b0082 !important;
+    text-decoration: none;
+}
+
+.text-muted {
+    color: #bbb !important;
+    font-style: italic;
+}
+
+/* Estilos para tablas */
+.table {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.table th,
+.table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #4b0082;
+}
+
+.table th {
+    background-color: #3d3d3d;
+    color: #fff;
+    font-weight: bold;
+}
+
+.table tbody tr:hover {
+    background-color: #3d3d3d;
+}
+
+.table a {
+    color: #bb86fc;
+    text-decoration: none;
+    margin-right: 10px;
+}
+
+.table a:hover {
+    color: #fff;
+    text-decoration: underline;
+}
+
+.btn-success {
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    color: #fff;
+    text-decoration: none;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: #fff;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.5);
 }
