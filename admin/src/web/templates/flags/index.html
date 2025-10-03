@@ -6,17 +6,7 @@
 <div class="container mt-5">
     <h1 class="mb-4 text-center">Gestión de Feature Flags</h1>
 
-    {# Bloque para mostrar los mensajes flash #}
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
-                    {{ message | safe }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+   
 
     <div class="table-responsive">
         <table class="table table-bordered table-striped table-hover align-middle">
