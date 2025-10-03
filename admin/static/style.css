@@ -1,15 +1,21 @@
 :root {
-    --bs-primary: #800020;
-    --bs-secondary: #a52a2a;
-    --bs-dark: #4b0000;
-    --bs-light: #2c2c2c;
-    --bs-gray: #e0e0e0;
+    --bs-primary: #BB86FC; /* Primary */
+    --bs-primary-variant: #3700B3; /* Primary Variant */
+    --bs-secondary: #03DAC6; /* Secondary */
+    --bs-background: #121212; /* Background */
+    --bs-surface: #121212; /* Surface */
+    --bs-error: #CF6679; /* Error */
+    --bs-on-primary: #000000; /* On Primary */
+    --bs-on-secondary: #000000; /* On Secondary */
+    --bs-on-background: #FFFFFF; /* On Background */
+    --bs-on-surface: #FFFFFF; /* On Surface */
+    --bs-on-error: #000000; /* On Error */
 }
 
 body {
     font-family: 'Poppins', Arial, sans-serif;
-    background-color: var(--bs-light);
-    color: white;
+    background-color: var(--bs-background);
+    color: var(--bs-on-background);
     line-height: 1.6;
     margin-bottom: 70px;
 }
@@ -20,7 +26,8 @@ body {
     bottom: 0;
     left: 0;
     width: 80px;
-    background-color: var(--bs-dark);
+    background-color: var(--bs-surface);
+    color: var(--bs-on-surface);
     z-index: 1020;
     overflow-y: auto;
     scrollbar-width: none;
@@ -37,8 +44,8 @@ body {
 }
 
 header {
-    background: var(--bs-dark);
-    color: white;
+    background-color: var(--bs-surface);
+    color: var(--bs-on-surface);
     border-bottom: 2px solid var(--bs-primary);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
     position: fixed;
@@ -53,8 +60,8 @@ header {
 }
 
 footer {
-    background: var(--bs-dark);
-    color: var(--bs-gray);
+    background-color: var(--bs-surface);
+    color: var(--bs-on-surface);
     border-top: 2px solid var(--bs-primary);
     box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.5);
     position: relative;
@@ -68,7 +75,8 @@ footer {
 
 .card {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    background-color: var(--bs-light);
+    background-color: var(--bs-surface);
+    color: var(--bs-on-surface);
 }
 
 header .header-right .dropdown-toggle {
@@ -82,4 +90,18 @@ header .header-right .dropdown-toggle {
 
 header .header-right .dropdown-toggle:hover {
     text-decoration: underline;
+}
+
+button {
+    background-color: var(--bs-primary);
+    color: var(--bs-on-primary);
+}
+
+button:hover {
+    background-color: var(--bs-primary-variant);
+}
+
+.alert {
+    background-color: var(--bs-error);
+    color: var(--bs-on-error);
 }

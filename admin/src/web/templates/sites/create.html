@@ -1,75 +1,87 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<h2>Registrar Sitio Histórico</h2>
-<form method="POST" action="{{ url_for('sites.index') }}">
-  <div class="mb-3">
-    <label for="site_name" class="form-label">Nombre del sitio</label>
-    <input type="text" class="form-control" id="site_name" name="site_name" required>
-  </div>
-  <div class="mb-3">
-    <label for="short_desc" class="form-label">Descripción breve</label>
-    <input type="text" class="form-control" id="short_desc" name="short_desc" required>
-  </div>
-  <div class="mb-3">
-    <label for="full_desc" class="form-label">Descripción completa</label>
-    <textarea class="form-control" id="full_desc" name="full_desc" required></textarea>
-  </div>
-  <div class="mb-3">
-    <label for="city" class="form-label">Ciudad</label>
-    <input type="text" class="form-control" id="city" name="city" required>
-  </div>
-  <div class="mb-3">
-    <label for="province" class="form-label">Provincia</label>
-    <input type="text" class="form-control" id="province" name="province" required>
-  </div>
-  <div class="mb-3">
-    <label for="latitude" class="form-label">Latitud</label>
-    <input type="text" class="form-control" id="latitude" name="latitude" required>
-  </div>
-  <div class="mb-3">
-    <label for="longitude" class="form-label">Longitud</label>
-    <input type="text" class="form-control" id="longitude" name="longitude" required>
-  </div>
-  <div class="mb-3">
-    <label for="state_id" class="form-label">Estado de conservación</label>
-    <select class="form-control" id="state_id" name="state_id" required>
-      <option value="">Seleccionar...</option>
-      <option value="1">Bueno</option>
-      <option value="2">Regular</option>
-      <option value="3">Malo</option>
-    </select>
-  </div>
-  <div class="mb-3">
-    <label for="operning_year" class="form-label">Año de inauguración</label>
-    <input type="number" class="form-control" id="operning_year" name="operning_year" required>
-  </div>
-  <div class="mb-3">
-    <label for="category_id" class="form-label">Categoría</label>
-    <select class="form-control" id="category_id" name="category_id" required>
-      <option value="">Seleccionar...</option>
-      <option value="1">Arquitectura</option>
-      <option value="2">Infraestructura</option>
-      <option value="3">Sitio arqueológico</option>
-      <!-- Agrega más categorías según tu base de datos -->
-    </select>
-  </div>
-  <div class="mb-3">
-    <label for="active" class="form-label">¿Visible en el portal?</label>
-    <select class="form-control" id="active" name="active" required>
-      <option value="true">Sí</option>
-      <option value="false">No</option>
-    </select>
-  </div>
-  <!-- Etiquetas (puedes mejorar esto con un multiselect en el futuro) -->
-  <div class="mb-3">
-    <label for="tags" class="form-label">Etiquetas</label>
-    <select class="form-control" id="tags" name="tags" multiple>
-      {% for tag in tags %}
-        <option value="{{ tag.id }}">{{ tag.name }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <button type="submit" class="btn btn-primary">Registrar</button>
-</form>
+<div class="container py-5">
+    <h2 class="text-center mb-4">Registrar Sitio Histórico</h2>
+    <form method="POST" action="{{ url_for('sites.index') }}" class="bg-dark text-light p-4 rounded-3 shadow-lg">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="site_name" class="form-label">Nombre del sitio</label>
+                <input type="text" class="form-control" id="site_name" name="site_name" required>
+            </div>
+            <div class="col-md-6">
+                <label for="short_desc" class="form-label">Descripción breve</label>
+                <input type="text" class="form-control" id="short_desc" name="short_desc" required>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="full_desc" class="form-label">Descripción completa</label>
+            <textarea class="form-control" id="full_desc" name="full_desc" required></textarea>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="city" class="form-label">Ciudad</label>
+                <input type="text" class="form-control" id="city" name="city" required>
+            </div>
+            <div class="col-md-6">
+                <label for="province" class="form-label">Provincia</label>
+                <input type="text" class="form-control" id="province" name="province" required>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="latitude" class="form-label">Latitud</label>
+                <input type="text" class="form-control" id="latitude" name="latitude" required>
+            </div>
+            <div class="col-md-6">
+                <label for="longitude" class="form-label">Longitud</label>
+                <input type="text" class="form-control" id="longitude" name="longitude" required>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="state_id" class="form-label">Estado de conservación</label>
+                <select class="form-select" id="state_id" name="state_id" required>
+                    <option value="">Seleccionar...</option>
+                    <option value="1">Bueno</option>
+                    <option value="2">Regular</option>
+                    <option value="3">Malo</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="operning_year" class="form-label">Año de inauguración</label>
+                <input type="number" class="form-control" id="operning_year" name="operning_year" required>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="category_id" class="form-label">Categoría</label>
+                <select class="form-select" id="category_id" name="category_id" required>
+                    <option value="">Seleccionar...</option>
+                    <option value="1">Arquitectura</option>
+                    <option value="2">Infraestructura</option>
+                    <option value="3">Sitio arqueológico</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="active" class="form-label">¿Visible en el portal?</label>
+                <select class="form-select" id="active" name="active" required>
+                    <option value="true">Sí</option>
+                    <option value="false">No</option>
+                </select>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label for="tags" class="form-label">Etiquetas</label>
+            <select class="form-select" id="tags" name="tags" multiple>
+                {% for tag in tags %}
+                    <option value="{{ tag.id }}">{{ tag.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary">Registrar</button>
+        </div>
+    </form>
+</div>
 {% endblock %}

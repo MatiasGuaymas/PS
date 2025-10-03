@@ -3,10 +3,9 @@
 {% block title %}Panel de Feature Flags{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <h1 class="mb-4 text-center">Gestión de Feature Flags</h1>
+<div class="container py-5">
+    <h1 class="text-center mb-4">Gestión de Feature Flags</h1>
 
-    {# Bloque para mostrar los mensajes flash #}
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
@@ -19,27 +18,23 @@
     {% endwith %}
 
     <div class="table-responsive">
-        <table class="table table-bordered table-striped table-hover align-middle">
+        <table class="table table-dark table-striped table-hover align-middle">
             <thead class="table-dark">
                 <tr>
-                    <th>Nombre</th>
-                    <th>Descripción</th>
-                    <th class="text-center">Estado</th>
-                    <th class="text-center">Mensaje (si aplica)</th>
-                    <th>ID Usuario</th>
-                    <th class="text-center">Toggle</th>
+                    <th scope="col">Nombre</th>
+                    <th scope="col">Descripción</th>
+                    <th scope="col" class="text-center">Estado</th>
+                    <th scope="col" class="text-center">Mensaje (si aplica)</th>
+                    <th scope="col">ID Usuario</th>
+                    <th scope="col" class="text-center">Toggle</th>
                 </tr>
             </thead>
             <tbody>
                 {% for flag in flags %}
-                
-                {% set is_maint = flag.is_maintenance %} 
-                
+                {% set is_maint = flag.is_maintenance %}
                 <tr id="flag-row-{{ flag.id }}" class="{{ 'table-warning' if flag.is_enabled and is_maint else '' }}">
                     <td><strong>{{ flag.name }}</strong></td>
                     <td>{{ flag.description }}</td>
-                    
-                    {# Estado en verde/rojo #}
                     <td class="text-center">
                         {% if flag.is_enabled %}
                             <span class="badge bg-success">ACTIVO</span>
@@ -47,15 +42,12 @@
                             <span class="badge bg-danger">INACTIVO</span>
                         {% endif %}
                     </td>
-                    
                     <td>
-                        <small class="text-muted">{{ flag.message or 'No hay un mensaje' }}</small>
+                        <small>{{ flag.message or 'No hay un mensaje' }}</small>
                     </td>
                     <td>
                         <small>{{ flag.user_id or 'Sistema/Seeds' }}</small>
                     </td>
-
-                    {# Toggle de Acción #}
                     <td class="text-center">
                         <div class="form-check form-switch d-inline-block">
                             <input 
@@ -77,14 +69,11 @@
     </div>
 </div>
 
-{# ... El modal  ... #}
 <div class="modal fade" id="maintenanceModal" tabindex="-1" aria-labelledby="maintenanceModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <form id="maintenance-form" method="POST">
-                {# Campo oculto para asegurar que el JS sepa qué switch revertir #}
                 <input type="hidden" id="modal-current-flag-id" name="flag_id_in_modal" value=""> 
-
                 <div class="modal-header bg-warning text-dark">
                     <h5 class="modal-title" id="maintenanceModalLabel">Activar Modo Mantenimiento</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -98,7 +87,6 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    {# Botón para cancelar y revertir el switch #}
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-warning">Activar y Guardar Mensaje</button>
                 </div>

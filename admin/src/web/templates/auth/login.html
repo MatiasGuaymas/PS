@@ -4,8 +4,8 @@
 
 {% block content %}
 <div class="d-flex justify-content-center align-items-center">
-    <div class="card shadow-sm">
-        <div class="card-body bg-light">
+    <div class="card" style="border-color: #BB86FC;">
+        <div class="card-body">
             <h1 class="card-title text-center mb-4">Iniciar Sesión</h1>
             <form action="{{ url_for('auth.authenticate') }}" method="post">
                 <div class="mb-3">

@@ -117,6 +117,7 @@
                                             <i class="fas fa-user me-1"></i> Unknown
                                         </span>
                                     {% endif %}
+<<<<<<< HEAD
                                 {% endif %}
                             </td>
                             <td class="py-3 px-4 text-center">
@@ -133,6 +134,52 @@
                         {% endfor %}
                     </tbody>
                 </table>
+=======
+                                </td>
+                                
+                                <td class="py-3 px-4 text-center">
+                                    {# Mostrar el rol asociado si existe #}
+                                    {% if user.role %}
+                                        <span class="badge text-bg-info py-2 px-3 text-dark">{{ user.role.name }}</span>
+                                    {% else %}
+                                        {# Fallback: si no hay rol, indicar admin o usuario según sys_admin #}
+                                        {% if user.sys_admin %}
+                                            <span class="badge text-bg-warning py-2 px-3 text-dark">
+                                                <i class="fas fa-crown me-1"></i> SystemAdmin
+                                            </span>
+                                        {% else %}
+                                            <span class="badge text-bg-secondary py-2 px-3">
+                                                <i class="fas fa-user me-1"></i> Unknown
+                                            </span>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                                
+                                <td class="py-3 px-4 text-center">
+                                    <div class="d-flex gap-2 justify-content-center">
+                                        <button type="button" class="btn btn-primary btn-sm rounded-2 fw-semibold px-3 btn-editar" data-user-id="{{ user.id }}">
+                                            <i class="fas fa-edit me-1"></i> Editar
+                                        </button>
+                                        <button type="button" class="btn btn-danger btn-sm rounded-2 fw-semibold px-3 btn-borrar" data-user-id="{{ user.id }}">
+                                            <i class="fas fa-trash me-1"></i> Borrar
+                                        </button>
+                                        {% if user.active %}
+                                            <button type="button" class="btn btn-warning btn-sm rounded-2 fw-semibold px-3 btn-bloquear" data-user-id="{{ user.id }}">
+                                                <i class="fas fa-trash me-1"></i> Bloquear
+                                            </button>
+                                        {% else %}
+                                          <button type="button" class="btn btn-success btn-sm rounded-2 fw-semibold px-3 btn-bloquear" data-user-id="{{ user.id }}">
+                                                <i class="fas fa-trash me-1"></i> Desbloquear
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+>>>>>>> feat/bloqueoUsuarios-roles-permisos
             </div>
         </div>
     </div>
@@ -197,6 +244,23 @@
                             }
                         });
                     }
+                });
+            });
+
+            document.querySelectorAll('.btn-bloquear').forEach(button => {
+                button.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-user-id');
+                    
+                    fetch(`/users/deactivate/${userId}`, {
+                        method: 'POST'
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            location.reload();
+                        } else {
+                            alert('Error al bloquear el usuario. Por favor, inténtalo de nuevo.');
+                        }
+                    });
                 });
             });
         });
