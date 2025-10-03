@@ -228,3 +228,24 @@ def search_users():
             'success': False,
             'error': str(e)
         }), 500
+    
+@user_blueprint.route("/deactivate/<int:user_id>", methods=["GET", "POST"])
+@login_required
+def deactivate_user(user_id):
+    try:
+        user = User.query.get_or_404(user_id);
+
+        if(user.role_id == 1):
+            flash("No se puede bloquear el usuario de un administrador", "danger");
+            return redirect(url_for("users.index"));
+        
+        user.active = not user.active;
+
+        db.session.commit();
+        
+        return redirect(url_for('users.index'));
+        
+    except Exception as e:
+        db.session.rollback();
+        print(f"Error al bloquear el usuario: {e}");
+        return f"Error al bloquear el usuario: {str(e)}", 500;

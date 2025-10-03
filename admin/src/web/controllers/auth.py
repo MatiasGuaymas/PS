@@ -42,6 +42,6 @@ def logout():
         session.clear()
         flash("Has cerrado sesión correctamente.", "success")
     else:
-        flash("No hay ninguna session iniciada.", "error")
+        flash("No hay ninguna session iniciada.", "danger")
     return redirect(url_for("auth.login"))
     
