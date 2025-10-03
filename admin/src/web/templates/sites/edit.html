@@ -74,14 +74,23 @@
   </div>
   <div class="mb-3">
     <label for="tags" class="form-label">Etiquetas</label>
-    <select class="form-control" id="tags" name="tags" multiple>
+    <div id="tags-container" class="tags-multiselect" style="border: 1px solid #4b0082; border-radius: 4px; padding: 8px; min-height: 120px; background-color: #2d2d2d; max-height: 200px; overflow-y: auto;">
       {% for tag in tags %}
-        <option value="{{ tag.id }}"
-          {% if selected_tag_ids is defined and tag.id in selected_tag_ids %}selected{% endif %}>
+        <div class="tag-option" data-value="{{ tag.id }}" 
+             {% if selected_tag_ids is defined and tag.id in selected_tag_ids %}
+             style="padding: 6px 12px; margin: 2px; background-color: #6a0dad; border: 2px solid #bb86fc; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: inline-block;"
+             {% else %}
+             style="padding: 6px 12px; margin: 2px; background-color: #3d3d3d; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: inline-block;"
+             {% endif %}>
           {{ tag.name }}
-        </option>
+        </div>
       {% endfor %}
-    </select>
+    </div>
+    <input type="hidden" id="tags" name="tags" value="{% if selected_tag_ids is defined %}{{ selected_tag_ids | join(',') }}{% endif %}">
+    <small class="form-text text-muted">
+      <i class="bi bi-info-circle"></i> 
+      Haz clic en las etiquetas para seleccionarlas. Las seleccionadas se verán resaltadas.
+    </small>
   </div>
   <button type="submit" class="btn btn-primary">Guardar cambios</button>
 </form>
@@ -162,6 +171,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Inicializar selección múltiple de tags
+    initializeTagSelection();
+    
     // Asegurar sincronización antes de enviar
     var form = document.getElementById('edit-form');
     form.addEventListener('submit', function() {
@@ -186,6 +198,57 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// Función para inicializar la selección múltiple de tags
+function initializeTagSelection() {
+    const tagOptions = document.querySelectorAll('.tag-option');
+    const hiddenInput = document.getElementById('tags');
+    const selectedTags = new Set();
+    
+    // Cargar tags ya seleccionados
+    const initialValue = hiddenInput.value;
+    if (initialValue) {
+        initialValue.split(',').forEach(value => {
+            if (value.trim()) {
+                selectedTags.add(value.trim());
+            }
+        });
+    }
+    
+    tagOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            const value = this.getAttribute('data-value');
+            
+            if (selectedTags.has(value)) {
+                // Deseleccionar
+                selectedTags.delete(value);
+                this.style.backgroundColor = '#3d3d3d';
+                this.style.border = 'none';
+            } else {
+                // Seleccionar
+                selectedTags.add(value);
+                this.style.backgroundColor = '#6a0dad';
+                this.style.border = '2px solid #bb86fc';
+            }
+            
+            // Actualizar input hidden con los valores seleccionados
+            hiddenInput.value = Array.from(selectedTags).join(',');
+        });
+        
+        // Estilo hover
+        option.addEventListener('mouseenter', function() {
+            if (!selectedTags.has(this.getAttribute('data-value'))) {
+                this.style.backgroundColor = '#4d4d4d';
+            }
+        });
+        
+        option.addEventListener('mouseleave', function() {
+            if (!selectedTags.has(this.getAttribute('data-value'))) {
+                this.style.backgroundColor = '#3d3d3d';
+            }
+        });
+    });
+}
 </script>
 
 {% endblock %}
