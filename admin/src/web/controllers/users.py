@@ -40,11 +40,19 @@ def index():
 
         #Validaciones basicas agregar handlers
         if not first_name or not last_name or not email or not password:
-            return "Missing required fields", 400
+            flash("Faltan campos obligatorios", "error")
+            users = User.query.all()
+            return render_template("users/index.html", users=users), 400
+            
         if User.query.filter_by(email=email).first():
-            return "Email already exists", 400
+            flash("El email ya existe en el sistema", "error")
+            users = User.query.all()
+            return render_template("users/index.html", users=users), 400
+            
         if len(password) < 8:
-            return "Password too short", 400
+            flash("La contraseña debe tener al menos 8 caracteres", "error")
+            users = User.query.all()
+            return render_template("users/index.html", users=users), 400
         
 
         # Crear una nueva instancia de la clase User con los datos recibidos
@@ -60,13 +68,9 @@ def index():
         db.session.add(new_user)
         db.session.commit()
         
-        users = User.query.all()
+        flash(f"Usuario {first_name} {last_name} creado exitosamente", "success")
+        return redirect(url_for('users.index'))
         
-        
-
-        return render_template(
-            "users/index.html", users=users
-        ),201
     elif request.method == "GET":
         users = User.query.all()
         return render_template(
@@ -93,11 +97,13 @@ def update(user_id):
         role_id = request.form.get("role_id")
         
         if not first_name or not last_name or not email:
-            return "Missing required fields", 400
+            flash("Faltan campos obligatorios", "error")
+            return render_template("users/update.html", user=user)
             
         existing_user = User.query.filter_by(email=email).first()
         if existing_user and existing_user.id != user_id:
-            return "Email already exists", 400
+            flash("El email ya existe en el sistema", "error")
+            return render_template("users/update.html", user=user)
         
         user.first_name = first_name
         user.last_name = last_name
@@ -108,10 +114,11 @@ def update(user_id):
         if password and len(password) >= 8:
             user.password = hash_password(password)
         elif password and len(password) < 8:
-            return "Password too short", 400
+            flash("La contraseña debe tener al menos 8 caracteres", "error")
+            return render_template("users/update.html", user=user)
         
         db.session.commit()
-
+        flash(f"Usuario {user.first_name} {user.last_name} actualizado exitosamente", "success")
         return redirect(url_for('users.index'))
     
     else:
@@ -121,16 +128,19 @@ def update(user_id):
 
 @user_blueprint.route("/delete/<int:user_id>", methods=["GET", "POST"])
 @login_required
-@require_role(['Administrador'])
+@require_role(['Administrador', 'Editor'])
 def delete_user(user_id):
     try:
         user = User.query.get_or_404(user_id)
 
-        if(user.sysAdmin):
-            return "No puedes eliminar un usuario administrador del sistema", 403
-        
         if(user.id == session.get("user_id")):
-            return "No puedes eliminar tu propio usuario", 403
+            flash("No puedes eliminar tu propio usuario", "error")
+            return redirect(url_for('users.index'))
+
+        if(user.sysAdmin):
+            flash("No puedes eliminar un usuario administrador del sistema", "error")
+            return redirect(url_for('users.index'))
+        
         
         db.session.execute(text("""
             DELETE FROM actions 
@@ -150,12 +160,14 @@ def delete_user(user_id):
         db.session.delete(user)
         db.session.commit()
         
+        flash(f"Usuario {user.first_name} {user.last_name} eliminado exitosamente", "success")
         return redirect(url_for('users.index'))
         
     except Exception as e:
         db.session.rollback()
         print(f"Error al eliminar usuario: {e}")
-        return f"Error al eliminar usuario: {str(e)}", 500
+        flash(f"Error al eliminar usuario: {str(e)}", "error")
+        return redirect(url_for('users.index'))
 
 @user_blueprint.route("/search/", methods=["GET"])
 @login_required
