@@ -15,12 +15,16 @@ def authenticate():
     params = request.form
     user = UserService.authenticate_user(params.get("email"), params.get("password"))
     if not user:
-        flash("Invalid credentials", "error")
+        flash("Credenciales invalidas", "error")
         return redirect(url_for("auth.login"))
     
     session["user"] = user.email
-    flash("Logged in successfully", "success")
-    return redirect(url_for("users.index"))
+    session["role_name"] = user.role.name if user.role else "No Role"
+    session["is_admin"] = user.sysAdmin
+    session["role_id"] = user.role.id if user.role else None
+
+    flash("Has iniciado sesión correctamente", "success")
+    return redirect(url_for("home"))
 
     
 

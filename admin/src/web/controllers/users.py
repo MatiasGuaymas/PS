@@ -6,7 +6,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy import text
 from core.models.Role import Role
 from src.web.handlers.auth import is_authenticated
-from src.web.handlers.auth import login_required
+from src.web.handlers.auth import login_required, require_role
 import bcrypt
 import bcrypt
 
@@ -28,6 +28,7 @@ def verify_password(password: str, hashed: bytes) -> bool:
 
 @user_blueprint.route("/", methods=["GET", "POST"])
 @login_required
+@require_role(['Administrador', 'Editor'])
 def index():
     if request.method == "POST":
         first_name = request.form.get("first_name")
@@ -76,6 +77,7 @@ def index():
 
 @user_blueprint.route("/update/<int:user_id>", methods=["GET", "POST"])
 @login_required
+@require_role(['Administrador', 'Editor'])
 def update(user_id):
     user = User.query.get_or_404(user_id)
     
@@ -89,7 +91,6 @@ def update(user_id):
         password = request.form.get("password")
         active = request.form.get("active") == "true"
         role_id = request.form.get("role_id")
-        sys_admin = request.form.get("sysAdmin") == "true"
         
         if not first_name or not last_name or not email:
             return "Missing required fields", 400
@@ -103,7 +104,6 @@ def update(user_id):
         user.email = email
         user.active = active
         user.role_id = role_id if role_id else None
-        user.sysAdmin = sys_admin
         
         if password and len(password) >= 8:
             user.password = hash_password(password)
@@ -121,9 +121,16 @@ def update(user_id):
 
 @user_blueprint.route("/delete/<int:user_id>", methods=["GET", "POST"])
 @login_required
+@require_role(['Administrador'])
 def delete_user(user_id):
     try:
         user = User.query.get_or_404(user_id)
+
+        if(user.sysAdmin):
+            return "No puedes eliminar un usuario administrador del sistema", 403
+        
+        if(user.id == session.get("user_id")):
+            return "No puedes eliminar tu propio usuario", 403
         
         db.session.execute(text("""
             DELETE FROM actions 
@@ -151,6 +158,8 @@ def delete_user(user_id):
         return f"Error al eliminar usuario: {str(e)}", 500
 
 @user_blueprint.route("/search/", methods=["GET"])
+@login_required
+@require_role(['Administrador', 'Editor'])
 def search_users():
     try:
         email = request.args.get('email', '').strip()
