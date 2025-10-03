@@ -1,10 +1,14 @@
 from os import environ
 
 class config:
-
     TESTING = False
     SECRET_KEY = 'secret_key'
     SESSION_TYPE = 'filesystem'
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_size": 10,
+        "pool_recycle": 60,
+        "pool_pre_ping": True,
+    }
 
 class ProductionConfig(config):
     """Production configuration."""
