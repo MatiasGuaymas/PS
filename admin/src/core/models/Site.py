@@ -2,7 +2,8 @@ from core.database import db
 from sqlalchemy import Column, Integer, String, DateTime,ForeignKey
 from sqlalchemy import func, Boolean as bool
 from sqlalchemy.orm import relationship
-from geoalchemy2 import Geometry # Importación clave
+from geoalchemy2 import Geometry 
+from geoalchemy2.shape import to_shape
 
 class Site(db.Model):
     __tablename__ = 'site'
@@ -45,3 +46,35 @@ class Site(db.Model):
         back_populates="site",
         lazy="dynamic"
     )
+
+    from geoalchemy2.shape import to_shape
+
+    @property
+    def latitude(self):
+        if not self.location:
+            return None
+        try:
+            point = to_shape(self.location)
+            return float(point.y)
+        except Exception as e:
+            try:
+                print(f"[Site.latitude] Error convirtiendo location={type(self.location)} {self.location}: {e}")
+            except Exception:
+                pass
+            return None
+
+    @property
+    def longitude(self):
+        if not self.location:
+            return None
+        try:
+            point = to_shape(self.location)
+            return float(point.x)
+        except Exception as e:
+            try:
+                print(f"[Site.longitude] Error convirtiendo location={type(self.location)} {self.location}: {e}")
+            except Exception:
+                pass
+            return None
+
+

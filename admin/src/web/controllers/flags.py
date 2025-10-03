@@ -20,8 +20,7 @@ def index():
 def toggle(flag_id):
     """Cambiar el estado de un flag"""
     try:
-        #user = UserService.get_user_by_id(session["user_id"])
-        user = 1
+        user = UserService.get_user_by_id(session["user_id"])
         flag = FlagService.get_flag_by_id(flag_id)
 
         if flag is None:

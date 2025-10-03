@@ -19,6 +19,15 @@
       <p><strong>Estado de conservación:</strong> {{ site.state.name }}</p>
       <p><strong>Año de inauguración:</strong> {{ site.operning_year }}</p>
       <p><strong>Categoría:</strong> {{ site.category.name }}</p>
+      <p><strong>Etiquetas:</strong> 
+        {% if site.tag_associations %}
+          {% for association in site.tag_associations %}
+            <span class="badge bg-primary me-1">{{ association.tag.name }}</span>
+          {% endfor %}
+        {% else %}
+          <span class="text-muted">Sin etiquetas asignadas</span>
+        {% endif %}
+      </p>
       <div class="row mb-3">
         <div class="col-md-6">
           <p><strong>Latitud:</strong> {{ site.latitude }}</p>

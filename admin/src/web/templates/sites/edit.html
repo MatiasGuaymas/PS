@@ -1,77 +1,421 @@
 {% extends "layout.html" %}
 
+{% block head %}
+{{ super() }}
+<style>
+  /* Estilos para el selector de tags */
+  .tags-multiselect {
+    background-color: #2d2d2d;
+    border: 1px solid #4b0082;
+    border-radius: 4px;
+    padding: 8px;
+    min-height: 120px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .tag-option {
+    padding: 6px 12px;
+    margin: 2px;
+    background-color: #3d3d3d;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-block;
+    color: #e0e0e0;
+    font-size: 0.9rem;
+  }
+
+  .tag-option:hover {
+    background-color: #4d4d4d;
+  }
+
+  .tag-option.selected {
+    background-color: #6a0dad;
+    border: 2px solid #bb86fc;
+    color: #fff;
+  }
+
+  .form-text {
+    color: #bbb !important;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
+
+  .bi-info-circle {
+    color: #bb86fc;
+  }
+
+  /* Estilos para badges de tags en la vista de detalle */
+  .badge {
+    background-color: #6a0dad !important;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: normal;
+    margin-right: 4px;
+    margin-bottom: 4px;
+    display: inline-block;
+  }
+
+  .badge:hover {
+    background-color: #4b0082 !important;
+    text-decoration: none;
+  }
+
+  .text-muted {
+    color: #bbb !important;
+    font-style: italic;
+  }
+
+  /* Estilos para tablas */
+  .table {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  .table th,
+  .table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #4b0082;
+  }
+
+  .table th {
+    background-color: #3d3d3d;
+    color: #fff;
+    font-weight: bold;
+  }
+
+  .table tbody tr:hover {
+    background-color: #3d3d3d;
+  }
+
+  .table a {
+    color: #bb86fc;
+    text-decoration: none;
+    margin-right: 10px;
+  }
+
+  .table a:hover {
+    color: #fff;
+    text-decoration: underline;
+  }
+
+  .btn-success {
+    background-color: #28a745;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn-success:hover {
+    background-color: #218838;
+    color: #fff;
+    text-decoration: none;
+  }
+
+  .btn-danger {
+    background-color: #dc3545;
+    color: #fff;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+  }
+
+  .btn-danger:hover {
+    background-color: #c82333;
+  }
+
+  #map {
+    height: 400px;
+    width: 100%;
+    max-width: 100%;
+    border: 1px solid #ccc;
+    box-sizing: border-box; /* Asegura que el padding y el borde se incluyan en el tamaño total del elemento */
+    overflow: hidden; /* Evita que el contenido del mapa se desborde */
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <h2>Editar Sitio Histórico</h2>
-<form method="POST">
-  <div class="mb-3">
-    <label for="site_name" class="form-label">Nombre del sitio</label>
-    <input type="text" class="form-control" id="site_name" name="site_name" value="{{ site.site_name }}" required>
-  </div>
-  <div class="mb-3">
-    <label for="short_desc" class="form-label">Descripción breve</label>
-    <input type="text" class="form-control" id="short_desc" name="short_desc" value="{{ site.short_desc }}" required>
+<form method="POST" id="edit-form">
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <label for="site_name" class="form-label">Nombre del sitio</label>
+      <input type="text" class="form-control" id="site_name" name="site_name" value="{{ site.site_name }}" required>
+    </div>
+    <div class="col-md-6">
+      <label for="short_desc" class="form-label">Descripción breve</label>
+      <input type="text" class="form-control" id="short_desc" name="short_desc" value="{{ site.short_desc }}" required>
+    </div>
   </div>
   <div class="mb-3">
     <label for="full_desc" class="form-label">Descripción completa</label>
     <textarea class="form-control" id="full_desc" name="full_desc" required>{{ site.full_desc }}</textarea>
   </div>
-  <div class="mb-3">
-    <label for="city" class="form-label">Ciudad</label>
-    <input type="text" class="form-control" id="city" name="city" value="{{ site.city }}" required>
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <label for="city" class="form-label">Ciudad</label>
+      <input type="text" class="form-control" id="city" name="city" value="{{ site.city }}" required>
+    </div>
+    <div class="col-md-6">
+      <label for="province" class="form-label">Provincia</label>
+      <input type="text" class="form-control" id="province" name="province" value="{{ site.province }}" required>
+    </div>
   </div>
   <div class="mb-3">
-    <label for="province" class="form-label">Provincia</label>
-    <input type="text" class="form-control" id="province" name="province" value="{{ site.province }}" required>
+    <label for="location" class="form-label">Ubicación</label>
+    <div id="map" style="height: 400px; width: 100%; border: 1px solid #ccc; max-width: 100%;"></div>
+    <div class="mt-2">
+      <small class="text-muted">Haz clic en el mapa para seleccionar la ubicación</small>
+    </div>
+    <input type="hidden" id="latitude" name="latitude" value="{{ site.latitude if site.latitude is not none else '' }}"
+      required>
+    <input type="hidden" id="longitude" name="longitude"
+      value="{{ site.longitude if site.longitude is not none else '' }}" required>
+    <div class="mt-2">
+      <span class="badge bg-info">Latitud: <span id="lat-display">{{ "%.6f"|format(site.latitude) if site.latitude is
+          not none else "No seleccionada" }}</span></span>
+      <span class="badge bg-info ms-2">Longitud: <span id="lon-display">{{ "%.6f"|format(site.longitude) if
+          site.longitude is not none else "No seleccionada" }}</span></span>
+    </div>
+    {% if site.location %}
+    <script id="site-coords"
+      type="application/json">{{ {'lat': site.latitude, 'lon': site.longitude} | tojson }}</script>
+    {% endif %}
   </div>
-  <div class="mb-3">
-    <label for="latitude" class="form-label">Latitud</label>
-    <input type="text" class="form-control" id="latitude" name="latitude" value="{{ site.latitude }}" required>
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <label for="state_id" class="form-label">Estado de conservación</label>
+      <select class="form-control" id="state_id" name="state_id" required>
+        <option value="">Seleccionar...</option>
+        <option value="1" {% if site.state_id == 1 %}selected{% endif %}>Bueno</option>
+        <option value="2" {% if site.state_id == 2 %}selected{% endif %}>Regular</option>
+        <option value="3" {% if site.state_id == 3 %}selected{% endif %}>Malo</option>
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label for="operning_year" class="form-label">Año de inauguración</label>
+      <input type="number" class="form-control" id="operning_year" name="operning_year" value="{{ site.operning_year }}"
+        required>
+    </div>
   </div>
-  <div class="mb-3">
-    <label for="longitude" class="form-label">Longitud</label>
-    <input type="text" class="form-control" id="longitude" name="longitude" value="{{ site.longitude }}" required>
-  </div>
-  <div class="mb-3">
-    <label for="state_id" class="form-label">Estado de conservación</label>
-    <select class="form-control" id="state_id" name="state_id" required>
-      <option value="">Seleccionar...</option>
-      <option value="1" {% if site.state_id == 1 %}selected{% endif %}>Bueno</option>
-      <option value="2" {% if site.state_id == 2 %}selected{% endif %}>Regular</option>
-      <option value="3" {% if site.state_id == 3 %}selected{% endif %}>Malo</option>
-    </select>
-  </div>
-  <div class="mb-3">
-    <label for="operning_year" class="form-label">Año de inauguración</label>
-    <input type="number" class="form-control" id="operning_year" name="operning_year" value="{{ site.operning_year }}" required>
-  </div>
-  <div class="mb-3">
-    <label for="category_id" class="form-label">Categoría</label>
-    <select class="form-control" id="category_id" name="category_id" required>
-      <option value="">Seleccionar...</option>
-      <option value="1" {% if site.category_id == 1 %}selected{% endif %}>Arquitectura</option>
-      <option value="2" {% if site.category_id == 2 %}selected{% endif %}>Infraestructura</option>
-      <option value="3" {% if site.category_id == 3 %}selected{% endif %}>Sitio arqueológico</option>
-      <!-- cambiar para que se pueda agregar algun -->
-    </select>
-  </div>
-  <div class="mb-3">
-    <label for="active" class="form-label">¿Visible en el portal?</label>
-    <div class="mb-3">
-      <label for="category" class="form-label">Categoría</label>
-      <input type="text" class="form-control" id="category" name="category" value="{{ site.category }}" required>
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <label for="category_id" class="form-label">Categoría</label>
+      <select class="form-control" id="category_id" name="category_id" required>
+        <option value="">Seleccionar...</option>
+        <option value="1" {% if site.category_id == 1 %}selected{% endif %}>Arquitectura</option>
+        <option value="2" {% if site.category_id == 2 %}selected{% endif %}>Infraestructura</option>
+        <option value="3" {% if site.category_id == 3 %}selected{% endif %}>Sitio arqueológico</option>
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label for="active" class="form-label">¿Visible en el portal?</label>
+      <select class="form-control" id="active" name="active" required>
+        <option value="true" {% if site.active %}selected{% endif %}>Sí</option>
+        <option value="false" {% if not site.active %}selected{% endif %}>No</option>
+      </select>
     </div>
   </div>
   <div class="mb-3">
     <label for="tags" class="form-label">Etiquetas</label>
-    <select class="form-control" id="tags" name="tags" multiple>
+    <div id="tags-container" class="tags-multiselect">
       {% for tag in tags %}
-        <option value="{{ tag.id }}"
-          {% if selected_tag_ids is defined and tag.id in selected_tag_ids %}selected{% endif %}>
-          {{ tag.name }}
-        </option>
+      <div class="tag-option" data-value="{{ tag.id }}" {% if selected_tag_ids is defined and tag.id in selected_tag_ids %}class="selected"{% endif %}>
+        {{ tag.name }}
+      </div>
       {% endfor %}
-    </select>
+    </div>
+    <input type="hidden" id="tags" name="tags" value="{% if selected_tag_ids is defined %}{{ selected_tag_ids | join(',') }}{% endif %}">
+    <small class="form-text text-muted">
+      <i class="bi bi-info-circle"></i>
+      Haz clic en las etiquetas para seleccionarlas. Las seleccionadas se verán resaltadas.
+    </small>
   </div>
-  <button type="submit" class="btn btn-primary">Guardar cambios</button>
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+    <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-secondary">Cancelar</a>
+  </div>
 </form>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+  // Inicializar mapa
+  var map = L.map('map', {
+    center: [-34.6037, -58.3816], // Buenos Aires por defecto
+    zoom: 10,
+    maxBounds: [
+      [-90, -180],
+      [90, 180]
+    ]
+  });
+
+  // Agregar capa de tiles
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+
+  var marker = null;
+
+  // Ajustar el tamaño del mapa después de que se cargue
+  document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(function () {
+      map.invalidateSize();
+    }, 100);
+  });
+
+  // Función para manejar clics en el mapa
+  map.on('click', function (e) {
+    var lat = e.latlng.lat;
+    var lon = e.latlng.lng;
+
+    // Actualizar campos ocultos
+    document.getElementById('latitude').value = lat;
+    document.getElementById('longitude').value = lon;
+
+    // Actualizar display
+    document.getElementById('lat-display').textContent = lat.toFixed(6);
+    document.getElementById('lon-display').textContent = lon.toFixed(6);
+
+    // Agregar/actualizar marcador
+    if (marker) {
+      map.removeLayer(marker);
+    }
+    marker = L.marker([lat, lon]).addTo(map);
+  });
+
+  // Función para centrar en ubicación actual
+  function getCurrentLocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function (position) {
+        var lat = position.coords.latitude;
+        var lon = position.coords.longitude;
+
+        map.setView([lat, lon], 15);
+
+        // Simular clic en la ubicación actual
+        map.fire('click', { latlng: L.latLng(lat, lon) });
+      });
+    }
+  }
+
+  // Botón para ubicación actual
+  document.addEventListener('DOMContentLoaded', function () {
+    var locationBtn = document.createElement('button');
+    locationBtn.type = 'button';
+    locationBtn.className = 'btn btn-outline-primary btn-sm mt-2';
+    locationBtn.innerHTML = '📍 Usar mi ubicación actual';
+    locationBtn.onclick = getCurrentLocation;
+
+    document.getElementById('map').parentNode.appendChild(locationBtn);
+
+    // Cargar ubicación existente si existe
+    var coordsEl = document.getElementById('site-coords');
+    if (coordsEl) {
+      var coords = JSON.parse(coordsEl.textContent);
+      var existingLat = coords.lat;
+      var existingLon = coords.lon;
+
+      if (existingLat && existingLon) {
+        map.setView([existingLat, existingLon], 15);
+        marker = L.marker([existingLat, existingLon]).addTo(map);
+        document.getElementById('lat-display').textContent = existingLat.toFixed(6);
+        document.getElementById('lon-display').textContent = existingLon.toFixed(6);
+        document.getElementById('latitude').value = existingLat;
+        document.getElementById('longitude').value = existingLon;
+      }
+    }
+
+    // Inicializar selección múltiple de tags
+    initializeTagSelection();
+
+    // Asegurar sincronización antes de enviar
+    var form = document.getElementById('edit-form');
+    form.addEventListener('submit', function () {
+      var latInput = document.getElementById('latitude');
+      var lonInput = document.getElementById('longitude');
+      // Si existe marcador, tomar sus coords
+      if (marker) {
+        var pos = marker.getLatLng();
+        if (pos) {
+          latInput.value = pos.lat;
+          lonInput.value = pos.lng;
+        }
+      }
+      // Si siguen vacíos pero hay display numérico, tomar del display
+      if ((!latInput.value || !lonInput.value)) {
+        var latText = document.getElementById('lat-display').textContent;
+        var lonText = document.getElementById('lon-display').textContent;
+        if (latText && latText !== 'No seleccionada' && lonText && lonText !== 'No seleccionada') {
+          latInput.value = latText;
+          lonInput.value = lonText;
+        }
+      }
+    });
+  });
+
+  // Función para inicializar la selección múltiple de tags
+  function initializeTagSelection() {
+    const tagOptions = document.querySelectorAll('.tag-option');
+    const hiddenInput = document.getElementById('tags');
+    const selectedTags = new Set();
+
+    // Cargar tags ya seleccionados
+    const initialValue = hiddenInput.value;
+    if (initialValue) {
+      initialValue.split(',').forEach(value => {
+        if (value.trim()) {
+          selectedTags.add(value.trim());
+        }
+      });
+    }
+
+    tagOptions.forEach(option => {
+      option.addEventListener('click', function () {
+        const value = this.getAttribute('data-value');
+
+        if (selectedTags.has(value)) {
+          // Deseleccionar
+          selectedTags.delete(value);
+          this.style.backgroundColor = '#3d3d3d';
+          this.style.border = 'none';
+        } else {
+          // Seleccionar
+          selectedTags.add(value);
+          this.style.backgroundColor = '#6a0dad';
+          this.style.border = '2px solid #bb86fc';
+        }
+
+        // Actualizar input hidden con los valores seleccionados
+        hiddenInput.value = Array.from(selectedTags).join(',');
+      });
+
+      // Estilo hover
+      option.addEventListener('mouseenter', function () {
+        if (!selectedTags.has(this.getAttribute('data-value'))) {
+          this.style.backgroundColor = '#4d4d4d';
+        }
+      });
+
+      option.addEventListener('mouseleave', function () {
+        if (!selectedTags.has(this.getAttribute('data-value'))) {
+          this.style.backgroundColor = '#3d3d3d';
+        }
+      });
+    });
+  }
+</script>
+
 {% endblock %}

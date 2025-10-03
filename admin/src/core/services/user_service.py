@@ -27,6 +27,10 @@ class UserService:
             db.select(User).filter_by(active=True)
         ).scalars().all()
     
+    def get_all_users() -> List[User]:
+        """Recupera todos los usuarios."""
+        return db.session.query(User).all()
+    
     def hash_password(raw_password: str) -> bytes:
         """Genera el hash de la contraseña usando Bcrypt."""
         # Se genera un salt (semilla aleatoria) y se hashea la contraseña.
@@ -123,6 +127,21 @@ class UserService:
             db.session.rollback()
             raise e
 
+    def verify_password(password: str, hashed) -> bool:
+        """Verifica una contraseña contra su hash."""
+        try:
+            # Si es un string que viene de PostgreSQL (formato \x...)
+            if isinstance(hashed, str) and hashed.startswith('\\x'):
+                # Quitar el \x y convertir hex a bytes
+                hashed = bytes.fromhex(hashed[2:])
+            elif isinstance(hashed, str):
+                hashed = hashed.encode('utf-8')
+            
+            result = bcrypt.checkpw(password.encode('utf-8'), hashed)
+            return result
+        except Exception as e:
+            return False
+
     def authenticate_user(email: str, raw_password: str) -> Optional[User]:
         """
         Verifica el email y la contraseña usando Bcrypt.
@@ -132,7 +151,7 @@ class UserService:
         # 1. Comprobar que el usuario exista y esté activo
         if user and user.active:
             # 2. Usar la función de verificación de Bcrypt
-            if UserService.check_password(raw_password, user.password):
+            if UserService.verify_password(raw_password, user.password):
                 return user
         
         return None
