@@ -92,7 +92,10 @@
       Haz clic en las etiquetas para seleccionarlas. Las seleccionadas se verán resaltadas.
     </small>
   </div>
-  <button type="submit" class="btn btn-primary">Guardar cambios</button>
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+    <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-secondary">Cancelar</a>
+  </div>
 </form>
 
 

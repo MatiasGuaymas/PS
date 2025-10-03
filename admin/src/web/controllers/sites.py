@@ -107,7 +107,20 @@ def create():
 
         # Validación básica
         if not site_name or not short_desc or not full_desc or not city or not province or not operning_year:
-            return render_template("sites/create.html", error="Faltan campos obligatorios")
+            return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Faltan campos obligatorios")
+        
+        # Validación de coordenadas
+        if not latitude or not longitude:
+            return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Debe seleccionar una ubicación en el mapa")
+        
+        # Validar que las coordenadas sean números válidos
+        try:
+            lat_float = float(latitude)
+            lon_float = float(longitude)
+            if not (-90 <= lat_float <= 90 and -180 <= lon_float <= 180):
+                return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Las coordenadas seleccionadas no son válidas")
+        except (ValueError, TypeError):
+            return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Las coordenadas seleccionadas no son válidas")
 
         location = create_point_from_coords(latitude, longitude)
         new_site = Site(
