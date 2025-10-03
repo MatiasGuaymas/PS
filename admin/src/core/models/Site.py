@@ -11,7 +11,7 @@ class Site(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
     site_name = Column(String(50), unique=True, nullable=False)
     short_desc = Column(String(50), nullable=False)
-    full_desc = Column(String(120), nullable=False)
+    full_desc = Column(String(255), nullable=False)
     city = Column(String(50), nullable=False)
     province = Column(String(50), nullable=False)
     operning_year = Column(Integer, nullable=False)

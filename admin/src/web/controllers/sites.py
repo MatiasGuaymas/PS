@@ -4,6 +4,7 @@ from core.models.Tag import Tag
 from core.database import db
 from shapely.geometry import Point
 from geoalchemy2.elements import WKTElement
+from core.services.sites_service import get_sites_filtered
 
 sites_blueprint = Blueprint("sites", __name__, url_prefix="/sites")
 
@@ -76,9 +77,27 @@ def index():
 
         return redirect(url_for("sites.index"))
     elif request.method == "GET":
-        page = request.args.get("page", 1, type=int)
-        sites = Site.query.paginate(page=page, per_page=25)
-        return render_template("sites/index.html", sites=sites)
+        order_by = request.args.get("order_by", "name")
+        sorted_by = request.args.get("sorted_by", "asc")
+        page = request.args.get("page", 1)
+
+        pagination = get_sites_filtered(
+            order_by=order_by,
+            sorted_by=sorted_by,
+            paginate=True,
+            page=page,
+            per_page=25,
+        )
+
+        sites = pagination["items"]
+
+
+        #page = request.args.get("page", 1, type=int)
+        #sites = Site.query.paginate(page=page, per_page=25)
+        return render_template("sites/index.html", sites=sites,
+                               pagination=pagination,
+                               order_by=order_by,
+                               sorted_by=sorted_by,)
     else:
         return "Método no permitido", 405
 

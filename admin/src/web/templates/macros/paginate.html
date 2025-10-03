@@ -1,0 +1,92 @@
+{% macro paginate(pagination = None, url = None) %}
+    {% if pagination %}
+    <nav aria-label="Page navigation" class="d-flex justify-content-center">
+        <ul class="pagination">
+            {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=pagination.prev_num) }}"
+                       class="page-link text-white bg-dark border-secondary"
+                       style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Previous
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link text-muted bg-dark border-secondary"
+                          style="--bs-bg-opacity: .4; --bs-border-opacity: .5;">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Previous
+                    </span>
+                </li>
+            {% endif %}
+
+            {% if pagination.has_prev and 1 not in pagination.page_range %}
+                <li class="page-item">
+                    <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=1) }}"
+                       class="page-link text-white bg-dark border-secondary"
+                       style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+                        1
+                    </a>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link text-white bg-dark border-secondary"
+                          style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+                        ...
+                    </span>
+                </li>
+            {% endif %}
+
+            {% for page in pagination.page_range %}
+                <li class="page-item {% if pagination.current_page == page %}active{% endif %}">
+                    {% if pagination.current_page == page %}
+                        <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=page) }}"
+                           aria-current="page"
+                           class="page-link border-primary bg-primary text-white">
+                            {{ page }}
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=page) }}"
+                           class="page-link text-white bg-dark border-secondary"
+                           style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+                            {{ page }}
+                        </a>
+                    {% endif %}
+                </li>
+            {% endfor %}
+
+            {% if pagination.has_next and pagination.pages not in pagination.page_range %}
+                <li class="page-item disabled">
+                    <span class="page-link text-white bg-dark border-secondary"
+                          style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+                        ...
+                    </span>
+                </li>
+                <li class="page-item">
+                    <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=pagination.pages) }}"
+                       class="page-link text-white bg-dark border-secondary"
+                       style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+                        {{ pagination.pages }}
+                    </a>
+                </li>
+            {% endif %}
+
+            {% if pagination.has_next %}
+                <li class="page-item">
+                    <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=pagination.next_num) }}"
+                       class="page-link text-white bg-dark border-secondary"
+                       style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+                        Next <i class="fa-solid fa-arrow-right ms-1"></i>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link text-muted bg-dark border-secondary"
+                          style="--bs-bg-opacity: .4; --bs-border-opacity: .5;">
+                        Next <i class="fa-solid fa-arrow-right ms-1"></i>
+                    </span>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+{% endmacro %}
+
