@@ -1,7 +1,6 @@
 from flask import Blueprint
 from flask import render_template, request, redirect, url_for, flash, session
-from src.core import auth
-import bcrypt
+from core.services.user_service import UserService 
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -14,7 +13,7 @@ def login():
 @bp.post("/authenticate")
 def authenticate():
     params = request.form
-    user = auth.find_user(params.get("email"), params.get("password"))
+    user = UserService.authenticate_user(params.get("email"), params.get("password"))
     if not user:
         flash("Invalid credentials", "error")
         return redirect(url_for("auth.login"))
