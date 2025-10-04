@@ -4,6 +4,10 @@ from core.models.Tag import Tag
 from core.database import db
 from shapely.geometry import Point
 from geoalchemy2.elements import WKTElement
+from flask import Response, request
+from src.web.utils.export import export_sites_to_csv, get_csv_filename
+from core.services.site_filter_service import filter_and_order_sites
+from datetime import date
 
 sites_blueprint = Blueprint("sites", __name__, url_prefix="/sites")
 
@@ -217,82 +221,36 @@ def delete(site_id):
 @sites_blueprint.route("/search", methods=["GET"])
 def search():
     # Filtros del querystring
-    site_name = request.args.get("site_name")
-    city = request.args.get("city")
-    province = request.args.get("province")
-    state_id = request.args.get("state_id")
-    tags = request.args.getlist("tags")
-    registration_from = request.args.get("registration_from")
-    registration_to = request.args.get("registration_to")
+    filtros = {
+        "site_name": request.args.get("site_name", ""),
+        "city": request.args.get("city", ""),
+        "province": request.args.get("province", ""),
+        "state_id": request.args.get("state_id", ""),
+        "tags": request.args.getlist("tags", []),
+        "registration_from": request.args.get("registration_from", ""),
+        "registration_to": request.args.get("registration_to", ""),
+        "active": request.args.get("active", ""),
+        "order_by": request.args.get("order_by", "site_name"),
+        "sentido": request.args.get("sentido", "asc"),
+    }
     error_msg = None
-    active = request.args.get("active")
-    orden = request.args.get("order_by", "site_name")
-    sentido = request.args.get("sentido", "asc")
     page = request.args.get("page", 1, type=int)
 
-    # Consulta base
-    query = Site.query
-    
-    if registration_from and registration_to:
+    # Validación de fechas
+    if filtros["registration_from"] and filtros["registration_to"]:
         try:
             from datetime import datetime
-            date_from = datetime.strptime(registration_from, "%Y-%m-%d")
-            date_to = datetime.strptime(registration_to, "%Y-%m-%d")
+            date_from = datetime.strptime(filtros["registration_from"], "%Y-%m-%d")
+            date_to = datetime.strptime(filtros["registration_to"], "%Y-%m-%d")
             if date_from > date_to:
                 error_msg = "La fecha 'desde' no puede ser mayor que la fecha 'hasta'."
         except Exception:
             error_msg = "Formato de fecha inválido."
 
-    # Filtros combinados
+    query = filter_and_order_sites(Site.query, filtros)
+    sites = None
     if not error_msg:
-        if site_name:
-            query = query.filter(
-                (Site.site_name.ilike(f"%{site_name}%")) |
-                (Site.short_desc.ilike(f"%{site_name}%"))
-            )
-        if city:
-            query = query.filter(Site.city == city)
-        if province:
-            query = query.filter(Site.province == province)
-        if state_id:
-            query = query.filter(Site.state_id == state_id)
-        if registration_from:
-            query = query.filter(Site.registration >= registration_from)
-        if registration_to:
-            query = query.filter(Site.registration <= registration_to)
-        if active:
-            query = query.filter(Site.active == True)
-        if tags:
-            # Sitios que tengan al menos todos los tags seleccionados
-            from sqlalchemy import func
-            from core.models.Site_Tag import HistoricSiteTag
-            query = query.join(Site.tag_associations)
-            query = query.filter(HistoricSiteTag.tag_id.in_(tags))
-            query = query.group_by(Site.id)
-            query = query.having(func.count(HistoricSiteTag.tag_id) >= len(tags))
-
-    # Orden
-    if orden == "site_name":
-        order_col = Site.site_name
-    elif orden == "city":
-        order_col = Site.city
-    elif orden == "province":
-        order_col = Site.province
-    elif orden == "registration":
-        order_col = Site.registration
-    else:
-        order_col = Site.site_name
-
-    if sentido == "desc":
-        order_col = order_col.desc()
-    else:
-        order_col = order_col.asc()
-
-    if not error_msg:
-        query = query.order_by(order_col)
         sites = query.paginate(page=page, per_page=5)
-    else:
-        sites = None
 
     provincias = [row[0] for row in db.session.query(Site.province).distinct().order_by(Site.province).all()]
     all_tags = Tag.query.order_by(Tag.name.asc()).all()
@@ -303,5 +261,34 @@ def search():
         filtros=request.args,
         provincias=provincias,
         tags=all_tags,
-        error_msg=error_msg
+        error_msg=error_msg,
+        hoy=date.today().isoformat()
+    )
+
+@sites_blueprint.route("/export_csv", methods=["POST"])
+def export_csv():
+    filtros = {
+        "site_name": request.form.get("site_name", ""),
+        "city": request.form.get("city", ""),
+        "province": request.form.get("province", ""),
+        "state_id": request.form.get("state_id", ""),
+        "tags": request.form.getlist("tags", []),
+        "registration_from": request.form.get("registration_from", ""),
+        "registration_to": request.form.get("registration_to", ""),
+        "active": request.form.get("active", ""),
+        "order_by": request.form.get("order_by", "site_name"),
+        "sentido": request.form.get("sentido", "asc"),
+    }
+    query = filter_and_order_sites(Site.query, filtros)
+    sites = query.all()
+
+    if not sites:
+        return "No hay datos para exportar", 400
+
+    csv_content = export_sites_to_csv(sites)
+    filename = get_csv_filename()
+    return Response(
+        csv_content,
+        mimetype="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
