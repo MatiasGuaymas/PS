@@ -1,6 +1,13 @@
 {% extends "layout.html" %}
 
 {% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<style>
+  .choices__list--dropdown,
+  .choices__list--multiple {
+    color: #000;
+  }
+</style>
 <div class="container mt-4">
   <h2 class="mb-4">Listado de Sitios Históricos</h2>
 
@@ -18,7 +25,7 @@
         else 'Ciudad' if orden_actual == 'city'
         else 'Fecha de registro' if orden_actual == 'registration'
         else orden_actual
-      }} ({{ 'Ascendente' if sentido_actual == 'asc' else 'Descendente' }})</span>
+        }} ({{ 'Ascendente' if sentido_actual == 'asc' else 'Descendente' }})</span>
       |
       <a href="{{ url_for('sites.search', order_by='site_name', sentido='asc', page=sites.page) }}">Nombre ↑</a>
       <a href="{{ url_for('sites.search', order_by='site_name', sentido='desc', page=sites.page) }}">Nombre ↓</a>
@@ -32,10 +39,8 @@
 
     <div class="row g-3">
       <div class="col-md-3">
-        <input type="text" name="site_name" class="form-control" placeholder="Nombre o descripción" value="{{ request.args.get('site_name', '') }}">
-      </div>
-      <div class="col-md-3">
-        <input type="text" name="city" class="form-control" placeholder="Ciudad" value="{{ request.args.get('city', '') }}">
+        <input type="text" name="site_name" class="form-control" placeholder="Nombre o descripción"
+          value="{{ request.args.get('site_name', '') }}">
       </div>
       <div class="col-md-3">
         <select name="province" class="form-select">
@@ -44,6 +49,10 @@
           <option value="{{ prov }}" {% if request.args.get('province')==prov %}selected{% endif %}>{{ prov }}</option>
           {% endfor %}
         </select>
+      </div>
+      <div class="col-md-3">
+        <input type="text" name="city" class="form-control" placeholder="Ciudad"
+          value="{{ request.args.get('city', '') }}">
       </div>
       <div class="col-md-3">
         <select name="state_id" class="form-select">
@@ -56,26 +65,40 @@
     </div>
 
     <div class="row g-3 mt-3">
-      <div class="col-md-3">
-        <label for="registration_from" class="form-label">Fecha registro desde</label>
-        <input type="date" id="registration_from" name="registration_from" class="form-control" value="{{ request.args.get('registration_from', '') }}">
+      <div class="col-md-4">
+        <label for="tags" class="form-label">Tags</label>
+        <select id="tags" name="tags" class="form-select" multiple>
+          {% for tag in tags %}
+          <option value="{{ tag.id }}" {% if tag.id|string in request.args.getlist('tags') %}selected{% endif %}>
+            {{ tag.name }}
+          </option>
+          {% endfor %}
+        </select>
       </div>
-      <div class="col-md-3">
-        <label for="registration_to" class="form-label">Fecha registro hasta</label>
-        <input type="date" id="registration_to" name="registration_to" class="form-control" value="{{ request.args.get('registration_to', '') }}">
+      <div class="col-md-2">
+        <label for="registration_from" class="form-label">Fecha desde</label>
+        <input type="date" id="registration_from" name="registration_from" class="form-control"
+          value="{{ request.args.get('registration_from', '') }}">
       </div>
-      <div class="col-md-3 d-flex align-items-end">
+      <div class="col-md-2">
+        <label for="registration_to" class="form-label">Fecha hasta</label>
+        <input type="date" id="registration_to" name="registration_to" class="form-control"
+          value="{{ request.args.get('registration_to', '') }}">
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
         <div class="form-check">
-          <input type="checkbox" id="active" name="active" value="1" class="form-check-input" {% if request.args.get('active') %}checked{% endif %}>
+          <input type="checkbox" id="active" name="active" value="1" class="form-check-input" {% if
+            request.args.get('active') %}checked{% endif %}>
           <label for="active" class="form-check-label">Visible</label>
         </div>
       </div>
-      <div class="col-md-3 d-flex align-items-end">
+      <div class="col-md-2 d-flex align-items-end">
         <button type="submit" class="btn btn-primary me-2">Buscar</button>
         <a href="{{ url_for('sites.search') }}" class="btn btn-secondary">Limpiar</a>
       </div>
     </div>
   </form>
+  <div id="fechaError" class="alert alert-danger mt-2" style="display:none"></div>
 
   {% if sites and sites.total > 0 %}
   <p>{{ sites.total }} resultados encontrados.</p>
@@ -136,5 +159,42 @@
   {% else %}
   <p>No se encontraron resultados.</p>
   {% endif %}
+
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+  <script>
+    // Activar Choices.js sobre el select
+    const tagsSelect = document.getElementById('tags');
+    const choices = new Choices(tagsSelect, {
+      removeItemButton: true,
+      searchPlaceholderValue: 'Buscar...',
+      shouldSort: false,
+      noResultsText: 'Sin resultados',
+      itemSelectText: 'Seleccionar',
+      noChoicesText: 'Sin opciones',
+      loadingText: 'Cargando...',
+      placeholder: false,       
+      placeholderValue: ''
+    });
+
+  </script>
+
 </div>
 {% endblock %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var buscarBtn = document.querySelector('button[type="submit"]');
+    var desde = document.getElementById('registration_from');
+    var hasta = document.getElementById('registration_to');
+    var errorDiv = document.getElementById('fechaError');
+    buscarBtn.addEventListener('click', function (e) {
+      errorDiv.style.display = 'none';
+      if (desde.value && hasta.value && desde.value > hasta.value) {
+        e.preventDefault();
+        errorDiv.textContent = "La fecha 'desde' no puede ser mayor que la fecha 'hasta'.";
+        errorDiv.style.display = 'block';
+        return false;
+      }
+    });
+  });
+</script>
