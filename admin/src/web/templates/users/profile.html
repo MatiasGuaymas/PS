@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden mx-auto" style="max-width: 600px;">
+    <div class="card-header text-center bg-dark">
+        <h3 class="pt-2 text-white">Mi perfil</h3>
+    </div>
+    <div class="card-body text-center text-white">
+        <img src="https://ui-avatars.com/api/?name={{ user.first_name }}+{{ user.last_name }}&background=0D8ABC&color=FFFFFF&size=128" 
+             alt="Foto de perfil de {{ user.first_name }} {{ user.last_name }}" 
+             class="rounded-circle mb-3">
+        <h4 class="card-title text-white">{{ user.first_name }} {{ user.last_name }}</h4>
+        <p class="card-text text-white">{{ user.email }}</p>
+        <p class="card-text text-muted">
+            <span class="badge bg-secondary">{{ user.role.name if user.role else "Sin rol asignado" }}</span>
+        </p>
+        <ul class="list-group list-group-flush text-start">
+            <li class="list-group-item bg-transparent text-white"><strong>Fecha de creación:</strong> {{ user.created_at.strftime('%d/%m/%Y') }}</li>
+            <li class="list-group-item bg-transparent text-white"><strong>Última actualización:</strong> {{ user.updated_at.strftime('%d/%m/%Y') }}</li>
+        </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}
