@@ -14,7 +14,6 @@ from src.web.controllers.auth import bp as auth_bp
 from src.web.handlers.auth import is_authenticated
 
 
-import bcrypt
 import os
 from dotenv import load_dotenv
 from core import seeds
@@ -42,17 +41,20 @@ def create_app(env = 'development', static_folder = "../../static"):
     def home():
         return render_template('home.html')
     
+    #Blueprints
     app.register_blueprint(user_blueprint)
     app.register_blueprint(roles_blueprint)
     app.register_blueprint(sites_blueprint)
     app.register_blueprint(tags_blueprint)
     app.register_blueprint(feature_flag_blueprint)
     app.register_blueprint(auth_bp)
-    
+
+    #Manejo de errores
     app.register_error_handler(404, error.not_found)
     app.register_error_handler(401, error.unauthorized)
     app.register_error_handler(500, error.internal_server)
     
-    app.jinja_env.globals['is_authenticated'] = is_authenticated
+    # Variables globales para las plantillas
+    app.jinja_env.globals.update(is_authenticated=is_authenticated)
 
     return app
