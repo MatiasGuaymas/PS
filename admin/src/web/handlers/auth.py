@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import session, redirect, url_for, flash
+from flask import session, redirect, url_for, flash, abort
 from src.core.services.flag_service import FlagService
 
 def is_authenticated(session):
@@ -33,4 +33,17 @@ def noLogin_required(f):
             flash("Ya has iniciado sesión.", "info")
             return redirect(url_for("home"))
         return f(*args, **kwargs)
+    return decorated_function
+
+def system_admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if "user_id" not in session:
+            abort(401)
+
+        if not session.get('is_admin'):
+            abort(403)
+
+        return f(*args, **kwargs)
+
     return decorated_function

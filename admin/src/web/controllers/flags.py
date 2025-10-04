@@ -2,21 +2,21 @@ from flask import Blueprint, flash, redirect, render_template, request, session,
 
 from core.services.flag_service import FlagService
 from core.services.user_service import UserService
-from web.handlers.auth import login_required
+from web.handlers.auth import login_required,system_admin_required
 
 feature_flag_blueprint = Blueprint("feature-flags", __name__, url_prefix="/feature-flag")
 
 
 @feature_flag_blueprint.get("/")
 @login_required
-#@system_admin_required
+@system_admin_required
 def index():
     flags = FlagService.get_all_flags()
     return render_template("flags/index.html", flags=flags)
 
 @feature_flag_blueprint.post("/<int:flag_id>/toggle")
 @login_required
-#@system_admin_required
+@system_admin_required
 def toggle(flag_id):
     """Cambiar el estado de un flag"""
     try:

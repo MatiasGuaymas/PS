@@ -57,6 +57,7 @@ def create_app(env = 'development', static_folder = "../../static"):
     app.register_error_handler(404, error.not_found)
     app.register_error_handler(401, error.unauthorized)
     app.register_error_handler(500, error.internal_server)
+    app.register_error_handler(403, error.forbidden)
     
     # Variables globales para las plantillas
     app.jinja_env.globals.update(is_authenticated=is_authenticated)
