@@ -20,7 +20,7 @@ def authenticate():
     
     session["user"] = user.email
     flash("Has iniciado sesión correctamente", "success")
-    return redirect(url_for("users.index"))
+    return redirect("/")
 
     
 

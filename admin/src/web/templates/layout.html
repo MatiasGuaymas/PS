@@ -18,21 +18,28 @@
 <body>
     <header>
         <div class="header-left">
-            <img src="https://cdn-icons-png.flaticon.com/512/6325/6325609.png" style="max-width: 40px; max-height: 40px;" alt="Logo">
-            <span>Nombre del Sistema</span>
+            <a href="/"><img src="https://cdn-icons-png.flaticon.com/512/6325/6325609.png" style="max-width: 40px; max-height: 40px;" alt="Logo"></a>
+            <span><a href="/">Nombre del Sistema</a></span>
         </div>
         <div class="header-right">
             <div class="dropdown">
-                <button class="dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown"
-                    aria-expanded="false">
-                    Cuenta
+                <button class="dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="header-my-account">Cuenta</span>
                 </button>
                 <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                    <li><a class="dropdown-item" href="#">Ver perfil</a></li>
-                    <li><a class="dropdown-item" href="#">Cerrar sesión</a></li>
-                    <li><a class="dropdown-item" href="#">Iniciar sesión [Temporal, hasta tener sesiones y hacer un
-                            display
-                            correcto]</a></li>
+                    {% if is_authenticated(session) %}
+                        <li>
+                            <form method="POST" action="/users/profile" style="display: inline;">
+                                <input type="hidden" name="user" value="{{ session.user }}">
+                                <button type="submit" class="dropdown-item">Ver perfil</button>
+                            </form>
+                        </li>
+                        <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Cerrar sesión</a></li>
+                    {% else %}
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('auth.login') }}">Iniciar sesión</a>
+                        </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
@@ -42,7 +49,7 @@
             {% block nav %}
             <ul class="nav flex-column text-center">
                 <li class="nav-item" title="Gestión de sitios históricos">
-                    <a class="nav-link" href="#">
+                    <a class="nav-link" href="{{ url_for('sites.index') }}">
                         <i class="bi bi-bank"></i>
                     </a>
                 </li>
@@ -57,7 +64,7 @@
                     </a>
                 </li>
                 <li class="nav-item" title="Gestión de usuarios">
-                    <a class="nav-link" href="#">
+                    <a class="nav-link" href="{{ url_for('users.index') }}">
                         <i class="bi bi-people"></i>
                     </a>
                 </li>
