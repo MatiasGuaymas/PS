@@ -39,13 +39,20 @@
                         <div class="form-text text-white-50">Solo completa si deseas cambiar la contraseña</div>
                     </div>
 
-                        <div class="col-md-6">
-                            <label for="edit-role" class="form-label fw-semibold text-muted">Rol</label>
-                            <select id="edit-role" name="role_id" class="form-select rounded-3" data-current-role="{{ user.role_id or '' }}">
-                                <option value="">Sin rol asignado</option>
-                            </select>
-                        </div>
+                    <div class="col-md-6">
+                        <label for="edit-active" class="form-label fw-semibold text-white">Estado</label>
+                        <select id="edit-active" name="active" class="form-select rounded-3">
+                            <option value="true" {% if user.active %}selected{% endif %}>Activo</option>
+                            <option value="false" {% if not user.active %}selected{% endif %}>Inactivo</option>
+                        </select>
+                    </div>
 
+                    <div class="col-md-6">
+                        <label for="edit-role" class="form-label fw-semibold text-white">Rol</label>
+                        <select id="edit-role" name="role_id" class="form-select rounded-3">
+                            <option value="">Sin rol asignado</option>
+                        </select>
+                    </div>
 
                     <div class="col-md-6">
                         <label for="edit-sysadmin" class="form-label fw-semibold text-white">Administrador del
@@ -101,37 +108,27 @@
     </div>
 </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const roleSelect = document.getElementById('edit-role');
-            const currentRoleId = roleSelect.getAttribute('data-current-role');
-            
-            fetch('/roles/')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Roles cargados:', data); // Para debug
-                    console.log('Rol actual del usuario:', currentRoleId); // Para debug
-                    
-                    data.forEach(role => {
-                        const option = document.createElement('option');
-                        option.value = role.id;
-                        option.textContent = role.name;
-                        
-                        // Marcar como seleccionado si es el rol actual del usuario
-                        if (role.id.toString() === currentRoleId) {
-                            option.selected = true;
-                        }
-                        
-                        roleSelect.appendChild(option);
-                    });
-                })
-                .catch(error => console.error('Error al cargar los roles:', error));
-        });
-    </script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        fetch('/roles/')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Roles cargados:', data); // Para debug
+                const roleSelect = document.getElementById('edit-role');
+                data.forEach(role => {
+                    const option = document.createElement('option');
+                    option.value = role.id;
+                    option.textContent = role.name;
+                    roleSelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Error al cargar los roles:', error));
+    });
+</script>
 </div>
 {% endblock %}

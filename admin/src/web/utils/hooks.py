@@ -12,15 +12,13 @@ def hook_admin_maintenance():
     flag = FlagService.get_flag_by_name("admin_maintenance_mode")
 
     # Si el flag no existe o está apagado, no bloquear nada
-    if not flag or flag.is_enabled:
+    if not flag or not flag.is_enabled:
         return
     # Excluir rutas estáticas o auth
     if any(request.path.startswith(p) for p in EXEMPT_PATHS):
         return
-    
     if request.endpoint in EXEMPT_ENDPOINTS:
         return
-    
     # Permitir acceso a system admins
     admin = session.get("is_admin")
     if admin:

@@ -30,6 +30,7 @@ def authenticate():
     session["is_admin"] = user.sysAdmin
     session["role_id"] = user.role.id if user.role else None
 
+    print(user.id)
     flash("Has iniciado sesión correctamente", "success")
     return redirect(url_for("home"))
 
