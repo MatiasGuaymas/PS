@@ -27,14 +27,35 @@
         else orden_actual
         }} ({{ 'Ascendente' if sentido_actual == 'asc' else 'Descendente' }})</span>
       |
-      <a href="{{ url_for('sites.search', order_by='site_name', sentido='asc', page=sites.page) }}">Nombre ↑</a>
-      <a href="{{ url_for('sites.search', order_by='site_name', sentido='desc', page=sites.page) }}">Nombre ↓</a>
-      |
-      <a href="{{ url_for('sites.search', order_by='city', sentido='asc', page=sites.page) }}">Ciudad ↑</a>
-      <a href="{{ url_for('sites.search', order_by='city', sentido='desc', page=sites.page) }}">Ciudad ↓</a>
-      |
-      <a href="{{ url_for('sites.search', order_by='registration', sentido='asc', page=sites.page) }}">Fecha ↑</a>
-      <a href="{{ url_for('sites.search', order_by='registration', sentido='desc', page=sites.page) }}">Fecha ↓</a>
+      <span class="me-1">Nombre</span>
+      <a href="{{ url_for('sites.search', order_by='site_name', sentido='asc', page=sites.page) }}"
+        class="text-decoration-none me-1" title="Ordenar ascendente">
+        <i class="bi bi-arrow-up"></i>
+      </a>
+      <a href="{{ url_for('sites.search', order_by='site_name', sentido='desc', page=sites.page) }}"
+        class="text-decoration-none" title="Ordenar descendente">
+        <i class="bi bi-arrow-down"></i>
+      </a>
+      <span class="mx-2">|</span>
+      <span class="me-1">Ciudad</span>
+      <a href="{{ url_for('sites.search', order_by='city', sentido='asc', page=sites.page) }}"
+        class="text-decoration-none" title="Ordenar ascendente">
+        <i class="bi bi-arrow-up"></i>
+      </a>
+      <a href="{{ url_for('sites.search', order_by='city', sentido='desc', page=sites.page) }}"
+        class="text-decoration-none me-1" title="Ordenar descendente">
+        <i class="bi bi-arrow-down"></i>
+      </a>
+      <span class="mx-2">|</span>
+      <span class="me-1">Fecha</span>
+      <a href="{{ url_for('sites.search', order_by='registration', sentido='asc', page=sites.page) }}"
+        class="text-decoration-none me-1" title="Ordenar ascendente">
+        <i class="bi bi-arrow-up"></i>
+      </a>
+      <a href="{{ url_for('sites.search', order_by='registration', sentido='desc', page=sites.page) }}"
+        class="text-decoration-none" title="Ordenar descendente">
+        <i class="bi bi-arrow-down"></i>
+      </a>
     </div>
 
     <div class="row g-3">
@@ -64,7 +85,7 @@
       </div>
     </div>
 
-    <div class="row g-3 mt-3">
+    <div class="row g-3 mt-3 align-items-end">
       <div class="col-md-4">
         <label for="tags" class="form-label">Tags</label>
         <select id="tags" name="tags" class="form-select" multiple>
@@ -77,13 +98,19 @@
       </div>
       <div class="col-md-2">
         <label for="registration_from" class="form-label">Fecha desde</label>
-        <input type="date" id="registration_from" name="registration_from" class="form-control"
-          value="{{ request.args.get('registration_from', '') }}">
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-calendar-date"></i></span>
+          <input type="date" id="registration_from" name="registration_from" class="form-control"
+            value="{{ request.args.get('registration_from', '') }}" max="{{ hoy }}">
+        </div>
       </div>
       <div class="col-md-2">
         <label for="registration_to" class="form-label">Fecha hasta</label>
-        <input type="date" id="registration_to" name="registration_to" class="form-control"
-          value="{{ request.args.get('registration_to', '') }}">
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-calendar-date"></i></span>
+          <input type="date" id="registration_to" name="registration_to" class="form-control"
+            value="{{ request.args.get('registration_to', '') }}" max="{{ hoy }}">
+        </div>
       </div>
       <div class="col-md-2 d-flex align-items-end">
         <div class="form-check">
@@ -141,6 +168,24 @@
     </tbody>
   </table>
 
+  <div class="d-flex justify-content-end">
+    <form method="post" action="{{ url_for('sites.export_csv') }}">
+      <input type="hidden" name="site_name" value="{{ filtros.site_name }}">
+      <input type="hidden" name="city" value="{{ filtros.city }}">
+      <input type="hidden" name="province" value="{{ filtros.province }}">
+      <input type="hidden" name="state_id" value="{{ filtros.state_id }}">
+      {% for tag in filtros.getlist('tags') %}
+      <input type="hidden" name="tags" value="{{ tag }}">
+      {% endfor %}
+      <input type="hidden" name="registration_from" value="{{ filtros.registration_from }}">
+      <input type="hidden" name="registration_to" value="{{ filtros.registration_to }}">
+      <input type="hidden" name="active" value="{{ filtros.active }}">
+      <input type="hidden" name="order_by" value="{{ filtros.order_by }}">
+      <input type="hidden" name="sentido" value="{{ filtros.sentido }}">
+      <button type="submit" class="btn btn-success">Exportar CSV</button>
+    </form>
+  </div>
+
   <nav>
     <ul class="pagination justify-content-center">
       {% if sites.has_prev %}
@@ -173,7 +218,7 @@
       itemSelectText: 'Seleccionar',
       noChoicesText: 'Sin opciones',
       loadingText: 'Cargando...',
-      placeholder: false,       
+      placeholder: false,
       placeholderValue: ''
     });
 
