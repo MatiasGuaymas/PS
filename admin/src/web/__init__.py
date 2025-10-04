@@ -12,7 +12,7 @@ from src.web.controllers.tags import tags_blueprint
 from src.web.controllers.flags import feature_flag_blueprint
 from src.web.controllers.auth import bp as auth_bp
 from src.web.handlers.auth import is_authenticated
-
+from .utils.hooks import hook_admin_maintenance
 
 import os
 from dotenv import load_dotenv
@@ -41,6 +41,10 @@ def create_app(env = 'development', static_folder = "../../static"):
     def home():
         return render_template('home.html')
     
+    # Hooks
+    app.before_request(hook_admin_maintenance)
+
+
     #Blueprints
     app.register_blueprint(user_blueprint)
     app.register_blueprint(roles_blueprint)

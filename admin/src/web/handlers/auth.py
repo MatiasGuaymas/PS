@@ -1,6 +1,6 @@
 from functools import wraps
 from flask import session, redirect, url_for, flash
-
+from src.core.services.flag_service import FlagService
 
 def is_authenticated(session):
     return session.get("user") is not None

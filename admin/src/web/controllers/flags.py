@@ -20,7 +20,7 @@ def index():
 def toggle(flag_id):
     """Cambiar el estado de un flag"""
     try:
-        user = UserService.get_user_by_id(session["user_id"])
+        user_id = session.get("user_id")
         flag = FlagService.get_flag_by_id(flag_id)
 
         if flag is None:
@@ -39,7 +39,7 @@ def toggle(flag_id):
                 return redirect(url_for("feature-flags.index"))
             FlagService.set_maintenance_message(flag_id, message)
 
-        FlagService.toggle_feature_flag(flag_id, new_state, user)
+        FlagService.toggle_feature_flag(flag_id, new_state, user_id)
         flash(
             f"Flag '{flag.name}' cambiado a {'ON' if new_state else 'OFF'}",
             "success",
