@@ -13,6 +13,7 @@
                     <th scope="col">Descripción</th>
                     <th scope="col" class="text-center">Estado</th>
                     <th scope="col" class="text-center">Mensaje (si aplica)</th>
+                    <th scope="col">Última modificación</th>
                     <th scope="col">ID Usuario</th>
                     <th scope="col" class="text-center">Toggle</th>
                 </tr>
@@ -32,6 +33,9 @@
                     </td>
                     <td>
                         <small>{{ flag.message or 'No hay un mensaje' }}</small>
+                    </td>
+                    <td>
+                        <small>{{ flag.last_edit.strftime("%d/%m/%y %H:%M") }}</small>
                     </td>
                     <td>
                         <small>{{ flag.user_id or 'Sistema/Seeds' }}</small>
