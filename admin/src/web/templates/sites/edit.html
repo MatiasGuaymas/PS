@@ -36,113 +36,131 @@
     color: #fff;
 }
 
-#map, .map {
-  z-index: 1000;
+#map {
+  height: 400px;
+  width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.leaflet-container {
+    width: 100% !important;
+    height: 400px !important;
+}
+
+.map-container {
+  position: relative;
+  margin-top: 20px;
 }
 </style>
 
 {% endblock %}
 
 {% block content %}
-<h2>Editar Sitio Histórico</h2>
-
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-<form method="POST" id="edit-form">
-  <div class="row mb-3">
-    <div class="col-md-6">
-      <label for="site_name" class="form-label">Nombre del sitio</label>
-      <input type="text" class="form-control" id="site_name" name="site_name" value="{{ site.site_name }}" required>
+<div class="container-xl">
+    <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden mx-auto">
+        <div class="card-header bg-dark">
+            <h3 class="h3 text-white mb-4">Editar Sitio Histórico</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST" id="edit-form">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="site_name" class="form-label text-white">Nombre del sitio</label>
+                        <input type="text" class="form-control rounded-3" id="site_name" name="site_name" value="{{ site.site_name }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="short_desc" class="form-label text-white">Descripción breve</label>
+                        <input type="text" class="form-control rounded-3" id="short_desc" name="short_desc" value="{{ site.short_desc }}" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="full_desc" class="form-label text-white">Descripción completa</label>
+                    <textarea class="form-control rounded-3" id="full_desc" name="full_desc" required>{{ site.full_desc }}</textarea>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="city" class="form-label text-white">Ciudad</label>
+                        <input type="text" class="form-control rounded-3" id="city" name="city" value="{{ site.city }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="province" class="form-label text-white">Provincia</label>
+                        <input type="text" class="form-control rounded-3" id="province" name="province" value="{{ site.province }}" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="location" class="form-label text-white">Ubicación</label>
+                    <div class="map-container">
+                      <div id="map"></div>
+                      <button type="button" class="btn btn-outline-primary btn-sm mt-2" onclick="getCurrentLocation()">📍 Usar mi ubicación actual</button>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-white">Haz clic en el mapa para seleccionar la ubicación</small>
+                    </div>
+                    <input type="hidden" id="latitude" name="latitude" value="{{ site.latitude if site.latitude is not none else '' }}" required>
+                    <input type="hidden" id="longitude" name="longitude" value="{{ site.longitude if site.longitude is not none else '' }}" required>
+                    <div class="mt-2">
+                        <span class="badge bg-info">Latitud: <span id="lat-display">{{ "%.6f"|format(site.latitude) if site.latitude is not none else "No seleccionada" }}</span></span>
+                        <span class="badge bg-info ms-2">Longitud: <span id="lon-display">{{ "%.6f"|format(site.longitude) if site.longitude is not none else "No seleccionada" }}</span></span>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="state_id" class="form-label text-white">Estado de conservación</label>
+                        <select class="form-control rounded-3" id="state_id" name="state_id" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="1" {% if site.state_id == 1 %}selected{% endif %}>Bueno</option>
+                            <option value="2" {% if site.state_id == 2 %}selected{% endif %}>Regular</option>
+                            <option value="3" {% if site.state_id == 3 %}selected{% endif %}>Malo</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="operning_year" class="form-label text-white">Año de inauguración</label>
+                        <input type="number" class="form-control rounded-3" id="operning_year" name="operning_year" value="{{ site.operning_year }}" required>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="category_id" class="form-label text-white">Categoría</label>
+                        <select class="form-control rounded-3" id="category_id" name="category_id" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="1" {% if site.category_id == 1 %}selected{% endif %}>Arquitectura</option>
+                            <option value="2" {% if site.category_id == 2 %}selected{% endif %}>Infraestructura</option>
+                            <option value="3" {% if site.category_id == 3 %}selected{% endif %}>Sitio arqueológico</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="active" class="form-label text-white">¿Visible en el portal?</label>
+                        <select class="form-control rounded-3" id="active" name="active" required>
+                            <option value="true" {% if site.active %}selected{% endif %}>Sí</option>
+                            <option value="false" {% if not site.active %}selected{% endif %}>No</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="tags" class="form-label text-white">Etiquetas</label>
+                    <div id="tags-container" class="tags-multiselect">
+                        {% for tag in tags %}
+                        <div class="tag-option" data-value="{{ tag.id }}" {% if selected_tag_ids is defined and tag.id in selected_tag_ids %}class="selected"{% endif %}>
+                            {{ tag.name }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <input type="hidden" id="tags" name="tags" value="{% if selected_tag_ids is defined %}{{ selected_tag_ids | join(',') }}{% endif %}">
+                    <small class="form-text text-white">
+                        <i class="bi bi-info-circle"></i>
+                        Haz clic en las etiquetas para seleccionarlas. Las seleccionadas se verán resaltadas.
+                    </small>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary fw-bold rounded-3">Guardar cambios</button>
+                    <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-secondary rounded-3">Cancelar</a>
+                </div>
+            </form>
+        </div>
     </div>
-    <div class="col-md-6">
-      <label for="short_desc" class="form-label">Descripción breve</label>
-      <input type="text" class="form-control" id="short_desc" name="short_desc" value="{{ site.short_desc }}" required>
-    </div>
-  </div>
-  <div class="mb-3">
-    <label for="full_desc" class="form-label">Descripción completa</label>
-    <textarea class="form-control" id="full_desc" name="full_desc" required>{{ site.full_desc }}</textarea>
-  </div>
-  <div class="row mb-3">
-    <div class="col-md-6">
-      <label for="city" class="form-label">Ciudad</label>
-      <input type="text" class="form-control" id="city" name="city" value="{{ site.city }}" required>
-    </div>
-    <div class="col-md-6">
-      <label for="province" class="form-label">Provincia</label>
-      <input type="text" class="form-control" id="province" name="province" value="{{ site.province }}" required>
-    </div>
-  </div>
-  <div class="mb-3">
-    <label for="location" class="form-label">Ubicación</label>
-    <div id="map" style="height: 400px; width: 100%; border: 1px solid #ccc;"></div>
-    <div class="mt-2">
-      <small>Haz clic en el mapa para seleccionar la ubicación</small>
-    </div>
-    <input type="hidden" id="latitude" name="latitude" value="{{ site.latitude if site.latitude is not none else '' }}" required>
-    <input type="hidden" id="longitude" name="longitude" value="{{ site.longitude if site.longitude is not none else '' }}" required>
-    <div class="mt-2">
-      <span class="badge bg-info">Latitud: <span id="lat-display">{{ "%.6f"|format(site.latitude) if site.latitude is not none else "No seleccionada" }}</span></span>
-      <span class="badge bg-info ms-2">Longitud: <span id="lon-display">{{ "%.6f"|format(site.longitude) if site.longitude is not none else "No seleccionada" }}</span></span>
-    </div>
-    {% if site.location %}
-    <script id="site-coords" type="application/json">{{ {'lat': site.latitude, 'lon': site.longitude} | tojson }}</script>
-    {% endif %}
-  </div>
-  <div class="row mb-3">
-    <div class="col-md-6">
-      <label for="state_id" class="form-label">Estado de conservación</label>
-      <select class="form-control" id="state_id" name="state_id" required>
-        <option value="">Seleccionar...</option>
-        <option value="1" {% if site.state_id == 1 %}selected{% endif %}>Bueno</option>
-        <option value="2" {% if site.state_id == 2 %}selected{% endif %}>Regular</option>
-        <option value="3" {% if site.state_id == 3 %}selected{% endif %}>Malo</option>
-      </select>
-    </div>
-    <div class="col-md-6">
-      <label for="operning_year" class="form-label">Año de inauguración</label>
-      <input type="number" class="form-control" id="operning_year" name="operning_year" value="{{ site.operning_year }}" required>
-    </div>
-  </div>
-  <div class="row mb-3">
-    <div class="col-md-6">
-      <label for="category_id" class="form-label">Categoría</label>
-      <select class="form-control" id="category_id" name="category_id" required>
-        <option value="">Seleccionar...</option>
-        <option value="1" {% if site.category_id == 1 %}selected{% endif %}>Arquitectura</option>
-        <option value="2" {% if site.category_id == 2 %}selected{% endif %}>Infraestructura</option>
-        <option value="3" {% if site.category_id == 3 %}selected{% endif %}>Sitio arqueológico</option>
-      </select>
-    </div>
-    <div class="col-md-6">
-      <label for="active" class="form-label">¿Visible en el portal?</label>
-      <select class="form-control" id="active" name="active" required>
-        <option value="true" {% if site.active %}selected{% endif %}>Sí</option>
-        <option value="false" {% if not site.active %}selected{% endif %}>No</option>
-      </select>
-    </div>
-  </div>
-  <div class="mb-3">
-    <label for="tags" class="form-label">Etiquetas</label>
-    <div id="tags-container" class="tags-multiselect">
-      {% for tag in tags %}
-      <div class="tag-option" data-value="{{ tag.id }}" {% if selected_tag_ids is defined and tag.id in selected_tag_ids %}class="selected"{% endif %}>
-        {{ tag.name }}
-      </div>
-      {% endfor %}
-    </div>
-    <input type="hidden" id="tags" name="tags" value="{% if selected_tag_ids is defined %}{{ selected_tag_ids | join(',') }}{% endif %}">
-    <small class="form-text" style="color: white;">
-      <i class="bi bi-info-circle"></i>
-      Haz clic en las etiquetas para seleccionarlas. Las seleccionadas se verán resaltadas.
-    </small>
-  </div>
-  <div class="d-flex gap-2">
-    <button type="submit" class="btn btn-primary">Guardar cambios</button>
-    <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-secondary">Cancelar</a>
-  </div>
-</form>
+</div>
 
 {% endblock %}
 
@@ -151,34 +169,36 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-// Inicializar mapa
-var map = L.map('map').setView([-34.6037, -58.3816], 10); // Buenos Aires por defecto
+// Inicializar mapa solo después de que el contenedor esté completamente renderizado
+window.addEventListener('DOMContentLoaded', function() {
+    var map = L.map('map').setView([-34.6037, -58.3816], 10); // Buenos Aires por defecto
 
-// Agregar capa de tiles
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-}).addTo(map);
+    // Agregar capa de tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
 
-var marker = null;
+    var marker = null;
 
-// Función para manejar clics en el mapa
-map.on('click', function(e) {
-    var lat = e.latlng.lat;
-    var lon = e.latlng.lng;
-    
-    // Actualizar campos ocultos
-    document.getElementById('latitude').value = lat;
-    document.getElementById('longitude').value = lon;
-    
-    // Actualizar display
-    document.getElementById('lat-display').textContent = lat.toFixed(6);
-    document.getElementById('lon-display').textContent = lon.toFixed(6);
-    
-    // Agregar/actualizar marcador
-    if (marker) {
-        map.removeLayer(marker);
-    }
-    marker = L.marker([lat, lon]).addTo(map);
+    // Función para manejar clics en el mapa
+    map.on('click', function(e) {
+        var lat = e.latlng.lat;
+        var lon = e.latlng.lng;
+
+        // Actualizar campos ocultos
+        document.getElementById('latitude').value = lat;
+        document.getElementById('longitude').value = lon;
+
+        // Actualizar display
+        document.getElementById('lat-display').textContent = lat.toFixed(6);
+        document.getElementById('lon-display').textContent = lon.toFixed(6);
+
+        // Agregar/actualizar marcador
+        if (marker) {
+            map.removeLayer(marker);
+        }
+        marker = L.marker([lat, lon]).addTo(map);
+    });
 });
 
 // Función para centrar en ubicación actual

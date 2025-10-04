@@ -31,6 +31,7 @@ body {
     z-index: 1020;
     overflow-y: auto;
     scrollbar-width: none;
+    border-right: 2px solid var(--bs-primary);
 }
 
 .layout-sidebar::-webkit-scrollbar {
@@ -97,11 +98,21 @@ button {
 }
 
 .alert-success {
-    background-color: #198754; /* Green */
-    color: #FFFFFF; /* White text */
+    background-color: #198754;
+    color: #FFFFFF;
 }
 
 .alert-danger {
-    background-color: #dc3545; /* Red */
-    color: #FFFFFF; /* White text */
+    background-color: #dc3545;
+    color: #FFFFFF;
+}
+
+a, .nav-link {
+    text-decoration: none;
+    color: var(--bs-on-surface);
+}
+
+a:hover, .nav-link:hover {
+    text-decoration: none;
+    color: var(--bs-primary);
 }
