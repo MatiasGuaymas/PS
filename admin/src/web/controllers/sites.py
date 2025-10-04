@@ -251,7 +251,7 @@ def search():
                 (Site.short_desc.ilike(f"%{site_name}%"))
             )
         if city:
-            query = query.filter(Site.city.ilike(f"%{city}%"))
+            query = query.filter(Site.city == city)
         if province:
             query = query.filter(Site.province == province)
         if state_id:
@@ -263,7 +263,13 @@ def search():
         if active:
             query = query.filter(Site.active == True)
         if tags:
-            query = query.join(Site.tags).filter(Tag.id.in_(tags))
+            # Sitios que tengan al menos todos los tags seleccionados
+            from sqlalchemy import func
+            from core.models.Site_Tag import HistoricSiteTag
+            query = query.join(Site.tag_associations)
+            query = query.filter(HistoricSiteTag.tag_id.in_(tags))
+            query = query.group_by(Site.id)
+            query = query.having(func.count(HistoricSiteTag.tag_id) >= len(tags))
 
     # Orden
     if orden == "site_name":
@@ -288,13 +294,14 @@ def search():
     else:
         sites = None
 
-    # Provincias únicas para el selector
     provincias = [row[0] for row in db.session.query(Site.province).distinct().order_by(Site.province).all()]
+    all_tags = Tag.query.order_by(Tag.name.asc()).all()
 
     return render_template(
         "sites/list.html",
         sites=sites,
         filtros=request.args,
         provincias=provincias,
+        tags=all_tags,
         error_msg=error_msg
     )
