@@ -9,7 +9,7 @@
             <h1 class="display-1 text-danger">Error {{ error.code }}</h1>
             <h2 class="my-4">{{ error.message }}</h2>
             <p class="lead">{{ error.description }}</p>
-            <img src="{{ url_for('static', filename='img/error404.png') }}" alt="Error 404"
+            <img src="{{ error.image }}" alt="Error 404"
                 style="max-width: 300px; width: 100%; margin: 24px auto;">
             <br>
             <a href="{{ url_for('home') }}" class="btn btn-secondary mt-4">Volver al inicio</a>

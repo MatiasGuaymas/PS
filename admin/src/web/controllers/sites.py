@@ -4,7 +4,6 @@ from core.models.Tag import Tag
 from core.database import db
 from shapely.geometry import Point
 from geoalchemy2.elements import WKTElement
-from core.services.sites_service import get_sites_filtered
 from src.web.handlers.auth import login_required
 from core.models.Audit import Audit
 from core.services.sites_service import SiteService
