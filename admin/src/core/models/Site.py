@@ -29,8 +29,12 @@ class Site(db.Model):
     )
     
     # RELACIÓN 1: Un sitio historico tiene muchas auditorías.
-    # El 'backref' crea la propiedad 'site' en el modelo Audit.
-    audits = relationship("Audit", backref="site", lazy=True)
+    audits = relationship(
+        "Audit", 
+        back_populates="site", 
+        lazy="dynamic",
+        #cascade="all, delete-orphan" # Tiene sentido eliminar las auditorías si se elimina el sitio pero si lo hacemos logico no va a pasar :).
+    )
     
     # RELACIÓN 2: Un sitio historico pertenece a una categoría.
     category_id = Column(Integer, ForeignKey('categories.id'), nullable=False)

@@ -1,4 +1,4 @@
-def paginate_query(tipo, page, per_page=25, order_by="id", sorted_by="asc"):
+def paginate_query(query, page, per_page=25, order_by="id", sorted_by="asc",url_params=None):
     """
     Pagina una query de SQLAlchemy
 
@@ -18,7 +18,7 @@ def paginate_query(tipo, page, per_page=25, order_by="id", sorted_by="asc"):
     except (ValueError, TypeError):
         page = 1
 
-    pagination = tipo.query.paginate(page=page, per_page=per_page, error_out=False)
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
 
     return {
         "items": pagination.items,
