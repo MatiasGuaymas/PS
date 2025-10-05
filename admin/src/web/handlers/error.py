@@ -30,3 +30,11 @@ def internal_server(e):
     descrpition="Lo sentimos, ocurrió un error, vuelva a intentarlo.",
   )
   return render_template('error.html', error=error), 500
+
+def forbidden(e):
+  error = HTTPError(
+    code=403,
+    message="Permisos insuficientes",
+    descrpition="Lo sentimos, no cuentas con los permisos de seguridad para ingresar.",
+  )
+  return render_template('error.html', error=error), 500

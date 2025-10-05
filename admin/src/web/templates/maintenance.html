@@ -1,0 +1,32 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+Modo Mantenimiento - {{ super() }}
+{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center vh-100">
+    <div class="text-center p-5 border rounded shadow-lg" style="max-width: 600px; background-color: --bs-background;">
+        
+        <i class="bi bi-gear-fill display-1 text-primary mb-4"></i>
+        
+        <h1 class="mb-3 text-white">Modo Mantenimiento Activo</h1>
+        
+        {% if message %}
+            <p class="lead">{{ message }}</p>
+        {% else %}
+            <p class="lead">
+                Lamentamos las molestias. El sistema se encuentra temporalmente fuera de servicio por tareas de mantenimiento y mejoras.
+            </p>
+            <p>
+                Por favor, inténtalo de nuevo más tarde.
+            </p>
+        {% endif %}
+        
+        <hr class="my-4">
+        
+        <a href="{{ url_for('home') }}" class="btn btn-outline-secondary">Volver a la página principal</a>
+        
+    </div>
+</div>
+{% endblock %}

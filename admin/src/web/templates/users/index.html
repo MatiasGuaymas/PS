@@ -198,16 +198,12 @@
                     const userId = this.getAttribute('data-user-id');
                     
                     if (confirm('¿Estás seguro de que quieres borrar este usuario? Esta acción no se puede deshacer.')) {
-                        fetch(`/users/delete/${userId}`, {
-                            method: 'POST'
-                        })
-                        .then(response => {
-                            if (response.ok) {
-                                location.reload();
-                            } else {
-                                alert('Error al borrar el usuario. Por favor, inténtalo de nuevo.');
-                            }
-                        });
+                        // Crear un formulario y enviarlo
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = `/users/delete/${userId}`;
+                        document.body.appendChild(form);
+                        form.submit();
                     }
                 });
             });
@@ -271,7 +267,7 @@
                     </span>
                 </td>
                 <td class="py-3 px-4 text-center">
-                    ${user.role ? `<span class="badge text-bg-info py-2 px-3">${user.role.name}</span>` : '<span class="badge text-bg-secondary py-2 px-3">Sin rol</span>'}
+                    ${user.role ? `<span class="badge text-bg-primary py-2 px-3">${user.role.name}</span>` : '<span class="badge text-bg-secondary py-2 px-3">Sin rol</span>'}
                 </td>
                 <td class="py-3 px-4 text-center">
                     <div class="d-flex gap-2 justify-content-center">
@@ -293,6 +289,8 @@
             filterUsers(); 
         });
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+{% endblock %}
 
+{% block scripts %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 {% endblock %}

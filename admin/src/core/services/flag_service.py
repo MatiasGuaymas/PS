@@ -13,19 +13,17 @@ class FlagService:
     
     def get_all_flags() -> List[Flag]:
         """Recupera todas las flags de la base de datos."""
-        return db.session.execute(db.select(Flag)).scalars().all()
+        return Flag.query.all()
 
     
-    def get_flag_by_id(flag_id: int) -> Optional[Flag]:
+    def get_flag_by_id(flag_id: int):
         """Busca una flag por su ID."""
-        return db.session.get(Flag, flag_id)
+        return Flag.query.get(flag_id)
 
     
     def get_flag_by_name(name: str) -> Optional[Flag]:
         """Busca una flag por su nombre único."""
-        return db.session.execute(
-            db.select(Flag).filter_by(name=name)
-        ).scalar_one_or_none()
+        return Flag.query.filter(Flag.name == name).first()
     
     def is_flag_enabled(name: str) -> bool:
         """Comprueba si una flag está habilitada (is_enabled=True)."""

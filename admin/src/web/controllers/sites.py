@@ -4,6 +4,8 @@ from core.models.Tag import Tag
 from core.database import db
 from shapely.geometry import Point
 from geoalchemy2.elements import WKTElement
+from core.services.sites_service import get_sites_filtered
+from src.web.handlers.auth import login_required
 from core.models.Audit import Audit
 from core.services.sites_service import SiteService
 from core.services.user_service import UserService
@@ -14,7 +16,9 @@ from src.web.utils.export import export_sites_to_csv, get_csv_filename
 from core.services.site_filter_service import filter_and_order_sites
 from datetime import date
 
+
 sites_blueprint = Blueprint("sites", __name__, url_prefix="/sites")
+
 
 def create_point_from_coords(latitude, longitude):
     """Crea un punto desde coordenadas lat/lon, tolerando comas y espacios (WKTElement SRID=4326)."""
@@ -48,6 +52,7 @@ def get_coords_from_point(point):
     return None, None
 
 @sites_blueprint.route("/", methods=["GET", "POST"])
+@login_required
 def index():
     if request.method == "POST":
         site_name = request.form.get("site_name")
@@ -119,6 +124,7 @@ def index():
         return "Método no permitido", 405
 
 @sites_blueprint.route("/<int:site_id>", methods=["GET"])
+@login_required
 def detail(site_id):
     """
     Muestra el detalle junto al historial de auditorías para un sitio histórico específico,
@@ -195,6 +201,7 @@ def detail(site_id):
     )
 
 @sites_blueprint.route("/create", methods=["GET", "POST"])
+@login_required
 def create():
     if request.method == "POST":
         site_name = request.form.get("site_name")
@@ -405,6 +412,7 @@ def edit(site_id):
     return render_template("sites/edit.html", site=site, tags=tags, selected_tag_ids=selected_tag_ids)
 
 @sites_blueprint.route("/<int:site_id>/delete", methods=["POST"])
+@login_required
 def delete(site_id):
     site = Site.query.get_or_404(site_id)
     if(site):
@@ -420,6 +428,7 @@ def delete(site_id):
     return redirect(url_for("sites.index"))
 
 @sites_blueprint.route("/search", methods=["GET"])
+@login_required
 def search():
     # Filtros del querystring
     filtros = {
