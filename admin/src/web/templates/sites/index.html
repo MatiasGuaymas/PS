@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% from "macros/paginate.html" import paginate %}
 
 {% block title %}Listado de Sitios | Puff-tóricos{% endblock %}
 
@@ -43,4 +44,10 @@
         </div>
     </div>
 </div>
+
+
+<div class="d-flex justify-content-center mt-3">
+        {{ paginate(pagination=pagination, url='sites.index') }}
+</div>
+    
 {% endblock %}
