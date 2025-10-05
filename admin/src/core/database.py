@@ -4,20 +4,23 @@ db = SQLAlchemy()
 
 
 def init_db(app):
-    print("Initializing database...")
     db.init_app(app)
+    configure_db(app)
+
     with app.app_context():
         db.create_all()
-    return db
+    return app
 
 
 def configure_db(app):
     @app.teardown_request
     def shutdown_session(exception=None):
         db.session.remove()
+    return app
 
 
 def reset_db(app):
+
     with app.app_context():
         db.drop_all()
         db.create_all()

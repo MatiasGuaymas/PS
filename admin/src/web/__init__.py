@@ -32,11 +32,6 @@ def create_app(env = 'development', static_folder = "../../static"):
     database.init_db(app)
     session.init_app(app)
 
-    with app.app_context():
-        database.db.drop_all()
-        database.db.create_all()
-        seeds.seed_data()
-
     @app.route('/')
     def home():
         return render_template('home.html')
@@ -61,5 +56,34 @@ def create_app(env = 'development', static_folder = "../../static"):
     
     # Variables globales para las plantillas
     app.jinja_env.globals.update(is_authenticated=is_authenticated)
+
+    # Commands
+    @app.cli.command("reset-db")
+    def reset_db_command():
+        from core.database import reset_db
+
+        reset_db(app)
+
+    @app.cli.command("seed-db")
+    def seed_db_command():
+        import os
+
+        from core.seeds import seed_data
+
+        #env = os.getenv("FLASK_ENV", "production")
+
+        seed_data()
+
+    # Inicialización automática para producción
+    with app.app_context():
+        if env == "production":
+            from core.database import reset_db
+            from core.seeds import run as seed_db
+            # Borra y crea la base de datos
+            reset_db(app)
+            # Corre los seeds
+            seed_db(app)
+
+
 
     return app
