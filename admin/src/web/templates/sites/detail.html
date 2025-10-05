@@ -1,10 +1,12 @@
 {% extends "layout.html" %}
 
+{% block title %}Detalle del Sitio | Puff-tóricos{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-  <div class="card" style="border: 2px solid #BB86FC;">
+<div class="container-xl">
+  <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden mx-auto" style="border: 2px solid #BB86FC;">
     <div class="card-body">
-      <h2 class="card-title mb-4">{{ site.site_name }}</h2>
+      <h3 class="card-title mb-4 text-white">{{ site.site_name }}</h3>
       <hr>
       <p><strong>Descripción breve:</strong> {{ site.short_desc }}</p>
       <p><strong>Descripción completa:</strong> {{ site.full_desc }}</p>
