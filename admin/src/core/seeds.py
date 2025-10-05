@@ -159,9 +159,9 @@ def seed_data():
     db.session.flush()
 
     # 10) Audits (requieren user_id y site_id)
-    a1 = Audit(user_id=u1.id, site_id=site1.id, message='Revisión inicial')
-    a2 = Audit(user_id=u2.id, site_id=site2.id, message='Inspección anual')
-    a3 = Audit(user_id=u1.id, site_id=site3.id, message='Mantenimiento programado')
+    a1 = Audit(user_id=u1.id, site_id=site1.id, action_type= 'CREATED', description='Revisión inicial')
+    a2 = Audit(user_id=u2.id, site_id=site2.id, action_type= 'CREATED',description='Inspección anual')
+    a3 = Audit(user_id=u1.id, site_id=site3.id, action_type= 'CREATED',description='Mantenimiento programado')
     db.session.add_all([a1, a2, a3])
     db.session.flush()
 

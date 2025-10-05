@@ -9,9 +9,12 @@ class Audit(db.Model):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now())
+    action_type=Column(String(50), nullable=False)
 
-    # Mensaje o descripción de la auditoría
-    message = Column(String(200), nullable=True)
+    description = Column(String(80), nullable=False)
+
+    # Detalles especificos de la auditoría
+    details = Column(String(2505), nullable=True)
 
     # RELACIÓN 1: Una Auditoría es realizada por un único Usuario.
     # CLAVE FORÁNEA: Columna que referencia la tabla 'users'.
@@ -20,3 +23,4 @@ class Audit(db.Model):
     # RELACIÓN 2: una auditoria se hace a un sitio historico.
     # CLAVE FORÁNEA: Columna que referencia la tabla 'site'.
     site_id = Column(Integer, ForeignKey('site.id'), nullable=False)
+    site = relationship("Site", back_populates="audits")
