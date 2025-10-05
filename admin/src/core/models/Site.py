@@ -33,7 +33,7 @@ class Site(db.Model):
         "Audit", 
         back_populates="site", 
         lazy="dynamic",
-        #cascade="all, delete-orphan" # Tiene sentido eliminar las auditorías si se elimina el sitio pero si lo hacemos logico no va a pasar :).
+        cascade="all, delete-orphan" # Tiene sentido eliminar las auditorías si se elimina el sitio pero si lo hacemos logico no va a pasar :).
     )
     
     # RELACIÓN 2: Un sitio historico pertenece a una categoría.
@@ -48,7 +48,8 @@ class Site(db.Model):
     tag_associations = relationship(
         "HistoricSiteTag",
         back_populates="site",
-        lazy="dynamic"
+        lazy="dynamic",
+        cascade="all, delete-orphan"
     )
 
     from geoalchemy2.shape import to_shape

@@ -92,7 +92,7 @@ def index():
             user_id=session.get("user_id"),
             site_id= new_site.id,
             action_type='CREATE',
-            details= f"Se creó un nuevo sitio {new_site.site_name}"
+            description= f"Se creó un nuevo sitio {new_site.site_name}"
         )
         db.session.commit()
 
@@ -379,7 +379,7 @@ def edit(site_id):
                 del general_changes["state_id"] 
 
             if general_changes:
-                # Opcional: Serializa los cambios exactos para el campo `details`
+                # Opcional: Serializa los cambios exactos para el campo `details` queda más lindo y lo mapeo más tarde por colores
                 details_json = json.dumps(general_changes, default=str)
                 
                 # Descripción genérica
@@ -393,12 +393,9 @@ def edit(site_id):
                     details=details_json
                 )
         
-        # Commit final para asegurar que los logs de auditoría se guarden
         db.session.commit() 
         flash("Sitio actualizado con éxito.", "success")
 
-
-        # Confirmar valores persistidos en logs
         try:
             db.session.refresh(site)
             print(f"[sites.edit] Persistido lat={site.latitude}, lon={site.longitude}")

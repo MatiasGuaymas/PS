@@ -13,15 +13,8 @@ class config:
 class ProductionConfig(config):
     """Production configuration."""
 
-    DB_USER = environ.get("DB_USER")
-    DB_PASS = environ.get("DB_PASS")
-    DB_HOST = environ.get("DB_HOST")
-    DB_NAME = environ.get("DB_NAME")
-    SESSION_TYPE = "filesystem"
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_DATABASE_URI = (
-        f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:5432/{DB_NAME}"
-    )
+    SQLALCHEMY_DATABASE_URI = (environ.get("DATABASE_URL"))
+    DEBUG=False
 
 
 
