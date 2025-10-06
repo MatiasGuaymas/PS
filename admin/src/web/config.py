@@ -1,4 +1,4 @@
-from os import environ
+import os 
 
 class config:
     TESTING = False
@@ -10,11 +10,14 @@ class config:
         "pool_pre_ping": True,
     }
 
+
 class ProductionConfig(config):
     """Production configuration."""
-
-    SQLALCHEMY_DATABASE_URI = (environ.get("DATABASE_URL"))
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "")
     DEBUG=False
+
+
+
 
 
 
