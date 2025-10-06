@@ -17,10 +17,6 @@ class ProductionConfig(config):
     DEBUG=False
 
 
-
-
-
-
 class DevelopmentConfig(config):
     """Development configuration."""
 
@@ -44,3 +40,8 @@ config = {
     'production': ProductionConfig,
     'testing': TestingConfig
 }
+
+def get_current_config(env=None):
+    if env is None:
+        env = os.getenv("FLASK_ENV", "production")
+    return config.get(env, ProductionConfig)

@@ -13,7 +13,7 @@ from src.web.controllers.flags import feature_flag_blueprint
 from src.web.controllers.auth import bp as auth_bp
 from src.web.handlers.auth import is_authenticated
 from .utils.hooks import hook_admin_maintenance
-
+from .config import get_current_config
 import os
 from dotenv import load_dotenv
 from core import seeds
@@ -26,8 +26,7 @@ def create_app(env = 'development', static_folder = "../../static"):
 
     app = Flask(__name__, static_folder=static_folder)
 
-    app.config["SQLALCHEMY_ECHO"] = os.getenv("SQLALCHEMY_ECHO")
-    app.config.from_object(config[env])
+    app.config.from_object(get_current_config(env))
 
     database.init_db(app)
     session.init_app(app)
@@ -78,7 +77,7 @@ def create_app(env = 'development', static_folder = "../../static"):
     with app.app_context():
         if env == "production":
             from core.database import reset_db
-            from core.seeds import run as seed_db
+            from core.seeds import seed_data as seed_db
             # Borra y crea la base de datos
             reset_db(app)
             # Corre los seeds
