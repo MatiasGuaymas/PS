@@ -13,6 +13,7 @@ from core.models.Site_Tag import HistoricSiteTag
 from core.models.Audit import Audit
 from core.models.Flag import Flag
 from core.models.User import User
+from core.services.user_service import UserService
 
 import bcrypt
 
@@ -146,7 +147,71 @@ def seed_data():
     u1 = User(email='admin@example.com', first_name='Admin', last_name='Uno', password=bcrypt.hashpw('adminpass'.encode('utf-8'), bcrypt.gensalt()), active=True, sysAdmin=True, role_id=r_admin.id)
     u2 = User(email='user@example.com', first_name='Usuario', last_name='Dos', password=bcrypt.hashpw('userpass'.encode('utf-8'), bcrypt.gensalt()), active=True, sysAdmin=False, role_id=r_user.id)
     u3 = User(email='editor@example.com', first_name='Invitado', last_name='Tres', password=bcrypt.hashpw('userpass'.encode('utf-8'), bcrypt.gensalt()), active=False, sysAdmin=False, role_id=r_editor.id)
+    
+    # Agregar los usuarios básicos
     db.session.add_all([u1, u2, u3])
+    
+    # Datos de usuarios de prueba adicionales
+    test_users_data = [
+        # Administradores adicionales (2)
+        {'email': 'maria.gonzalez@admin.com', 'first_name': 'María', 'last_name': 'González', 'password': 'password123', 'active': True, 'sysAdmin': False, 'role': r_admin.id},
+        {'email': 'carlos.rodriguez@admin.com', 'first_name': 'Carlos', 'last_name': 'Rodríguez', 'password': 'password123', 'active': True, 'sysAdmin': False, 'role': r_admin.id},
+        
+        # Editores (5)
+        {'email': 'ana.martinez@editor.com', 'first_name': 'Ana', 'last_name': 'Martínez', 'password': 'password123', 'active': True, 'sysAdmin': False, 'role': r_editor.id},
+        {'email': 'luis.fernandez@editor.com', 'first_name': 'Luis', 'last_name': 'Fernández', 'password': 'password123', 'active': True, 'sysAdmin': False, 'role': r_editor.id},
+        {'email': 'sofia.lopez@editor.com', 'first_name': 'Sofía', 'last_name': 'López', 'password': 'password123', 'active': True, 'sysAdmin': False, 'role': r_editor.id},
+        {'email': 'diego.morales@editor.com', 'first_name': 'Diego', 'last_name': 'Morales', 'password': 'password123', 'active': False, 'sysAdmin': False, 'role': r_editor.id},
+        {'email': 'elena.vargas@editor.com', 'first_name': 'Elena', 'last_name': 'Vargas', 'password': 'password123', 'active': True, 'sysAdmin': False, 'role': r_editor.id},
+
+        # Usuarios regulares (23)
+        {'email': 'juan.perez@user.com', 'first_name': 'Juan', 'last_name': 'Pérez', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'laura.sanchez@user.com', 'first_name': 'Laura', 'last_name': 'Sánchez', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'miguel.torres@user.com', 'first_name': 'Miguel', 'last_name': 'Torres', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'carmen.ruiz@user.com', 'first_name': 'Carmen', 'last_name': 'Ruiz', 'password': 'userpass', 'active': False, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'ricardo.jimenez@user.com', 'first_name': 'Ricardo', 'last_name': 'Jiménez', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'patricia.moreno@user.com', 'first_name': 'Patricia', 'last_name': 'Moreno', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'fernando.castro@user.com', 'first_name': 'Fernando', 'last_name': 'Castro', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'gabriela.ortiz@user.com', 'first_name': 'Gabriela', 'last_name': 'Ortiz', 'password': 'userpass', 'active': False, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'antonio.ramos@user.com', 'first_name': 'Antonio', 'last_name': 'Ramos', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'valentina.herrera@user.com', 'first_name': 'Valentina', 'last_name': 'Herrera', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'andres.silva@user.com', 'first_name': 'Andrés', 'last_name': 'Silva', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'natalia.mendez@user.com', 'first_name': 'Natalia', 'last_name': 'Méndez', 'password': 'userpass', 'active': False, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'pablo.guerrero@user.com', 'first_name': 'Pablo', 'last_name': 'Guerrero', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'camila.flores@user.com', 'first_name': 'Camila', 'last_name': 'Flores', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'sergio.medina@user.com', 'first_name': 'Sergio', 'last_name': 'Medina', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'isabella.cruz@user.com', 'first_name': 'Isabella', 'last_name': 'Cruz', 'password': 'userpass', 'active': False, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'daniel.reyes@user.com', 'first_name': 'Daniel', 'last_name': 'Reyes', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'adriana.vega@user.com', 'first_name': 'Adriana', 'last_name': 'Vega', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'roberto.aguilar@user.com', 'first_name': 'Roberto', 'last_name': 'Aguilar', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'monica.delgado@user.com', 'first_name': 'Mónica', 'last_name': 'Delgado', 'password': 'userpass', 'active': False, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'joaquin.pena@user.com', 'first_name': 'Joaquín', 'last_name': 'Peña', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id},
+        {'email': 'beatriz.romero@user.com', 'first_name': 'Beatriz', 'last_name': 'Romero', 'password': 'userpass', 'active': True, 'sysAdmin': False, 'role': r_user.id}
+    ]
+
+    # Verificar que no existan usuarios con los mismos emails antes de crearlos
+    users_created = []
+    for user_data in test_users_data:
+        existing_user = User.query.filter_by(email=user_data['email']).first()
+        if not existing_user:  # Solo crear si no existe
+            user = User(
+                email=user_data['email'],
+                first_name=user_data['first_name'],
+                last_name=user_data['last_name'],
+                password=UserService.hash_password(user_data['password']),
+                active=user_data['active'],
+                sysAdmin=user_data['sysAdmin'],
+                role_id=user_data['role']
+            )
+            users_created.append(user)
+
+    # Agregar solo los usuarios que no existían
+    if users_created:
+        db.session.add_all(users_created)
+        print(f"Agregados {len(users_created)} usuarios de prueba nuevos")
+    else:
+        print("Todos los usuarios de prueba ya existen")
+    
     db.session.flush()
 
     # 10) Audits (requieren user_id y site_id)

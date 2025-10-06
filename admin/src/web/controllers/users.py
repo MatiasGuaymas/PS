@@ -29,7 +29,7 @@ def verify_password(password: str, hashed: bytes) -> bool:
 
 @user_blueprint.route("/", methods=["GET", "POST"])
 @login_required
-@require_role(['Administrador', 'Editor'])
+@require_role(['Administrador'])
 def index():
     if request.method == "POST":
         first_name = request.form.get("first_name")
@@ -82,7 +82,7 @@ def index():
 
 @user_blueprint.route("/update/<int:user_id>", methods=["GET", "POST"])
 @login_required
-@require_role(['Administrador', 'Editor'])
+@require_role(['Administrador'])
 def update(user_id):
     user = User.query.get_or_404(user_id)
     
@@ -129,7 +129,7 @@ def update(user_id):
 
 @user_blueprint.route("/delete/<int:user_id>", methods=["GET", "POST"])
 @login_required
-@require_role(['Administrador', 'Editor'])
+@require_role(['Administrador'])
 def delete_user(user_id):
     try:
         user = User.query.get_or_404(user_id)
@@ -172,16 +172,23 @@ def delete_user(user_id):
 
 @user_blueprint.route("/search/", methods=["GET"])
 @login_required
-@require_role(['Administrador', 'Editor'])
+@require_role(['Administrador'])
 def search_users():
     try:
         email = request.args.get('email', '').strip()
         status = request.args.get('status', '').strip()
         role = request.args.get('role', '').strip()
         
+        sort_by = request.args.get('sort_by', 'created_at').strip()
+        sort_order = request.args.get('sort_order', 'desc').strip()
+        
         query = User.query.options(joinedload(User.role))
-        
-        
+
+        page = request.args.get('page', 1, type=int)
+        per_page = 25
+
+
+
         if email:
             query = query.filter(User.email.ilike(f'%{email}%'))
         
@@ -194,8 +201,20 @@ def search_users():
         if role:
             query = query.filter(User.role_id == int(role))
         
-        users = query.all()
-        
+        if sort_by == 'created_at':
+            if sort_order == 'asc':
+                query = query.order_by(User.created_at.asc())
+            else:
+                query = query.order_by(User.created_at.desc())
+
+        pagination = query.paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+
+        users = pagination.items
+
         users_data = []
         for user in users:
             user_data = {
@@ -216,7 +235,18 @@ def search_users():
         return jsonify({
             'success': True,
             'users': users_data,
-            'total': len(users_data),
+            'pagination': {
+                'page': pagination.page,
+                'pages': pagination.pages,
+                'per_page': pagination.per_page,
+                'total': pagination.total,
+                'has_next': pagination.has_next,
+                'has_prev': pagination.has_prev,
+                'next_num': pagination.next_num if pagination.has_next else None,
+                'prev_num': pagination.prev_num if pagination.has_prev else None
+            },
+            'sort_by': sort_by,
+            'sort_order': sort_order,
             'filters': {
                 'email': email,
                 'status': status,
