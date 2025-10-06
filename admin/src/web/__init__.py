@@ -81,7 +81,7 @@ def create_app(env = 'development', static_folder = "../../static"):
             # Borra y crea la base de datos
             reset_db(app)
             # Corre los seeds
-            seed_db(app)
+            seed_db()
 
 
 
