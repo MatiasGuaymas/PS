@@ -1,0 +1,134 @@
+{% extends "layout.html" %}
+
+{% block title %}Editar Usuario | Puff-tóricos{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden mx-auto" style="max-width: 900px;">
+        <div class="p-4">
+            <h3 class="h3 fw-bolder mb-1 text-white">Editar Usuario</h1>
+            <p class="text-white-50">Actualizar la información del usuario seleccionado.</p>
+            <div class="card bg-dark p-4 border rounded-3 shadow-sm mb-4">
+                <h2 class="h4 fw-bold text-white mb-4 border-bottom pb-2">Información del Usuario</h2>
+                <form id="edit-user-form" class="row g-3" action="{{ url_for('users.update', user_id=user.id) }}"
+                    method="post">
+
+                    <div class="col-md-6">
+                        <label for="edit-first-name" class="form-label fw-semibold text-white">Nombre</label>
+                        <input type="text" id="edit-first-name" name="first_name" value="{{ user.first_name }}"
+                            placeholder="Ej: Juan" required class="form-control rounded-3">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="edit-last-name" class="form-label fw-semibold text-white">Apellido</label>
+                        <input type="text" id="edit-last-name" name="last_name" value="{{ user.last_name }}"
+                            placeholder="Ej: Pérez" required class="form-control rounded-3">
+                    </div>
+
+                    <div class="col-md-12">
+                        <label for="edit-email" class="form-label fw-semibold text-white">Email</label>
+                        <input type="email" id="edit-email" name="email" value="{{ user.email }}"
+                            placeholder="ejemplo@dominio.com" required class="form-control rounded-3">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="edit-password" class="form-label fw-semibold text-white">Nueva Contraseña
+                            (opcional)</label>
+                        <input type="password" id="edit-password" name="password"
+                            placeholder="Dejar vacío para mantener la actual" class="form-control rounded-3">
+                        <div class="form-text text-white-50">Solo completa si deseas cambiar la contraseña</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="edit-active" class="form-label fw-semibold text-white">Estado</label>
+                        <select id="edit-active" name="active" class="form-select rounded-3">
+                            <option value="true" {% if user.active %}selected{% endif %}>Activo</option>
+                            <option value="false" {% if not user.active %}selected{% endif %}>Inactivo</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="edit-role" class="form-label fw-semibold text-white">Rol</label>
+                        <select id="edit-role" name="role_id" class="form-select rounded-3">
+                            <option value="">Sin rol asignado</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="edit-sysadmin" class="form-label fw-semibold text-white">Administrador del
+                            Sistema</label>
+                        <select id="edit-sysadmin" name="sysAdmin" class="form-select rounded-3">
+                            <option value="false" {% if not user.sysAdmin %}selected{% endif %}>No</option>
+                            <option value="true" {% if user.sysAdmin %}selected{% endif %}>Sí</option>
+                        </select>
+                    </div>
+
+                    <div class="col-12 mt-4">
+                        <div class="d-flex gap-3 justify-content-end">
+                            <a href="{{ url_for('users.index') }}" class="btn btn-secondary rounded-3 px-4">
+                                <i class="fas fa-arrow-left me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary fw-bold px-4 rounded-3 shadow-sm">
+                                <i class="fas fa-save me-2"></i>Guardar Cambios
+                            </button>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+
+            <!-- Información adicional del usuario -->
+            <div class="card bg-dark p-4 border rounded-3 shadow-sm">
+                <h3 class="h5 fw-bold text-white mb-3 border-bottom pb-2">Información Adicional</h3>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-2 text-white"><strong>ID:</strong> {{ user.id }}</p>
+                        <p class="mb-2 text-white"><strong>Fecha de Creación:</strong> {{ user.created_at.strftime('%d/%m/%Y
+                            %H:%M') if user.created_at else 'N/A' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-2 text-white"><strong>Estado Actual:</strong>
+                            {% if user.active %}
+                            <span class="badge text-bg-success">Activo</span>
+                            {% else %}
+                            <span class="badge text-bg-danger">Inactivo</span>
+                            {% endif %}
+                        </p>
+                        <p class="mb-2 text-white"><strong>Rol Actual:</strong>
+                            {% if user.role %}
+                            <span class="badge text-bg-info">{{ user.role.name }}</span>
+                            {% else %}
+                            <span class="badge text-bg-secondary">Sin rol</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        fetch('/roles/')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Roles cargados:', data); // Para debug
+                const roleSelect = document.getElementById('edit-role');
+                data.forEach(role => {
+                    const option = document.createElement('option');
+                    option.value = role.id;
+                    option.textContent = role.name;
+                    roleSelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Error al cargar los roles:', error));
+    });
+</script>
+</div>
+{% endblock %}

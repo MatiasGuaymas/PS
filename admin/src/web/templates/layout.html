@@ -4,26 +4,122 @@
     <meta charset="UTF-8">
     <title>{% block title %}Mi Aplicacion{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {%block head %}
+    <title>{% block title %}Puff-tóricos{% endblock %}</title>
+    {% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap/dist/css/bootstrap.min.css')}}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap-icons/font/bootstrap-icons.min.css')}}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     {% endblock %}
 </head>
 <body>
     <header>
-        {%block header %}
-        <h1>Bienvenido a Mi Aplicacion</h1>
-        {% endblock %}
+        <div class="header-left">
+            <a href="/">
+                <img src="{{ url_for('static', filename='img/Logo.jpg') }}" style="max-width: 40px; max-height: 40px;"
+                    alt="Logo">
+            </a>
+            <span><a href="/">Puff-tóricos</a></span>
+        </div>
+        <div class="header-right">
+            <div class="dropdown">
+                <button class="dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown"
+                    aria-expanded="false">
+                    <span class="header-my-account">Cuenta</span>
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                    {% if is_authenticated(session) %}
+                    <li>
+                        <form method="POST" action="/users/profile" style="display: inline;">
+                            <input type="hidden" name="user" value="{{ session.user }}">
+                            <button type="submit" class="dropdown-item">Ver perfil</button>
+                        </form>
+                    </li>
+                    <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Cerrar sesión</a></li>
+                    {% else %}
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('auth.login') }}">Iniciar sesión</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
     </header>
-    <nav>
-        {% block nav %}
-        {% endblock %}
-    </nav>
-    <main>
-        {% block content %}
-        {% endblock %}
-    </main>
-    <footer>
-        {% block footer %} &copy; {{current_year}} Mi Aplicacion {% endblock %}
-    </footer>
+    <div class="layout-sidebar">
+        <nav class="d-flex flex-column bg-dark text-white vh-100">
+            {% block nav %}
+            <ul class="nav flex-column text-center">
+                <li class="nav-item" title="Gestión de sitios históricos">
+                    <a class="nav-link" href="{{ url_for('sites.index') }}">
+                        <i class="bi bi-bank"></i>
+                    </a>
+                </li>
+                <li class="nav-item" title="Validación de propuestas">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-check-circle"></i>
+                    </a>
+                </li>
+                <li class="nav-item" title="Moderación de reseñas">
+                    <a class="nav-link" href="#">
+                        <i class="bi bi-chat-dots"></i>
+                    </a>
+                </li>
+                <li class="nav-item" title="Gestión de usuarios">
+                    <a class="nav-link" href="{{ url_for('users.index') }}">
+                        <i class="bi bi-people"></i>
+                    </a>
+                </li>
+            </ul>
+            {% endblock %}
+        </nav>
+    </div>
+    <div class="layout-main">
+        <main>
+            {# Eliminado: los alert clásicos de Bootstrap para que solo se muestre SweetAlert #}
+
+            {% block content %}
+            {% endblock %}
+        </main>
+    </div>
+    <div class="layout-footer">
+        <footer class="bg-dark text-white text-center py-3"
+            style="position:fixed; bottom:0; left:0; width:100%; z-index:100;">
+            {% block footer %}
+            &copy; {{current_year}} Puff-tóricos
+            <img src="{{ url_for('static', filename='img/Copyright.png') }}" alt="Copyright"
+                style="height: 20px; vertical-align: middle; margin-right: 8px;">
+            {% endblock %}
+
+        </footer>
+    </div>
+    <script src="{{ url_for('static', filename='bootstrap/dist/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <script>
+        Swal.fire({
+            title: (
+                '{{ category }}' === 'danger' ? 'Error' :
+                    '{{ category }}' === 'success' ? 'Éxito' :
+                        '{{ category }}' === 'warning' ? 'Advertencia' :
+                            '{{ category }}' === 'info' ? 'Información' : 'Mensaje'
+            ),
+            text: `{{ message|safe }}`,
+            icon: ('{{ category }}' === 'danger' ? 'error' : '{{ category }}'),
+            confirmButtonText: 'Aceptar'
+        });
+    </script>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
 </body>
+
 </html>
+
+{% block scripts %}
+{% endblock %}

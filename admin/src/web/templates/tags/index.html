@@ -1,0 +1,98 @@
+{% extends "layout.html" %}
+
+{% block title %}Crear Tag | Puff-tóricos{% endblock %}
+
+{% block content %}
+<div class="card mx-auto mt-5" style="border-color:var(--bs-primary); max-width: 900px; background-color: var(--bs-surface); color: var(--bs-on-surface);">
+  <div class="card-header" style="background-color: var(--bs-primary); color: var(--bs-on-primary);">
+    <h2 class="text-center mb-0">Listado de Tags</h2>
+  </div>
+  <div class="card-body">
+    <form method="get" class="mb-4">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <input type="text" class="form-control" id="search" name="search" placeholder="Buscar por nombre..." value="{{ search }}">
+        </div>
+        <div class="col-md-3">
+          <select class="form-select" id="order" name="order">
+            <option value="name" {% if order == "name" %}selected{% endif %}>Nombre</option>
+            <option value="created_at" {% if order == "created_at" %}selected{% endif %}>Fecha de creación</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <select class="form-select" id="direction" name="direction">
+            <option value="asc" {% if direction == "asc" %}selected{% endif %}>Ascendente</option>
+            <option value="desc" {% if direction == "desc" %}selected{% endif %}>Descendente</option>
+          </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary w-100">Buscar</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <span>{{ tags.total }} resultados encontrados</span>
+      <a href="{{ url_for('tags.create') }}" class="btn btn-success">Nuevo Tag</a>
+    </div>
+
+    {% if tags.items %}
+    <table class="table table-hover align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>Nombre</th>
+          <th>Slug</th>
+          <th>Fecha de creación</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tag in tags.items %}
+        <tr>
+          <td><a href="{{ url_for('tags.detail', tag_id=tag.id) }}" class="text-decoration-none d-flex align-items-center" style="color: black;">
+              <i class="bi bi-link-45deg me-2"></i>{{ tag.name }}</a></td>
+          <td>{{ tag.slug }}</td>
+          <td>{{ tag.created_at.strftime('%d/%m/%Y') }}</td>
+          <td>
+            <div class="btn-group gap-2" role="group">
+              <a href="{{ url_for('tags.edit', tag_id=tag.id) }}" class="btn btn-warning btn-sm">Editar</a>
+              <form method="POST" action="{{ url_for('tags.delete', tag_id=tag.id) }}" style="display:inline;">
+                <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <nav>
+      <ul class="pagination justify-content-center">
+        {% if tags.has_prev %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('tags.index', page=tags.prev_num, search=search, order=order, direction=direction) }}">Anterior</a>
+        </li>
+        {% endif %}
+        <li class="page-item active"><span class="page-link">{{ tags.page }}</span></li>
+        {% if tags.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('tags.index', page=tags.next_num, search=search, order=order, direction=direction) }}">Siguiente</a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% else %}
+    <div class="alert alert-info text-center" role="alert">
+      {% if search %}
+      <h5>No se encontraron tags</h5>
+      <p>No hay tags que coincidan con la búsqueda "<strong>{{ search }}</strong>"</p>
+      {% else %}
+      <h5>No hay tags registrados</h5>
+      <p>Aún no se han creado tags en el sistema.</p>
+      <a href="{{ url_for('tags.create') }}" class="btn btn-success">Crear primer tag</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

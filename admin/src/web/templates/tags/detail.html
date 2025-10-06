@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block title %}Crear Tag | Puff-tóricos{% endblock %}
+
+{% block content %}
+<div class="card mx-auto mt-5" style="border-color: var(--bs-primary); max-width: 600px; background-color: var(--bs-surface); color: var(--bs-on-surface);">
+  <div class="card-header" style="background-color: var(--bs-primary); color: var(--bs-on-primary);">Detalle del Tag</div>
+  <div class="card-body">
+    <ul class="list-group mb-4" style="background-color: var(--bs-surface); color: var(--bs-on-surface);">
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <strong>Nombre:</strong> <span>{{ tag.name }}</span>
+      </li>
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <strong>Slug:</strong> <span>{{ tag.slug }}</span>
+      </li>
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <strong>Fecha de creación:</strong> <span>{{ tag.created_at.strftime('%d/%m/%Y') }}</span>
+      </li>
+    </ul>
+    <div class="d-flex gap-3">
+      <a href="{{ url_for('tags.edit', tag_id=tag.id) }}" class="btn btn-warning">Editar</a>
+      <a href="{{ url_for('tags.index') }}" class="btn btn-secondary">Volver al listado</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
