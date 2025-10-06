@@ -17,6 +17,7 @@ class Site(db.Model):
     operning_year = Column(Integer, nullable=False)
     registration = Column(DateTime(timezone=True), server_default=func.now())
     active = Column(bool, default=1)
+    deleted = Column(bool, default=0)
     #images = Column(String, nullable=False)
 
     location = Column(

@@ -28,9 +28,36 @@ class SiteService:
             dict de paginación o lista de objetos HistoricSite
         """
         filters = filters or {}
+        # Siempre filtrar los sitios no eliminados
+        filters['deleted'] = False
 
-        # Construir query con filtros genéricos
+        # --- Filtrado por tags (muchos a muchos) ---
+        tags = filters.pop('tags', None)
+
+        # Construir query base
         query = build_search_query(Site, filters)
+
+        # Filtrado por tags: solo sitios que tengan TODOS los tags seleccionados
+        if tags:
+            tag_ids = []
+            # Normalización
+            if isinstance(tags, (list, tuple)):
+                tag_ids = [int(t) for t in tags if str(t).isdigit()]
+            elif isinstance(tags, str) and tags.isdigit():
+                tag_ids = [int(tags)]
+            """
+            Si tag_ids tiene valores, se hace un JOIN con la tabla de asociación y
+            se filtran los sitios que tengan esos tags. Luego, se agrupa por sitio y se usa
+            HAVING para asegurarse que el conteo de tags coincida con la cantidad de tags
+            solicitados (es decir, que el sitio tenga todos los tags).
+            """
+            if tag_ids:
+                from core.models.Site_Tag import HistoricSiteTag
+                from sqlalchemy import func
+                query = query.join(Site.tag_associations)
+                query = query.filter(HistoricSiteTag.tag_id.in_(tag_ids))
+                query = query.group_by(Site.id)
+                query = query.having(func.count(HistoricSiteTag.tag_id) == len(tag_ids))
 
         # Ordenar
         query = apply_ordering(query, Site, order_by, sorted_by)
