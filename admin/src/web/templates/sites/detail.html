@@ -4,7 +4,8 @@
 
 {% block content %}
 <div class="container-xl">
-  <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden mx-auto" style="border: 2px solid #BB86FC;">
+  <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden mx-auto"
+    style="border: 2px solid #BB86FC;">
     <div class="card-body">
       <h3 class="card-title mb-4 text-white">{{ site.site_name }}</h3>
       <hr>
@@ -21,13 +22,13 @@
       <p><strong>Estado de conservación:</strong> {{ site.state.name }}</p>
       <p><strong>Año de inauguración:</strong> {{ site.operning_year }}</p>
       <p><strong>Categoría:</strong> {{ site.category.name }}</p>
-      <p><strong>Etiquetas:</strong> 
+      <p><strong>Etiquetas:</strong>
         {% if site.tag_associations %}
-          {% for association in site.tag_associations %}
-            <span class="badge bg-primary me-1">{{ association.tag.name }}</span>
-          {% endfor %}
+        {% for association in site.tag_associations %}
+        <span class="badge bg-primary me-1">{{ association.tag.name }}</span>
+        {% endfor %}
         {% else %}
-          <span class="text-muted">Sin etiquetas asignadas</span>
+        <span class="text-muted">Sin etiquetas asignadas</span>
         {% endif %}
       </p>
       <div class="row mb-3">
@@ -46,6 +47,7 @@
       <a href="{{ url_for('sites.edit', site_id=site_id) }}" class="btn btn-secondary">Editar</a>
     </div>
   </div>
+  {% if is_granted(session, 'site_history') %}
   <div class="mt-5">
     <h1>Historial de Auditoría para el Sitio: {{ site.site_name }}</h1>
 
@@ -55,45 +57,46 @@
     <div class="card bg-dark mb-4 p-3" style="--bs-bg-opacity: .7; border-color: #BB86FC;">
       <form method="GET" action="{{ url_for(url_endpoint, site_id=site.id) }}">
         <div class="row g-3 align-items-end">
-          
+
           {# Filtro de Usuario #}
           <div class="col-md-3">
             <label for="user_id" class="form-label text-white">Usuario</label>
             <select name="user_id" id="user_id" class="form-select bg-dark text-white border-secondary">
               <option value="">-- Todos --</option>
               {% for user in all_users %}
-                <option value="{{ user.id  }}" {% if request.args.get('user.id')==user.id %}selected{% endif %}>{{ user.email }}</option>
+              <option value="{{ user.id  }}" {% if request.args.get('user.id')==user.id %}selected{% endif %}>{{
+                user.email }}</option>
               {% endfor %}
             </select>
           </div>
-          
+
           {# Filtro de Tipo de Acción #}
           <div class="col-md-3">
             <label for="action_type" class="form-label text-white">Tipo de Acción</label>
             <select name="action_type" id="action_type" class="form-select bg-dark text-white border-secondary">
               <option value="">-- Todos --</option>
               {% for action in all_actions_types %}
-                <option value="{{ action }}" {% if request.args.get('action')== action %}selected{% endif %}>
-                  {{ action }}
-                </option>
+              <option value="{{ action }}" {% if request.args.get('action')==action %}selected{% endif %}>
+                {{ action }}
+              </option>
               {% endfor %}
             </select>
           </div>
-          
+
           {# Filtro Fecha Desde #}
           <div class="col-md-2">
             <label for="date_from" class="form-label text-white">Fecha Desde</label>
             {% set current_date_from = request.args.get('date_from') %}
-            <input type="date" name="date_from" id="date_from" class="form-control bg-dark text-white border-secondary" 
-                   value="{{ current_date_from if current_date_from else '' }}">
+            <input type="date" name="date_from" id="date_from" class="form-control bg-dark text-white border-secondary"
+              value="{{ current_date_from if current_date_from else '' }}">
           </div>
 
           {# Filtro Fecha Hasta #}
           <div class="col-md-2">
             <label for="date_to" class="form-label text-white">Fecha Hasta</label>
             {% set current_date_to = request.args.get('date_to') %}
-            <input type="date" name="date_to" id="date_to" class="form-control bg-dark text-white border-secondary" 
-                   value="{{ current_date_to if current_date_to else '' }}">
+            <input type="date" name="date_to" id="date_to" class="form-control bg-dark text-white border-secondary"
+              value="{{ current_date_to if current_date_to else '' }}">
           </div>
 
           {# Botón de Aplicar Filtros #}
@@ -102,154 +105,149 @@
           </div>
         </div>
       </form>
-      
+
       {# Botón de Limpiar Filtros #}
       <div class="row mt-3">
-          <div class="col">
-              <a href="{{ url_for(url_endpoint, site_id=site.id) }}" class="btn btn-secondary w-100">Limpiar Filtros</a>
-          </div>
+        <div class="col">
+          <a href="{{ url_for(url_endpoint, site_id=site.id) }}" class="btn btn-secondary w-100">Limpiar Filtros</a>
+        </div>
       </div>
     </div>
-    {% if history %} 
-        {# Mostramos la tabla si hay resultados #}
-        <table class="table table-dark table-striped table-hover mt-3">
-          <thead>
-            <tr>
-              <th>Usuario</th>
-              <th>Acción</th>
-              <th>Fecha</th>
-              <th>Descripción</th>
-              <th>Detalles</th>
-            </tr>
-          </thead>
-          <tbody>
-              {% for item in history %}
-              <tr>
-                <td>{{ user_id_to_email_map[item.user.id] }}</td>
-                <td>{{ item.action_type }}</td>
-                <td>{{ item.updated_at.strftime('%d/%m/%Y')}}</td>
-                <td>{{ item.description }}</td>
-                <td>
-                {% if item.parsed_details %}
-                <ul class="list-unstyled mb-0">
-                  {% for field_name, changes in item.parsed_details.items() %}
-                    <li>
-                      <strong class="text-warning">{{ field_name | capitalize }}:</strong>
-                      {% if changes.old is defined and changes.new is defined %}
-                        <span class="text-danger">({{ changes.old }})</span>
-                        <span class="mx-2 text-secondary font-weight-bold">-></span>
-                        <span class="text-success">{{ changes.new }}</span>
-                      {% else %}
-                        <span class="text-muted">{{ changes }}</span>
-                      {% endif %}
-                    </li>
-                  {% endfor %}
-                </ul>
-              {% else %}
-                <span class="fa-solid fa-info-circle me-2">No aplica</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-          </tbody>
-        </table>
+    {% if history %}
+    {# Mostramos la tabla si hay resultados #}
+    <table class="table table-dark table-striped table-hover mt-3">
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Acción</th>
+          <th>Fecha</th>
+          <th>Descripción</th>
+          <th>Detalles</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in history %}
+        <tr>
+          <td>{{ user_id_to_email_map[item.user.id] }}</td>
+          <td>{{ item.action_type }}</td>
+          <td>{{ item.updated_at.strftime('%d/%m/%Y')}}</td>
+          <td>{{ item.description }}</td>
+          <td>
+            {% if item.parsed_details %}
+            <ul class="list-unstyled mb-0">
+              {% for field_name, changes in item.parsed_details.items() %}
+              <li>
+                <strong class="text-warning">{{ field_name | capitalize }}:</strong>
+                {% if changes.old is defined and changes.new is defined %}
+                <span class="text-danger">({{ changes.old }})</span>
+                <span class="mx-2 text-secondary font-weight-bold">-></span>
+                <span class="text-success">{{ changes.new }}</span>
+                {% else %}
+                <span class="text-muted">{{ changes }}</span>
+                {% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <span class="fa-solid fa-info-circle me-2">No aplica</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
     {% else %}
-        {# Mensaje de Sin Resultados con estilo de alerta para que no sea un bloque negro #}
-        <div class="alert alert-info text-center mt-3" role="alert">
-            <i class="fa-solid fa-info-circle me-2"></i> Sin resultados encontrados para los filtros aplicados.
-        </div>
+    {# Mensaje de Sin Resultados con estilo de alerta para que no sea un bloque negro #}
+    <div class="alert alert-info text-center mt-3" role="alert">
+      <i class="fa-solid fa-info-circle me-2"></i> Sin resultados encontrados para los filtros aplicados.
+    </div>
     {% endif %}
     {# --- PAGINACIÓN --- #}
     {% if pagination %}
     <nav aria-label="Page navigation" class="d-flex justify-content-center">
-        <ul class="pagination">
-            {% if pagination.has_prev %}
-                <li class="page-item">
-                    <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=pagination.prev_num,site_id = site_id) }}"
-                       class="page-link text-white bg-dark border-secondary"
-                       style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
-                        <i class="fa-solid fa-arrow-left me-1"></i> Previous
-                    </a>
-                </li>
-            {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link text-muted bg-dark border-secondary"
-                          style="--bs-bg-opacity: .4; --bs-border-opacity: .5;">
-                        <i class="fa-solid fa-arrow-left me-1"></i> Previous
-                    </span>
-                </li>
-            {% endif %}
+      <ul class="pagination">
+        {% if pagination.has_prev %}
+        <li class="page-item">
+          <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=pagination.prev_num,site_id = site_id) }}"
+            class="page-link text-white bg-dark border-secondary" style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+            <i class="fa-solid fa-arrow-left me-1"></i> Previous
+          </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+          <span class="page-link text-muted bg-dark border-secondary"
+            style="--bs-bg-opacity: .4; --bs-border-opacity: .5;">
+            <i class="fa-solid fa-arrow-left me-1"></i> Previous
+          </span>
+        </li>
+        {% endif %}
 
-            {% if pagination.has_prev and 1 not in pagination.page_range %}
-                <li class="page-item">
-                    <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=1,site_id = site_id) }}"
-                       class="page-link text-white bg-dark border-secondary"
-                       style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
-                        1
-                    </a>
-                </li>
-                <li class="page-item disabled">
-                    <span class="page-link text-white bg-dark border-secondary"
-                          style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
-                        ...
-                    </span>
-                </li>
-            {% endif %}
+        {% if pagination.has_prev and 1 not in pagination.page_range %}
+        <li class="page-item">
+          <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=1,site_id = site_id) }}"
+            class="page-link text-white bg-dark border-secondary" style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+            1
+          </a>
+        </li>
+        <li class="page-item disabled">
+          <span class="page-link text-white bg-dark border-secondary"
+            style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+            ...
+          </span>
+        </li>
+        {% endif %}
 
-            {% for page in pagination.page_range %}
-                <li class="page-item {% if pagination.current_page == page %}active{% endif %}">
-                    {% if pagination.current_page == page %}
-                        <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=page,site_id = site_id) }}"
-                           aria-current="page"
-                           class="page-link border-primary bg-primary text-white">
-                            {{ page }}
-                        </a>
-                    {% else %}
-                        <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=page,site_id = site_id) }}"
-                           class="page-link text-white bg-dark border-secondary"
-                           style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
-                            {{ page }}
-                        </a>
-                    {% endif %}
-                </li>
-            {% endfor %}
+        {% for page in pagination.page_range %}
+        <li class="page-item {% if pagination.current_page == page %}active{% endif %}">
+          {% if pagination.current_page == page %}
+          <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=page,site_id = site_id) }}"
+            aria-current="page" class="page-link border-primary bg-primary text-white">
+            {{ page }}
+          </a>
+          {% else %}
+          <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=page,site_id = site_id) }}"
+            class="page-link text-white bg-dark border-secondary" style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+            {{ page }}
+          </a>
+          {% endif %}
+        </li>
+        {% endfor %}
 
-            {% if pagination.has_next and pagination.pages not in pagination.page_range %}
-                <li class="page-item disabled">
-                    <span class="page-link text-white bg-dark border-secondary"
-                          style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
-                        ...
-                    </span>
-                </li>
-                <li class="page-item">
-                    <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=pagination.pages,site_id = site_id) }}"
-                       class="page-link text-white bg-dark border-secondary"
-                       style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
-                        {{ pagination.pages }}
-                    </a>
-                </li>
-            {% endif %}
+        {% if pagination.has_next and pagination.pages not in pagination.page_range %}
+        <li class="page-item disabled">
+          <span class="page-link text-white bg-dark border-secondary"
+            style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+            ...
+          </span>
+        </li>
+        <li class="page-item">
+          <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=pagination.pages,site_id = site_id) }}"
+            class="page-link text-white bg-dark border-secondary" style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+            {{ pagination.pages }}
+          </a>
+        </li>
+        {% endif %}
 
-            {% if pagination.has_next %}
-                <li class="page-item">
-                    <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=pagination.next_num,site_id = site_id) }}"
-                       class="page-link text-white bg-dark border-secondary"
-                       style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
-                        Next <i class="fa-solid fa-arrow-right ms-1"></i>
-                    </a>
-                </li>
-            {% else %}
-                <li class="page-item disabled">
-                    <span class="page-link text-muted bg-dark border-secondary"
-                          style="--bs-bg-opacity: .4; --bs-border-opacity: .5;">
-                        Next <i class="fa-solid fa-arrow-right ms-1"></i>
-                    </span>
-                </li>
-            {% endif %}
-        </ul>
+        {% if pagination.has_next %}
+        <li class="page-item">
+          <a href="{{ url_for(url, sorted_by=pagination.sorted_by, order_by=pagination.order_by, page=pagination.next_num,site_id = site_id) }}"
+            class="page-link text-white bg-dark border-secondary" style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+            Next <i class="fa-solid fa-arrow-right ms-1"></i>
+          </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+          <span class="page-link text-muted bg-dark border-secondary"
+            style="--bs-bg-opacity: .4; --bs-border-opacity: .5;">
+            Next <i class="fa-solid fa-arrow-right ms-1"></i>
+          </span>
+        </li>
+        {% endif %}
+      </ul>
     </nav>
     {% endif %}
-        </div>
-    </div>
+  </div>
 </div>
+</div>
+{% endif %}
 {% endblock %}

@@ -12,6 +12,7 @@ from src.web.controllers.tags import tags_blueprint
 from src.web.controllers.flags import feature_flag_blueprint
 from src.web.controllers.auth import bp as auth_bp
 from src.web.handlers.auth import is_authenticated
+from src.web.handlers.auth import is_granted
 from .utils.hooks import hook_admin_maintenance
 
 import os
@@ -56,6 +57,7 @@ def create_app(env = 'development', static_folder = "../../static"):
     
     # Variables globales para las plantillas
     app.jinja_env.globals.update(is_authenticated=is_authenticated)
+    app.jinja_env.globals.update(is_granted=is_granted)
 
     # Commands
     @app.cli.command("reset-db")
