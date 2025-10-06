@@ -1,32 +1,53 @@
 {% extends "layout.html" %}
+{% from "macros/paginate.html" import paginate %}
+
+{% block title %}Listado de Sitios | Puff-tóricos{% endblock %}
 
 {% block content %}
-<h2>Listado de Sitios Históricos</h2>
-<a href="{{ url_for('sites.create') }}" class="btn btn-success mb-3">Nuevo sitio</a>
-<table class="table">
-  <thead>
-    <tr>
-      <th>Nombre</th>
-      <th>Ciudad</th>
-      <th>Provincia</th>
-      <th>Acciones</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for site in sites.items %}
-    <tr>
-      <td>{{ site.site_name }}</td>
-      <td>{{ site.city }}</td>
-      <td>{{ site.province }}</td>
-      <td>
-        <a href="{{ url_for('sites.detail', site_id=site.id) }}">Ver</a>
-        <a href="{{ url_for('sites.edit', site_id=site.id) }}">Editar</a>
-        <form method="POST" action="{{ url_for('sites.delete', site_id=site.id) }}" style="display:inline;">
-          <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
-        </form>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<div class="container-xl">
+    <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden mx-auto">
+        <div class="card-header bg-dark">
+            <h2 class="h3 text-white mb-4 mt-1">Listado de Sitios Históricos</h2>
+            <div class="d-flex justify-content-end mb-3">
+                <a href="{{ url_for('sites.create') }}" class="btn btn-success">Nuevo sitio</a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-dark table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col">Nombre</th>
+                            <th scope="col">Ciudad</th>
+                            <th scope="col">Provincia</th>
+                            <th scope="col" class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for site in sites %}
+                        <tr>
+                            <td>{{ site.site_name }}</td>
+                            <td>{{ site.city }}</td>
+                            <td>{{ site.province }}</td>
+                            <td class="text-center">
+                                <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-info btn-sm">Ver</a>
+                                <a href="{{ url_for('sites.edit', site_id=site.id) }}" class="btn btn-warning btn-sm">Editar</a>
+                                <form method="POST" action="{{ url_for('sites.delete', site_id=site.id) }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="d-flex justify-content-center mt-3">
+        {{ paginate(pagination=pagination, url='sites.index') }}
+</div>
+    
 {% endblock %}

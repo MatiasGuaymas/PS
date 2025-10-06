@@ -1,160 +1,244 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<h2>Listado de Sitios Históricos</h2>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<style>
+  .choices__list--dropdown,
+  .choices__list--multiple {
+    color: #000;
+  }
+</style>
+<div class="container mt-4">
+  <h2 class="mb-4">Listado de Sitios Históricos</h2>
 
-{% if error_msg %}
-<div class="alert alert-danger">{{ error_msg }}</div>
-{% endif %}
-<form method="get" action="{{ url_for('sites.search') }}" class="mb-3">
-    <div class="mb-2">
-        <strong>Orden actual:</strong>
-        {% set orden_actual = request.args.get('order_by', 'site_name') %}
-        {% set sentido_actual = request.args.get('sentido', 'asc') %}
-        <span class="badge bg-info">{{
-            'Nombre' if orden_actual == 'site_name'
-            else 'Ciudad' if orden_actual == 'city'
-            else 'Fecha de registro' if orden_actual == 'registration'
-            else orden_actual
-            }} ({{ 'Ascendente' if sentido_actual == 'asc' else 'Descendente' }})</span>
-        |
-        <a
-            href="{{ url_for('sites.search', site_name=request.args.get('site_name', ''), city=request.args.get('city', ''), province=request.args.get('province', ''), state_id=request.args.get('state_id', ''), registration_from=request.args.get('registration_from', ''), registration_to=request.args.get('registration_to', ''), active=request.args.get('active', ''), order_by='site_name', sentido='asc', page=sites.page) }}">Nombre
-            ↑</a>
-        <a
-            href="{{ url_for('sites.search', site_name=request.args.get('site_name', ''), city=request.args.get('city', ''), province=request.args.get('province', ''), state_id=request.args.get('state_id', ''), registration_from=request.args.get('registration_from', ''), registration_to=request.args.get('registration_to', ''), active=request.args.get('active', ''), order_by='site_name', sentido='desc', page=sites.page) }}">Nombre
-            ↓</a>
-        |
-        <a
-            href="{{ url_for('sites.search', site_name=request.args.get('site_name', ''), city=request.args.get('city', ''), province=request.args.get('province', ''), state_id=request.args.get('state_id', ''), registration_from=request.args.get('registration_from', ''), registration_to=request.args.get('registration_to', ''), active=request.args.get('active', ''), order_by='city', sentido='asc', page=sites.page) }}">Ciudad
-            ↑</a>
-        <a
-            href="{{ url_for('sites.search', site_name=request.args.get('site_name', ''), city=request.args.get('city', ''), province=request.args.get('province', ''), state_id=request.args.get('state_id', ''), registration_from=request.args.get('registration_from', ''), registration_to=request.args.get('registration_to', ''), active=request.args.get('active', ''), order_by='city', sentido='desc', page=sites.page) }}">Ciudad
-            ↓</a>
-        |
-        <a
-            href="{{ url_for('sites.search', site_name=request.args.get('site_name', ''), city=request.args.get('city', ''), province=request.args.get('province', ''), state_id=request.args.get('state_id', ''), registration_from=request.args.get('registration_from', ''), registration_to=request.args.get('registration_to', ''), active=request.args.get('active', ''), order_by='registration', sentido='asc', page=sites.page) }}">Fecha
-            ↑</a>
-        <a
-            href="{{ url_for('sites.search', site_name=request.args.get('site_name', ''), city=request.args.get('city', ''), province=request.args.get('province', ''), state_id=request.args.get('state_id', ''), registration_from=request.args.get('registration_from', ''), registration_to=request.args.get('registration_to', ''), active=request.args.get('active', ''), order_by='registration', sentido='desc', page=sites.page) }}">Fecha
-            ↓</a>
-    </div>
-    <div class="row mb-2">
-        <div class="col">
-            <input type="text" name="site_name" class="form-control" placeholder="Nombre o descripción"
-                value="{{ request.args.get('site_name', '') }}">
-        </div>
-        <div class="col">
-            <input type="text" name="city" class="form-control" placeholder="Ciudad"
-                value="{{ request.args.get('city', '') }}">
-        </div>
-        <div class="col">
-            <select name="province" class="form-control">
-                <option value="">Provincia</option>
-                {% for prov in provincias %}
-                <option value="{{ prov }}" {% if request.args.get('province')==prov %}selected{% endif %}>{{ prov }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="col">
-            <select name="state_id" class="form-control">
-                <option value="">Estado de conservación</option>
-                <option value="1" {% if request.args.get('state_id')=='1' %}selected{% endif %}>Bueno</option>
-                <option value="2" {% if request.args.get('state_id')=='2' %}selected{% endif %}>Regular</option>
-                <option value="3" {% if request.args.get('state_id')=='3' %}selected{% endif %}>Malo</option>
-            </select>
-        </div>
-        <div class="col">
-            <select name="tags" class="form-control" multiple>
-                <option value="1">Tag 1</option>
-                <option value="2">Tag 2</option>
-                <option value="3">Tag 3</option>
-            </select>
-        </div>
-    </div>
-    <div class="row mb-2">
-        <div class="col">
-            <label>Fecha registro desde</label>
-            <input type="date" name="registration_from" class="form-control"
-                value="{{ request.args.get('registration_from', '') }}">
-        </div>
-        <div class="col">
-            <label>Fecha registro hasta</label>
-            <input type="date" name="registration_to" class="form-control"
-                value="{{ request.args.get('registration_to', '') }}">
-        </div>
-        <div class="col">
-            <label><input type="checkbox" name="active" value="1" {% if request.args.get('active') %}checked{% endif %}>
-                Visible</label>
-        </div>
-        <div class="col">
-            <button type="submit" class="btn btn-primary">Buscar</button>
-            <a href="{{ url_for('sites.search') }}" class="btn btn-secondary">Limpiar</a>
-        </div>
-    </div>
-</form>
+  {% if error_msg %}
+  <div class="alert alert-danger">{{ error_msg }}</div>
+  {% endif %}
 
-{% if sites and sites.total > 0 %}
-<p>{{ sites.total }} resultados encontrados.</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th><a
-                    href="{{ url_for('sites.search', site_name=request.args.get('site_name', ''), city=request.args.get('city', ''), province=request.args.get('province', ''), order_by='site_name', page=sites.page) }}">Nombre</a>
-            </th>
-            <th><a
-                    href="{{ url_for('sites.search', site_name=request.args.get('site_name', ''), city=request.args.get('city', ''), province=request.args.get('province', ''), order_by='city', page=sites.page) }}">Ciudad</a>
-            </th>
-            <th><a
-                    href="{{ url_for('sites.search', site_name=request.args.get('site_name', ''), city=request.args.get('city', ''), province=request.args.get('province', ''), order_by='province', page=sites.page) }}">Provincia</a>
-            </th>
-            <th>Estado de conservación</th>
-            <th>Visibilidad</th>
-            <th>Acciones</th>
-        </tr>
+  <form method="get" action="{{ url_for('sites.search') }}" class="mb-4">
+    <div class="mb-3">
+      <strong>Orden actual:</strong>
+      {% set orden_actual = request.args.get('order_by', 'site_name') %}
+      {% set sentido_actual = request.args.get('sentido', 'asc') %}
+      <span class="badge bg-info">{{
+        'Nombre' if orden_actual == 'site_name'
+        else 'Ciudad' if orden_actual == 'city'
+        else 'Fecha de registro' if orden_actual == 'registration'
+        else orden_actual
+        }} ({{ 'Ascendente' if sentido_actual == 'asc' else 'Descendente' }})</span>
+      |
+      <span class="me-1">Nombre</span>
+      <a href="{{ url_for('sites.search', order_by='site_name', sentido='asc', page=sites.page) }}"
+        class="text-decoration-none me-1" title="Ordenar ascendente">
+        <i class="bi bi-arrow-up"></i>
+      </a>
+      <a href="{{ url_for('sites.search', order_by='site_name', sentido='desc', page=sites.page) }}"
+        class="text-decoration-none" title="Ordenar descendente">
+        <i class="bi bi-arrow-down"></i>
+      </a>
+      <span class="mx-2">|</span>
+      <span class="me-1">Ciudad</span>
+      <a href="{{ url_for('sites.search', order_by='city', sentido='asc', page=sites.page) }}"
+        class="text-decoration-none" title="Ordenar ascendente">
+        <i class="bi bi-arrow-up"></i>
+      </a>
+      <a href="{{ url_for('sites.search', order_by='city', sentido='desc', page=sites.page) }}"
+        class="text-decoration-none me-1" title="Ordenar descendente">
+        <i class="bi bi-arrow-down"></i>
+      </a>
+      <span class="mx-2">|</span>
+      <span class="me-1">Fecha</span>
+      <a href="{{ url_for('sites.search', order_by='registration', sentido='asc', page=sites.page) }}"
+        class="text-decoration-none me-1" title="Ordenar ascendente">
+        <i class="bi bi-arrow-up"></i>
+      </a>
+      <a href="{{ url_for('sites.search', order_by='registration', sentido='desc', page=sites.page) }}"
+        class="text-decoration-none" title="Ordenar descendente">
+        <i class="bi bi-arrow-down"></i>
+      </a>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-3">
+        <input type="text" name="site_name" class="form-control" placeholder="Nombre o descripción"
+          value="{{ request.args.get('site_name', '') }}">
+      </div>
+      <div class="col-md-3">
+        <select name="province" class="form-select">
+          <option value="">Provincia</option>
+          {% for prov in provincias %}
+          <option value="{{ prov }}" {% if request.args.get('province')==prov %}selected{% endif %}>{{ prov }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <input type="text" name="city" class="form-control" placeholder="Ciudad"
+          value="{{ request.args.get('city', '') }}">
+      </div>
+      <div class="col-md-3">
+        <select name="state_id" class="form-select">
+          <option value="">Estado de conservación</option>
+          <option value="1" {% if request.args.get('state_id')=='1' %}selected{% endif %}>Bueno</option>
+          <option value="2" {% if request.args.get('state_id')=='2' %}selected{% endif %}>Regular</option>
+          <option value="3" {% if request.args.get('state_id')=='3' %}selected{% endif %}>Malo</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row g-3 mt-3 align-items-end">
+      <div class="col-md-4">
+        <label for="tags" class="form-label">Tags</label>
+        <select id="tags" name="tags" class="form-select" multiple>
+          {% for tag in tags %}
+          <option value="{{ tag.id }}" {% if tag.id|string in request.args.getlist('tags') %}selected{% endif %}>
+            {{ tag.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label for="registration_from" class="form-label">Fecha desde</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-calendar-date"></i></span>
+          <input type="date" id="registration_from" name="registration_from" class="form-control"
+            value="{{ request.args.get('registration_from', '') }}" max="{{ hoy }}">
+        </div>
+      </div>
+      <div class="col-md-2">
+        <label for="registration_to" class="form-label">Fecha hasta</label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-calendar-date"></i></span>
+          <input type="date" id="registration_to" name="registration_to" class="form-control"
+            value="{{ request.args.get('registration_to', '') }}" max="{{ hoy }}">
+        </div>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <div class="form-check">
+          <input type="checkbox" id="active" name="active" value="1" class="form-check-input" {% if
+            request.args.get('active') %}checked{% endif %}>
+          <label for="active" class="form-check-label">Visible</label>
+        </div>
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary me-2">Buscar</button>
+        <a href="{{ url_for('sites.search') }}" class="btn btn-secondary">Limpiar</a>
+      </div>
+    </div>
+  </form>
+  <div id="fechaError" class="alert alert-danger mt-2" style="display:none"></div>
+
+  {% if sites and sites.total > 0 %}
+  <p>{{ sites.total }} resultados encontrados.</p>
+  <table class="table table-striped table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th scope="col">Nombre</th>
+        <th scope="col">Ciudad</th>
+        <th scope="col">Provincia</th>
+        <th scope="col">Estado de conservación</th>
+        <th scope="col">Visibilidad</th>
+        <th scope="col">Acciones</th>
+      </tr>
     </thead>
     <tbody>
-        {% for site in sites.items %}
-        <tr>
-            <td>{{ site.site_name }}</td>
-            <td>{{ site.city }}</td>
-            <td>{{ site.province }}</td>
-            <td>{{ site.state.name if site.state else '' }}</td>
-            <td>{% if site.active %}<span class="badge bg-success">Visible</span>{% else %}<span
-                    class="badge bg-secondary">Oculto</span>{% endif %}</td>
-            <td>
-                <a href="{{ url_for('sites.detail', site_id=site.id) }}">Ver</a>
-                <a href="{{ url_for('sites.edit', site_id=site.id) }}">Editar</a>
-                <form method="POST" action="{{ url_for('sites.delete', site_id=site.id) }}" style="display:inline;">
-                    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
+      {% for site in sites.items %}
+      <tr>
+        <td>{{ site.site_name }}</td>
+        <td>{{ site.city }}</td>
+        <td>{{ site.province }}</td>
+        <td>{{ site.state.name if site.state else 'N/A' }}</td>
+        <td>
+          {% if site.active %}
+          <span class="badge bg-success">Visible</span>
+          {% else %}
+          <span class="badge bg-secondary">Oculto</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="btn-group" role="group">
+            <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-info btn-sm">Ver</a>
+            <a href="{{ url_for('sites.edit', site_id=site.id) }}" class="btn btn-warning btn-sm">Editar</a>
+            <form method="POST" action="{{ url_for('sites.delete', site_id=site.id) }}" style="display:inline;">
+              <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
     </tbody>
-</table>
+  </table>
 
-<!-- Paginación -->
-<nav>
-    <ul class="pagination">
-        {% if sites.has_prev %}
-        <li class="page-item">
-            <a class="page-link"
-                href="{{ url_for('sites.search', site_name=request.args.get('site_name', ''), city=request.args.get('city', ''), province=request.args.get('province', ''), order_by=request.args.get('order_by', ''), page=sites.prev_num) }}">Anterior</a>
-        </li>
-        {% endif %}
-        <li class="page-item active"><span class="page-link">{{ sites.page }}</span></li>
-        {% if sites.has_next %}
-        <li class="page-item">
-            <a class="page-link"
-                href="{{ url_for('sites.search', site_name=request.args.get('site_name', ''), city=request.args.get('city', ''), province=request.args.get('province', ''), order_by=request.args.get('order_by', ''), page=sites.next_num) }}">Siguiente</a>
-        </li>
-        {% endif %}
+  <div class="d-flex justify-content-end">
+    <form method="post" action="{{ url_for('sites.export_csv') }}">
+      <input type="hidden" name="site_name" value="{{ filtros.site_name }}">
+      <input type="hidden" name="city" value="{{ filtros.city }}">
+      <input type="hidden" name="province" value="{{ filtros.province }}">
+      <input type="hidden" name="state_id" value="{{ filtros.state_id }}">
+      {% for tag in filtros.getlist('tags') %}
+      <input type="hidden" name="tags" value="{{ tag }}">
+      {% endfor %}
+      <input type="hidden" name="registration_from" value="{{ filtros.registration_from }}">
+      <input type="hidden" name="registration_to" value="{{ filtros.registration_to }}">
+      <input type="hidden" name="active" value="{{ filtros.active }}">
+      <input type="hidden" name="order_by" value="{{ filtros.order_by }}">
+      <input type="hidden" name="sentido" value="{{ filtros.sentido }}">
+      <button type="submit" class="btn btn-success">Exportar CSV</button>
+    </form>
+  </div>
+
+  <nav>
+    <ul class="pagination justify-content-center">
+      {% if sites.has_prev %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('sites.search', page=sites.prev_num) }}">Anterior</a>
+      </li>
+      {% endif %}
+      <li class="page-item active"><span class="page-link">{{ sites.page }}</span></li>
+      {% if sites.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="{{ url_for('sites.search', page=sites.next_num) }}">Siguiente</a>
+      </li>
+      {% endif %}
     </ul>
-</nav>
-{% elif sites %}
-<p>No se encontraron resultados.</p>
-{% endif %}
+  </nav>
+  {% else %}
+  <p>No se encontraron resultados.</p>
+  {% endif %}
 
+  <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+
+  <script>
+    // Activar Choices.js sobre el select
+    const tagsSelect = document.getElementById('tags');
+    const choices = new Choices(tagsSelect, {
+      removeItemButton: true,
+      searchPlaceholderValue: 'Buscar...',
+      shouldSort: false,
+      noResultsText: 'Sin resultados',
+      itemSelectText: 'Seleccionar',
+      noChoicesText: 'Sin opciones',
+      loadingText: 'Cargando...',
+      placeholder: false,
+      placeholderValue: ''
+    });
+
+  </script>
+</div>
 {% endblock %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var buscarBtn = document.querySelector('button[type="submit"]');
+    var desde = document.getElementById('registration_from');
+    var hasta = document.getElementById('registration_to');
+    var errorDiv = document.getElementById('fechaError');
+    buscarBtn.addEventListener('click', function (e) {
+      errorDiv.style.display = 'none';
+      if (desde.value && hasta.value && desde.value > hasta.value) {
+        e.preventDefault();
+        errorDiv.textContent = "La fecha 'desde' no puede ser mayor que la fecha 'hasta'.";
+        errorDiv.style.display = 'block';
+        return false;
+      }
+    });
+  });
+</script>

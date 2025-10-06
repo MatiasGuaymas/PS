@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash
+from flask import Blueprint, render_template, request, redirect, url_for, jsonify, flash, g
 from flask import session
 from core.models.User import User
 from core.database import db
@@ -8,6 +8,8 @@ from core.models.Role import Role
 from src.web.handlers.auth import is_authenticated
 from src.web.handlers.auth import login_required, require_role
 import bcrypt
+import bcrypt
+from core.services.user_service import UserService 
 
 
 user_blueprint = Blueprint("users", __name__, url_prefix="/users")
@@ -257,3 +259,41 @@ def search_users():
             'success': False,
             'error': str(e)
         }), 500
+    
+@user_blueprint.route("/deactivate/<int:user_id>", methods=["POST"])
+@login_required
+def deactivate_user(user_id):
+    try:
+        user = User.query.get_or_404(user_id);
+
+        if(user.role_id == 1):
+            flash("No se puede bloquear el usuario de un administrador", "danger");
+            return redirect(url_for("users.index"));
+        
+        user.active = not user.active;
+
+        db.session.commit();
+        
+        return redirect(url_for('users.index'));
+        
+    except Exception as e:
+        db.session.rollback();
+        print(f"Error al bloquear el usuario: {e}");
+        return f"Error al bloquear el usuario: {str(e)}", 500;
+
+@user_blueprint.route("/profile", methods=["POST"])
+@login_required
+def view_profile():
+    try:
+        user_mail = request.form.get("user")
+        
+        if not user_mail:
+            flash("Primero iniciá sesión para poder ver tu perfil", "danger");
+            return redirect(url_for('auth.login'));
+
+        user = UserService.get_user_by_email(user_mail);
+
+        return render_template("users/profile.html", user=user)
+
+    except Exception as e:
+        return f"Ocurrió un error al cargar tu perfil: {e}", 500

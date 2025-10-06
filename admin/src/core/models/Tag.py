@@ -17,5 +17,6 @@ class Tag(db.Model):
     site_associations = relationship(
         "HistoricSiteTag",
         back_populates="tag",
-        lazy="dynamic"
+        lazy="dynamic",
+        cascade="all, delete-orphan"
     )

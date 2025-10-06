@@ -30,18 +30,16 @@ def authenticate():
     session["is_admin"] = user.sysAdmin
     session["role_id"] = user.role.id if user.role else None
 
+    print(user.id)
     flash("Has iniciado sesión correctamente", "success")
     return redirect(url_for("home"))
 
     
 
 @bp.get("/logout")
+@login_required
 def logout():
-    if session.get("user"):
-        session.pop("user")
-        session.clear()
-        flash("Has cerrado sesión correctamente.", "success")
-    else:
-        flash("No hay ninguna session iniciada.", "error")
+    session.clear()
+    flash("Has cerrado sesión correctamente.", "success")
     return redirect(url_for("auth.login"))
     

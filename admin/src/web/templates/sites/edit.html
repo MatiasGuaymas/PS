@@ -1,5 +1,50 @@
 {% extends "layout.html" %}
 
+{% block title %}Editar Sitio | Puff-tóricos{% endblock %}
+
+{% block head %}
+{{ super() }}
+<style>
+  /* Estilos para el selector de tags */
+.tags-multiselect {
+    background-color: #2d2d2d;
+    border: 1px solid #4b0082;
+    border-radius: 4px;
+    padding: 8px;
+    min-height: 120px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.tag-option {
+    padding: 6px 12px;
+    margin: 2px;
+    background-color: #3d3d3d;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-block;
+    color: #e0e0e0;
+    font-size: 0.9rem;
+}
+
+.tag-option:hover {
+    background-color: #4d4d4d;
+}
+
+.tag-option.selected {
+    background-color: #6a0dad;
+    border: 2px solid #bb86fc;
+    color: #fff;
+}
+
+#map, .map {
+  z-index: 1000;
+}
+</style>
+
+{% endblock %}
+
 {% block content %}
 <h2>Editar Sitio Histórico</h2>
 
@@ -7,31 +52,35 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 <form method="POST" id="edit-form">
-  <div class="mb-3">
-    <label for="site_name" class="form-label">Nombre del sitio</label>
-    <input type="text" class="form-control" id="site_name" name="site_name" value="{{ site.site_name }}" required>
-  </div>
-  <div class="mb-3">
-    <label for="short_desc" class="form-label">Descripción breve</label>
-    <input type="text" class="form-control" id="short_desc" name="short_desc" value="{{ site.short_desc }}" required>
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <label for="site_name" class="form-label">Nombre del sitio</label>
+      <input type="text" class="form-control" id="site_name" name="site_name" value="{{ site.site_name }}" required>
+    </div>
+    <div class="col-md-6">
+      <label for="short_desc" class="form-label">Descripción breve</label>
+      <input type="text" class="form-control" id="short_desc" name="short_desc" value="{{ site.short_desc }}" required>
+    </div>
   </div>
   <div class="mb-3">
     <label for="full_desc" class="form-label">Descripción completa</label>
     <textarea class="form-control" id="full_desc" name="full_desc" required>{{ site.full_desc }}</textarea>
   </div>
-  <div class="mb-3">
-    <label for="city" class="form-label">Ciudad</label>
-    <input type="text" class="form-control" id="city" name="city" value="{{ site.city }}" required>
-  </div>
-  <div class="mb-3">
-    <label for="province" class="form-label">Provincia</label>
-    <input type="text" class="form-control" id="province" name="province" value="{{ site.province }}" required>
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <label for="city" class="form-label">Ciudad</label>
+      <input type="text" class="form-control" id="city" name="city" value="{{ site.city }}" required>
+    </div>
+    <div class="col-md-6">
+      <label for="province" class="form-label">Provincia</label>
+      <input type="text" class="form-control" id="province" name="province" value="{{ site.province }}" required>
+    </div>
   </div>
   <div class="mb-3">
     <label for="location" class="form-label">Ubicación</label>
     <div id="map" style="height: 400px; width: 100%; border: 1px solid #ccc;"></div>
     <div class="mt-2">
-      <small class="text-muted">Haz clic en el mapa para seleccionar la ubicación</small>
+      <small>Haz clic en el mapa para seleccionar la ubicación</small>
     </div>
     <input type="hidden" id="latitude" name="latitude" value="{{ site.latitude if site.latitude is not none else '' }}" required>
     <input type="hidden" id="longitude" name="longitude" value="{{ site.longitude if site.longitude is not none else '' }}" required>
@@ -43,52 +92,51 @@
     <script id="site-coords" type="application/json">{{ {'lat': site.latitude, 'lon': site.longitude} | tojson }}</script>
     {% endif %}
   </div>
-  <div class="mb-3">
-    <label for="state_id" class="form-label">Estado de conservación</label>
-    <select class="form-control" id="state_id" name="state_id" required>
-      <option value="">Seleccionar...</option>
-      <option value="1" {% if site.state_id == 1 %}selected{% endif %}>Bueno</option>
-      <option value="2" {% if site.state_id == 2 %}selected{% endif %}>Regular</option>
-      <option value="3" {% if site.state_id == 3 %}selected{% endif %}>Malo</option>
-    </select>
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <label for="state_id" class="form-label">Estado de conservación</label>
+      <select class="form-control" id="state_id" name="state_id" required>
+        <option value="">Seleccionar...</option>
+        <option value="1" {% if site.state_id == 1 %}selected{% endif %}>Bueno</option>
+        <option value="2" {% if site.state_id == 2 %}selected{% endif %}>Regular</option>
+        <option value="3" {% if site.state_id == 3 %}selected{% endif %}>Malo</option>
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label for="operning_year" class="form-label">Año de inauguración</label>
+      <input type="number" class="form-control" id="operning_year" name="operning_year" value="{{ site.operning_year }}" required>
+    </div>
   </div>
-  <div class="mb-3">
-    <label for="operning_year" class="form-label">Año de inauguración</label>
-    <input type="number" class="form-control" id="operning_year" name="operning_year" value="{{ site.operning_year }}" required>
-  </div>
-  <div class="mb-3">
-    <label for="category_id" class="form-label">Categoría</label>
-    <select class="form-control" id="category_id" name="category_id" required>
-      <option value="">Seleccionar...</option>
-      <option value="1" {% if site.category_id == 1 %}selected{% endif %}>Arquitectura</option>
-      <option value="2" {% if site.category_id == 2 %}selected{% endif %}>Infraestructura</option>
-      <option value="3" {% if site.category_id == 3 %}selected{% endif %}>Sitio arqueológico</option>
-    </select>
-  </div>
-  <div class="mb-3">
-    <label for="active" class="form-label">¿Visible en el portal?</label>
-    <select class="form-control" id="active" name="active" required>
-      <option value="true" {% if site.active %}selected{% endif %}>Sí</option>
-      <option value="false" {% if not site.active %}selected{% endif %}>No</option>
-    </select>
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <label for="category_id" class="form-label">Categoría</label>
+      <select class="form-control" id="category_id" name="category_id" required>
+        <option value="">Seleccionar...</option>
+        <option value="1" {% if site.category_id == 1 %}selected{% endif %}>Arquitectura</option>
+        <option value="2" {% if site.category_id == 2 %}selected{% endif %}>Infraestructura</option>
+        <option value="3" {% if site.category_id == 3 %}selected{% endif %}>Sitio arqueológico</option>
+      </select>
+    </div>
+    <div class="col-md-6">
+      <label for="active" class="form-label">¿Visible en el portal?</label>
+      <select class="form-control" id="active" name="active" required>
+        <option value="true" {% if site.active %}selected{% endif %}>Sí</option>
+        <option value="false" {% if not site.active %}selected{% endif %}>No</option>
+      </select>
+    </div>
   </div>
   <div class="mb-3">
     <label for="tags" class="form-label">Etiquetas</label>
-    <div id="tags-container" class="tags-multiselect" style="border: 1px solid #4b0082; border-radius: 4px; padding: 8px; min-height: 120px; background-color: #2d2d2d; max-height: 200px; overflow-y: auto;">
+    <div id="tags-container" class="tags-multiselect">
       {% for tag in tags %}
-        <div class="tag-option" data-value="{{ tag.id }}" 
-             {% if selected_tag_ids is defined and tag.id in selected_tag_ids %}
-             style="padding: 6px 12px; margin: 2px; background-color: #6a0dad; border: 2px solid #bb86fc; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: inline-block;"
-             {% else %}
-             style="padding: 6px 12px; margin: 2px; background-color: #3d3d3d; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: inline-block;"
-             {% endif %}>
-          {{ tag.name }}
-        </div>
+      <div class="tag-option" data-value="{{ tag.id }}" {% if selected_tag_ids is defined and tag.id in selected_tag_ids %}class="selected"{% endif %}>
+        {{ tag.name }}
+      </div>
       {% endfor %}
     </div>
     <input type="hidden" id="tags" name="tags" value="{% if selected_tag_ids is defined %}{{ selected_tag_ids | join(',') }}{% endif %}">
-    <small class="form-text text-muted">
-      <i class="bi bi-info-circle"></i> 
+    <small class="form-text" style="color: white;">
+      <i class="bi bi-info-circle"></i>
       Haz clic en las etiquetas para seleccionarlas. Las seleccionadas se verán resaltadas.
     </small>
   </div>
@@ -98,6 +146,9 @@
   </div>
 </form>
 
+{% endblock %}
+
+{% block scripts %}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
