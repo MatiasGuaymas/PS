@@ -14,7 +14,7 @@ from flask import Response, request
 from src.web.utils.export import export_sites_to_csv, get_csv_filename
 from core.services.site_filter_service import filter_and_order_sites
 from datetime import date
-
+from src.web.handlers.auth import login_required, require_role
 
 sites_blueprint = Blueprint("sites", __name__, url_prefix="/sites")
 
@@ -52,6 +52,7 @@ def get_coords_from_point(point):
 
 @sites_blueprint.route("/", methods=["GET", "POST"])
 @login_required
+@require_role(['Administrador', 'Editor'])
 def index():
     if request.method == "POST":
         site_name = request.form.get("site_name")
@@ -124,6 +125,7 @@ def index():
 
 @sites_blueprint.route("/<int:site_id>", methods=["GET"])
 @login_required
+@require_role(['Administrador', 'Editor'])
 def detail(site_id):
     """
     Muestra el detalle junto al historial de auditorías para un sitio histórico específico,
@@ -201,6 +203,7 @@ def detail(site_id):
 
 @sites_blueprint.route("/create", methods=["GET", "POST"])
 @login_required
+@require_role(['Administrador', 'Editor'])
 def create():
     if request.method == "POST":
         site_name = request.form.get("site_name")
@@ -273,6 +276,7 @@ def create():
 
 @sites_blueprint.route("/<int:site_id>/edit", methods=["GET", "POST"])
 @login_required
+@require_role(['Administrador', 'Editor'])
 def edit(site_id):
     site = Site.query.get_or_404(site_id)
     current_user_id = session.get("user_id")
@@ -409,6 +413,7 @@ def edit(site_id):
 
 @sites_blueprint.route("/<int:site_id>/delete", methods=["POST"])
 @login_required
+@require_role(['Administrador'])
 def delete(site_id):
     site = Site.query.get_or_404(site_id)
     if(site):
@@ -425,6 +430,7 @@ def delete(site_id):
 
 @sites_blueprint.route("/search", methods=["GET"])
 @login_required
+@require_role(['Administrador', 'Editor'])
 def search():
     # Filtros del querystring
     filtros = {
@@ -472,6 +478,8 @@ def search():
     )
 
 @sites_blueprint.route("/export_csv", methods=["POST"])
+@login_required
+@require_role(['Administrador'])
 def export_csv():
     filtros = {
         "site_name": request.form.get("site_name", ""),
