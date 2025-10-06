@@ -12,7 +12,6 @@ from web.handlers.auth import login_required
 import json
 from flask import Response, request
 from src.web.utils.export import export_sites_to_csv, get_csv_filename
-from core.services.site_filter_service import filter_and_order_sites
 from datetime import date
 
 
@@ -109,16 +108,22 @@ def index():
             page=page,
             per_page=25,
         )
-
         sites = pagination["items"]
 
+        filtros = request.args if request.args else {}
 
-        #page = request.args.get("page", 1, type=int)
-        #sites = Site.query.paginate(page=page, per_page=25)
+        # Agregar esto:
+        provincias = [row[0] for row in db.session.query(Site.province).distinct().order_by(Site.province).all()]
+        all_tags = Tag.query.order_by(Tag.name.asc()).all()
+
         return render_template("sites/index.html", sites=sites,
-                               pagination=pagination,
-                               order_by=order_by,
-                               sorted_by=sorted_by,)
+                   pagination=pagination,
+                   order_by=order_by,
+                   sorted_by=sorted_by,
+                   filtros=filtros,
+                   provincias=provincias,
+                   tags=all_tags,
+                   hoy=date.today().isoformat())
     else:
         return "Método no permitido", 405
 
@@ -141,6 +146,9 @@ def detail(site_id):
     order_by = request.args.get('order_by', 'created_at', type=str)
     sorted_by = request.args.get('sorted_by', 'desc', type=str)
     filters = {}
+
+    # Filtro para mostrar no borrados
+    filters['not_deleted'] = True
 
     # Filtro por usuario (asumiendo que 'user_id' es una columna en Audit)
     user_id = request.args.get('user_id', type=int)
@@ -427,18 +435,23 @@ def delete(site_id):
 @login_required
 def search():
     # Filtros del querystring
+    tags_raw = request.args.getlist("tags")
+    tags = [int(t) for t in tags_raw if str(t).isdigit()]
     filtros = {
         "site_name": request.args.get("site_name", ""),
         "city": request.args.get("city", ""),
         "province": request.args.get("province", ""),
-        "state_id": request.args.get("state_id", ""),
-        "tags": request.args.getlist("tags", []),
+        "tags": tags,
         "registration_from": request.args.get("registration_from", ""),
         "registration_to": request.args.get("registration_to", ""),
         "active": request.args.get("active", ""),
         "order_by": request.args.get("order_by", "site_name"),
         "sentido": request.args.get("sentido", "asc"),
     }
+
+    state_id_raw = request.args.get("state_id", "")
+    if state_id_raw and state_id_raw.isdigit():
+        filtros["state_id"] = int(state_id_raw)
     error_msg = None
     page = request.args.get("page", 1, type=int)
 
@@ -450,21 +463,30 @@ def search():
             date_to = datetime.strptime(filtros["registration_to"], "%Y-%m-%d")
             if date_from > date_to:
                 error_msg = "La fecha 'desde' no puede ser mayor que la fecha 'hasta'."
+                flash(error_msg, "error")
         except Exception:
             error_msg = "Formato de fecha inválido."
 
-    query = filter_and_order_sites(Site.query, filtros)
-    sites = None
+    pagination = None
     if not error_msg:
-        sites = query.paginate(page=page, per_page=5)
+        pagination = SiteService.get_sites_filtered(
+            filters=filtros,
+            order_by=filtros["order_by"],
+            sorted_by=filtros["sentido"],
+            paginate=True,
+            page=page,
+            per_page=25,
+        )
+    sites = pagination["items"] if pagination else []
 
     provincias = [row[0] for row in db.session.query(Site.province).distinct().order_by(Site.province).all()]
     all_tags = Tag.query.order_by(Tag.name.asc()).all()
 
     return render_template(
-        "sites/list.html",
+        "sites/index.html",
         sites=sites,
-        filtros=request.args,
+        pagination=pagination,
+        filtros=filtros,
         provincias=provincias,
         tags=all_tags,
         error_msg=error_msg,
@@ -472,21 +494,31 @@ def search():
     )
 
 @sites_blueprint.route("/export_csv", methods=["POST"])
+@login_required
 def export_csv():
+    tags_raw = request.form.getlist("tags")
+    tags = [int(t) for t in tags_raw if str(t).isdigit()]
     filtros = {
         "site_name": request.form.get("site_name", ""),
         "city": request.form.get("city", ""),
         "province": request.form.get("province", ""),
-        "state_id": request.form.get("state_id", ""),
-        "tags": request.form.getlist("tags", []),
+        "tags": tags,
         "registration_from": request.form.get("registration_from", ""),
         "registration_to": request.form.get("registration_to", ""),
         "active": request.form.get("active", ""),
-        "order_by": request.form.get("order_by", "site_name"),
-        "sentido": request.form.get("sentido", "asc"),
     }
-    query = filter_and_order_sites(Site.query, filtros)
-    sites = query.all()
+    state_id_raw = request.form.get("state_id", "")
+    if state_id_raw and state_id_raw.isdigit():
+        filtros["state_id"] = int(state_id_raw)
+    order_by = request.form.get("order_by", "site_name")
+    sorted_by = request.form.get("sentido", "asc")
+
+    sites = SiteService.get_sites_filtered(
+        filters=filtros,
+        order_by=order_by,
+        sorted_by=sorted_by,
+        paginate=False,
+    )
 
     if not sites:
         return "No hay datos para exportar", 400
