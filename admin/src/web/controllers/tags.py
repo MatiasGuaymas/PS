@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from core.models.Tag import Tag
 from core.database import db
 from sqlalchemy import func
+from src.web.handlers.auth import login_required, require_role
 
 tags_blueprint = Blueprint("tags", __name__, url_prefix="/tags")
 
@@ -13,6 +14,8 @@ def slugify(value):
     return value
 
 @tags_blueprint.route("/", methods=["GET"])
+@login_required
+@require_role(['Administrador', 'Editor'])
 def index():
     page = request.args.get("page", 1, type=int)
     search = request.args.get("search", "").strip()
@@ -38,6 +41,8 @@ def index():
     return render_template("tags/index.html", tags=tags, search=search, order=order, direction=direction)
 
 @tags_blueprint.route("/create", methods=["GET", "POST"])
+@login_required
+@require_role(['Administrador', 'Editor'])
 def create():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
@@ -59,6 +64,8 @@ def create():
     return render_template("tags/create.html")
 
 @tags_blueprint.route("/<int:tag_id>/edit", methods=["GET", "POST"])
+@login_required
+@require_role(['Administrador', 'Editor'])
 def edit(tag_id):
     tag = Tag.query.get_or_404(tag_id)
     if request.method == "POST":
@@ -82,6 +89,8 @@ def edit(tag_id):
     return render_template("tags/edit.html", tag=tag)
 
 @tags_blueprint.route("/<int:tag_id>/delete", methods=["POST"])
+@login_required
+@require_role(['Administrador', 'Editor'])
 def delete(tag_id):
     tag = Tag.query.get_or_404(tag_id)
     if tag.site_associations.count() > 0:  
@@ -93,6 +102,8 @@ def delete(tag_id):
     return redirect(url_for("tags.index"))
 
 @tags_blueprint.route("/<int:tag_id>", methods=["GET"])
+@login_required
+@require_role(['Administrador', 'Editor'])
 def detail(tag_id):
     tag = Tag.query.get_or_404(tag_id)
     return render_template("tags/detail.html", tag=tag)

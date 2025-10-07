@@ -3,250 +3,267 @@
 {% block title %}Registrar Sitio Histórico | Puff-tóricos{% endblock %}
 
 {% block content %}
-<h2>Registrar Sitio Histórico</h2>
+<div class="container-xl">
+  <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden mx-auto">
+    <div class="card-header bg-dark">
+      <h3 class="pt-2 text-white">Registrar Sitio Histórico</h3>
+    </div>
+    {% if error %}
+    <div class="alert alert-danger" role="alert">
+      <i class="bi bi-exclamation-triangle"></i> {{ error }}
+    </div>
+    {% endif %}
+    <div class="card-body text-white">
+      <div class="bg-dark card p-4 border rounded-3 shadow-sm mb-5">
 
-{% if error %}
-<div class="alert alert-danger" role="alert">
-  <i class="bi bi-exclamation-triangle"></i> {{ error }}
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+        <form method="POST" action="{{ url_for('sites.create') }}">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="site_name" class="form-label text-white">Nombre del sitio</label>
+              <input type="text" class="form-control" id="site_name" name="site_name" required>
+            </div>
+            <div class="col-md-6">
+              <label for="short_desc" class="form-label text-white">Descripción breve</label>
+              <input type="text" class="form-control" id="short_desc" name="short_desc" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="full_desc" class="form-label text-white">Descripción completa</label>
+            <textarea class="form-control" id="full_desc" name="full_desc" required></textarea>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="city" class="form-label text-white">Ciudad</label>
+              <input type="text" class="form-control" id="city" name="city" required>
+            </div>
+            <div class="col-md-6">
+              <label for="province" class="form-label text-white">Provincia</label>
+              <input type="text" class="form-control" id="province" name="province" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="location" class="form-label text-white">Ubicación <span class="text-danger">*</span></label>
+            <div id="map" style="height: 400px; width: 100%; border: 1px solid #ccc;"></div>
+            <div class="mt-2">
+              <small class="text-white">Haz clic en el mapa para seleccionar la ubicación</small>
+            </div>
+            <input type="hidden" id="latitude" name="latitude" required>
+            <input type="hidden" id="longitude" name="longitude" required>
+            <div class="mt-2">
+              <span class="badge bg-info">Latitud: <span id="lat-display">No seleccionada</span></span>
+              <span class="badge bg-info ms-2">Longitud: <span id="lon-display">No seleccionada</span></span>
+            </div>
+            <div id="coords-error" class="text-danger mt-1" style="display: none;">
+              <i class="bi bi-exclamation-triangle"></i> Debe seleccionar una ubicación en el mapa
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="state_id" class="form-label text-white">Estado de conservación</label>
+              <select class="form-control" id="state_id" name="state_id" required>
+                <option value="">Seleccionar...</option>
+                <option value="1">Bueno</option>
+                <option value="2">Regular</option>
+                <option value="3">Malo</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label for="operning_year" class="form-label text-white">Año de inauguración</label>
+              <input type="number" class="form-control" id="operning_year" name="operning_year" required>
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="category_id" class="form-label text-white">Categoría</label>
+              <select class="form-control" id="category_id" name="category_id" required>
+                <option value="">Seleccionar...</option>
+                <option value="1">Arquitectura</option>
+                <option value="2">Infraestructura</option>
+                <option value="3">Sitio arqueológico</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label for="active" class="form-label text-white">¿Visible en el portal?</label>
+              <select class="form-control" id="active" name="active" required>
+                <option value="true">Sí</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="tags" class="form-label text-white">Etiquetas</label>
+            <div id="tags-container" class="tags-multiselect"
+              style="border: 1px solid #4b0082; border-radius: 4px; padding: 8px; min-height: 120px; background-color: #2d2d2d; max-height: 200px; overflow-y: auto; color: white;">
+              {% for tag in tags %}
+              <div class="tag-option" data-value="{{ tag.id }}"
+                style="padding: 6px 12px; margin: 2px; background-color: #3d3d3d; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: inline-block;">
+                {{ tag.name }}
+              </div>
+              {% endfor %}
+            </div>
+            <input type="hidden" id="tags" name="tags" value="">
+            <small class="form-text text-white">
+              <i class="bi bi-info-circle"></i>
+              Haz clic en las etiquetas para seleccionarlas. Las seleccionadas se verán resaltadas.
+            </small>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Registrar</button>
+            <a href="{{ url_for('sites.index') }}" class="btn btn-secondary">Cancelar</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
-{% endif %}
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-<form method="POST" action="{{ url_for('sites.create') }}">
-  <div class="mb-3">
-    <label for="site_name" class="form-label">Nombre del sitio</label>
-    <input type="text" class="form-control" id="site_name" name="site_name" required>
-  </div>
-  <div class="mb-3">
-    <label for="short_desc" class="form-label">Descripción breve</label>
-    <input type="text" class="form-control" id="short_desc" name="short_desc" required>
-  </div>
-  <div class="mb-3">
-    <label for="full_desc" class="form-label">Descripción completa</label>
-    <textarea class="form-control" id="full_desc" name="full_desc" required></textarea>
-  </div>
-  <div class="mb-3">
-    <label for="city" class="form-label">Ciudad</label>
-    <input type="text" class="form-control" id="city" name="city" required>
-  </div>
-  <div class="mb-3">
-    <label for="province" class="form-label">Provincia</label>
-    <input type="text" class="form-control" id="province" name="province" required>
-  </div>
-  <div class="mb-3">
-    <label for="location" class="form-label">Ubicación <span class="text-danger">*</span></label>
-    <div id="map" style="height: 400px; width: 100%; border: 1px solid #ccc;"></div>
-    <div class="mt-2">
-      <small class="text-muted">Haz clic en el mapa para seleccionar la ubicación</small>
-    </div>
-    <input type="hidden" id="latitude" name="latitude" required>
-    <input type="hidden" id="longitude" name="longitude" required>
-    <div class="mt-2">
-      <span class="badge bg-info">Latitud: <span id="lat-display">No seleccionada</span></span>
-      <span class="badge bg-info ms-2">Longitud: <span id="lon-display">No seleccionada</span></span>
-    </div>
-    <div id="coords-error" class="text-danger mt-1" style="display: none;">
-      <i class="bi bi-exclamation-triangle"></i> Debe seleccionar una ubicación en el mapa
-    </div>
-  </div>
-  <div class="mb-3">
-    <label for="state_id" class="form-label">Estado de conservación</label>
-    <select class="form-control" id="state_id" name="state_id" required>
-      <option value="">Seleccionar...</option>
-      <option value="1">Bueno</option>
-      <option value="2">Regular</option>
-      <option value="3">Malo</option>
-    </select>
-  </div>
-  <div class="mb-3">
-    <label for="operning_year" class="form-label">Año de inauguración</label>
-    <input type="number" class="form-control" id="operning_year" name="operning_year" required>
-  </div>
-  <div class="mb-3">
-    <label for="category_id" class="form-label">Categoría</label>
-    <select class="form-control" id="category_id" name="category_id" required>
-      <option value="">Seleccionar...</option>
-      <option value="1">Arquitectura</option>
-      <option value="2">Infraestructura</option>
-      <option value="3">Sitio arqueológico</option>
-    </select>
-  </div>
-  <div class="mb-3">
-    <label for="active" class="form-label">¿Visible en el portal?</label>
-    <select class="form-control" id="active" name="active" required>
-      <option value="true">Sí</option>
-      <option value="false">No</option>
-    </select>
-  </div>
-  <div class="mb-3">
-    <label for="tags" class="form-label">Etiquetas</label>
-    <div id="tags-container" class="tags-multiselect" style="border: 1px solid #4b0082; border-radius: 4px; padding: 8px; min-height: 120px; background-color: #2d2d2d; max-height: 200px; overflow-y: auto;">
-      {% for tag in tags %}
-        <div class="tag-option" data-value="{{ tag.id }}" style="padding: 6px 12px; margin: 2px; background-color: #3d3d3d; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: inline-block;">
-          {{ tag.name }}
-        </div>
-      {% endfor %}
-    </div>
-    <input type="hidden" id="tags" name="tags" value="">
-    <small class="form-text text-muted">
-      <i class="bi bi-info-circle"></i> 
-      Haz clic en las etiquetas para seleccionarlas. Las seleccionadas se verán resaltadas.
-    </small>
-  </div>
-  <div class="d-flex gap-2">
-    <button type="submit" class="btn btn-primary">Registrar</button>
-    <a href="{{ url_for('sites.index') }}" class="btn btn-secondary">Cancelar</a>
-  </div>
-</form>
-
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-// Inicializar mapa
-var map = L.map('map').setView([-34.6037, -58.3816], 10); // Buenos Aires por defecto
+  // Inicializar mapa
+  var map = L.map('map').setView([-34.6037, -58.3816], 10); // Buenos Aires por defecto
 
-// Agregar capa de tiles
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  // Agregar capa de tiles
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
-}).addTo(map);
+  }).addTo(map);
 
-var marker = null;
+  var marker = null;
 
-// Función para manejar clics en el mapa
-map.on('click', function(e) {
+  // Función para manejar clics en el mapa
+  map.on('click', function (e) {
     var lat = e.latlng.lat;
     var lon = e.latlng.lng;
-    
+
     // Actualizar campos ocultos
     document.getElementById('latitude').value = lat;
     document.getElementById('longitude').value = lon;
-    
+
     // Actualizar display
     document.getElementById('lat-display').textContent = lat.toFixed(6);
     document.getElementById('lon-display').textContent = lon.toFixed(6);
-    
+
     // Agregar/actualizar marcador
     if (marker) {
-        map.removeLayer(marker);
+      map.removeLayer(marker);
     }
     marker = L.marker([lat, lon]).addTo(map);
-    
+
     // Ocultar mensaje de error si estaba visible
     document.getElementById('coords-error').style.display = 'none';
     document.getElementById('map').style.borderColor = '#ccc';
-});
+  });
 
-// Función para centrar en ubicación actual
-function getCurrentLocation() {
+  // Función para centrar en ubicación actual
+  function getCurrentLocation() {
     if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-            var lat = position.coords.latitude;
-            var lon = position.coords.longitude;
-            
-            map.setView([lat, lon], 15);
-            
-            // Simular clic en la ubicación actual
-            map.fire('click', {latlng: L.latLng(lat, lon)});
-        });
-    }
-}
+      navigator.geolocation.getCurrentPosition(function (position) {
+        var lat = position.coords.latitude;
+        var lon = position.coords.longitude;
 
-// Botón para ubicación actual
-document.addEventListener('DOMContentLoaded', function() {
+        map.setView([lat, lon], 15);
+
+        // Simular clic en la ubicación actual
+        map.fire('click', { latlng: L.latLng(lat, lon) });
+      });
+    }
+  }
+
+  // Botón para ubicación actual
+  document.addEventListener('DOMContentLoaded', function () {
     var locationBtn = document.createElement('button');
     locationBtn.type = 'button';
     locationBtn.className = 'btn btn-outline-primary btn-sm mt-2';
     locationBtn.innerHTML = '📍 Usar mi ubicación actual';
     locationBtn.onclick = getCurrentLocation;
-    
+
     document.getElementById('map').parentNode.appendChild(locationBtn);
-    
+
     // Inicializar selección múltiple de tags
     initializeTagSelection();
-    
+
     // Validación del formulario antes del envío
     var form = document.querySelector('form');
-    form.addEventListener('submit', function(e) {
-        var latInput = document.getElementById('latitude');
-        var lonInput = document.getElementById('longitude');
-        
-        // Verificar si se han seleccionado coordenadas
-        if (!latInput.value || !lonInput.value) {
-            e.preventDefault();
-            document.getElementById('coords-error').style.display = 'block';
-            document.getElementById('map').style.borderColor = '#dc3545';
-            return false;
-        } else {
-            document.getElementById('coords-error').style.display = 'none';
-            document.getElementById('map').style.borderColor = '#ccc';
-        }
-        
-        // Verificar que las coordenadas sean válidas
-        try {
-            var lat = parseFloat(latInput.value);
-            var lon = parseFloat(lonInput.value);
-            
-            if (isNaN(lat) || isNaN(lon)) {
-                e.preventDefault();
-                alert('Las coordenadas seleccionadas no son válidas.');
-                return false;
-            }
-            
-            if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-                e.preventDefault();
-                alert('Las coordenadas seleccionadas están fuera del rango válido.');
-                return false;
-            }
-        } catch (error) {
-            e.preventDefault();
-            alert('Error al validar las coordenadas.');
-            return false;
-        }
-    });
-});
+    form.addEventListener('submit', function (e) {
+      var latInput = document.getElementById('latitude');
+      var lonInput = document.getElementById('longitude');
 
-// Función para inicializar la selección múltiple de tags
-function initializeTagSelection() {
+      // Verificar si se han seleccionado coordenadas
+      if (!latInput.value || !lonInput.value) {
+        e.preventDefault();
+        document.getElementById('coords-error').style.display = 'block';
+        document.getElementById('map').style.borderColor = '#dc3545';
+        return false;
+      } else {
+        document.getElementById('coords-error').style.display = 'none';
+        document.getElementById('map').style.borderColor = '#ccc';
+      }
+
+      // Verificar que las coordenadas sean válidas
+      try {
+        var lat = parseFloat(latInput.value);
+        var lon = parseFloat(lonInput.value);
+
+        if (isNaN(lat) || isNaN(lon)) {
+          e.preventDefault();
+          alert('Las coordenadas seleccionadas no son válidas.');
+          return false;
+        }
+
+        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+          e.preventDefault();
+          alert('Las coordenadas seleccionadas están fuera del rango válido.');
+          return false;
+        }
+      } catch (error) {
+        e.preventDefault();
+        alert('Error al validar las coordenadas.');
+        return false;
+      }
+    });
+  });
+
+  // Función para inicializar la selección múltiple de tags
+  function initializeTagSelection() {
     const tagOptions = document.querySelectorAll('.tag-option');
     const hiddenInput = document.getElementById('tags');
     const selectedTags = new Set();
-    
+
     tagOptions.forEach(option => {
-        option.addEventListener('click', function() {
-            const value = this.getAttribute('data-value');
-            
-            if (selectedTags.has(value)) {
-                // Deseleccionar
-                selectedTags.delete(value);
-                this.style.backgroundColor = '#3d3d3d';
-                this.style.border = 'none';
-            } else {
-                // Seleccionar
-                selectedTags.add(value);
-                this.style.backgroundColor = '#6a0dad';
-                this.style.border = '2px solid #bb86fc';
-            }
-            
-            // Actualizar input hidden con los valores seleccionados
-            hiddenInput.value = Array.from(selectedTags).join(',');
-        });
-        
-        // Estilo hover
-        option.addEventListener('mouseenter', function() {
-            if (!selectedTags.has(this.getAttribute('data-value'))) {
-                this.style.backgroundColor = '#4d4d4d';
-            }
-        });
-        
-        option.addEventListener('mouseleave', function() {
-            if (!selectedTags.has(this.getAttribute('data-value'))) {
-                this.style.backgroundColor = '#3d3d3d';
-            }
-        });
+      option.addEventListener('click', function () {
+        const value = this.getAttribute('data-value');
+
+        if (selectedTags.has(value)) {
+          // Deseleccionar
+          selectedTags.delete(value);
+          this.style.backgroundColor = '#3d3d3d';
+          this.style.border = 'none';
+        } else {
+          // Seleccionar
+          selectedTags.add(value);
+          this.style.backgroundColor = '#6a0dad';
+          this.style.border = '2px solid #bb86fc';
+        }
+
+        // Actualizar input hidden con los valores seleccionados
+        hiddenInput.value = Array.from(selectedTags).join(',');
+      });
+
+      // Estilo hover
+      option.addEventListener('mouseenter', function () {
+        if (!selectedTags.has(this.getAttribute('data-value'))) {
+          this.style.backgroundColor = '#4d4d4d';
+        }
+      });
+
+      option.addEventListener('mouseleave', function () {
+        if (!selectedTags.has(this.getAttribute('data-value'))) {
+          this.style.backgroundColor = '#3d3d3d';
+        }
+      });
     });
-}
+  }
 </script>
 
 {% endblock %}

@@ -115,7 +115,7 @@
                 '{{ category }}' === 'danger' ? 'Error' :
                     '{{ category }}' === 'success' ? 'Éxito' :
                         '{{ category }}' === 'warning' ? 'Advertencia' :
-                            '{{ category }}' === 'info' ? 'Información' : 'Mensaje'
+                            '{{ category }}' === 'info' ? 'Información' : 'Error'
             ),
             text: `{{ message|safe }}`,
             icon: ('{{ category }}' === 'danger' ? 'error' : '{{ category }}'),

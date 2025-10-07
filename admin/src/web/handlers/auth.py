@@ -1,6 +1,7 @@
 from functools import wraps
 from flask import session, redirect, url_for, flash, abort
 from src.core.services.flag_service import FlagService
+from src.core.services.role_service import RoleService;
 
 def is_authenticated(session):
     return session.get("user") is not None
@@ -50,3 +51,12 @@ def system_admin_required(f):
         return f(*args, **kwargs)
 
     return decorated_function
+
+def is_granted(session, perm):
+    if(session.get("is_admin")):
+        return True;
+
+    role = RoleService.getRole(session.get("role_name"));
+    permissions = RoleService.getPermissions(role.id);
+
+    return perm in permissions;
