@@ -98,33 +98,8 @@ def index():
 
         return redirect(url_for("sites.index"))
     elif request.method == "GET":
-        order_by = request.args.get("order_by", "name")
-        sorted_by = request.args.get("sorted_by", "asc")
-        page = request.args.get("page", 1)
-
-        pagination = SiteService.get_sites_filtered(
-            order_by=order_by,
-            sorted_by=sorted_by,
-            paginate=True,
-            page=page,
-            per_page=25,
-        )
-        sites = pagination["items"]
-
-        filtros = request.args if request.args else {}
-
-        # Agregar esto:
-        provincias = [row[0] for row in db.session.query(Site.province).distinct().order_by(Site.province).all()]
-        all_tags = Tag.query.order_by(Tag.name.asc()).all()
-
-        return render_template("sites/index.html", sites=sites,
-                   pagination=pagination,
-                   order_by=order_by,
-                   sorted_by=sorted_by,
-                   filtros=filtros,
-                   provincias=provincias,
-                   tags=all_tags,
-                   hoy=date.today().isoformat())
+        # Reutilizar la lógica de búsqueda para evitar duplicación de código
+        return search()
     else:
         return "Método no permitido", 405
 
