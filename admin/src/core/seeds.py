@@ -19,7 +19,7 @@ import bcrypt
 
 
 def seed_data():
-    print("🌱 Cargando seeds en db")
+    print(" Cargando seeds en db")
     # 1) Roles
     r_admin = Role(name='Administrador')
     r_user = Role(name='Usuario')
