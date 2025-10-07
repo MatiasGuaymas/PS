@@ -1,0 +1,108 @@
+{% extends "layout.html" %}
+{% from "macros/paginate.html" import paginate %}
+
+{% block title %}Listado de Sitios | Puff-tóricos{% endblock %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden mx-auto">
+        <div class="card-header bg-dark">
+            <h2 class="h3 text-white mb-4 mt-1">Listado de Sitios Históricos</h2>
+            <div class="d-flex justify-content-end mb-3">
+                <a href="{{ url_for('sites.create') }}" class="btn btn-success">Nuevo sitio</a>
+            </div>
+        </div>
+        <div class="mt-5">
+    <h1>Historial de Auditoría para el Sitio: {{ site.site_name }}</h1>
+
+    {# Endpoint URL para los enlaces #}
+    {% set url_endpoint = 'sites.detail' %}
+
+        <div class="card bg-dark mb-4 p-3" style="--bs-bg-opacity: .7; border-color: #BB86FC;">
+        <form method="GET" action="{{ url_for(url_endpoint)}}">
+            <div class="row g-3 align-items-end">
+            
+            {# Filtro de Usuario #}
+            <div class="col-md-3">
+                <label for="email" class="form-label text-white">Email</label>
+                <select name="email" id="email" class="form-select bg-dark text-white border-secondary">
+                <option value="">-- Todos --</option>
+                {% for user in all_users %}
+                    <option value="{{ email  }}" {% if request.args.get('email')==email %}selected{% endif %}>{{ user.email }}</option>
+                {% endfor %}
+                </select>
+            </div>
+            
+            {# Filtro de Tipo de Acción #}
+            <div class="col-md-3">
+                <label for="action_type" class="form-label text-white">Estatus</label>
+                <select name="action_type" id="action_type" class="form-select bg-dark text-white border-secondary">
+                <option value="">-- Todos --</option>
+                {% for status in ["Activo", "Inactivo"] %}
+                    <option value="{{ status }}" {% if request.args.get('status')== status %}selected{% endif %}>
+                    {{ status }}
+                    </option>
+                {% endfor %}
+                </select>
+            </div>
+            
+            {# Filtro Fecha Desde #}
+            <div class="col-md-2">
+                <label for="date_from" class="form-label text-white">Rol</label>
+                <input name="role" id="role" class="form-control bg-dark text-white border-secondary" 
+                    value="{{ role }}">
+            </div>
+
+            {# Botón de Aplicar Filtros #}
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Aplicar</button>
+            </div>
+            </div>
+        </form>
+        
+        {# Botón de Limpiar Filtros #}
+        <div class="row mt-3">
+            <div class="col">
+                <a href="{{ url_for(url_endpoint, site_id=site.id) }}" class="btn btn-secondary w-100">Limpiar Filtros</a>
+            </div>
+        </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-dark table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col">Nombre</th>
+                            <th scope="col">Ciudad</th>
+                            <th scope="col">Provincia</th>
+                            <th scope="col" class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for site in sites %}
+                        <tr>
+                            <td>{{ site.site_name }}</td>
+                            <td>{{ site.city }}</td>
+                            <td>{{ site.province }}</td>
+                            <td class="text-center">
+                                <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-info btn-sm">Ver</a>
+                                <a href="{{ url_for('sites.edit', site_id=site.id) }}" class="btn btn-warning btn-sm">Editar</a>
+                                <form method="POST" action="{{ url_for('sites.delete', site_id=site.id) }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="d-flex justify-content-center mt-3">
+        {{ paginate(pagination=pagination, url='sites.index') }}
+</div>
+    
+{% endblock %}
