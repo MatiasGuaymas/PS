@@ -3,23 +3,33 @@
 {% block title %} Log In | Puff-tóricos {% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-center align-items-center">
-    <div class="card" style="border-color: #BB86FC;">
-        <div class="card-body">
-            <h1 class="card-title text-center mb-4">Iniciar Sesión</h1>
-            <form action="{{ url_for('auth.authenticate') }}" method="post">
-                <div class="mb-3">
-                    <label for="email" class="form-label">Correo Electrónico</label>
-                    <input type="email" class="form-control" id="email" name="email" placeholder="Ingrese su correo" required>
+<div class="container-xl d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="row align-items-center">
+        <div class="col-md-6">
+            <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden mx-auto" style="max-width: 400px;">
+                <div class="card-header bg-dark">
+                    <h1 class="h3 text-white text-center mt-4">Iniciar Sesión</h1>
+                    <p class="text-white-50 text-center">Accede a tu cuenta para continuar.</p>
                 </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Contraseña</label>
-                    <input type="password" class="form-control" id="password" name="password" placeholder="Ingrese su contraseña" required>
+                <div class="card-body">
+                    <form action="{{ url_for('auth.authenticate') }}" method="post" class="row g-3">
+                        <div class="col-12">
+                            <label for="email" class="form-label fw-semibold text-white">Correo Electrónico</label>
+                            <input type="email" class="form-control rounded-3" id="email" name="email" placeholder="Ingrese su correo" required>
+                        </div>
+                        <div class="col-12">
+                            <label for="password" class="form-label fw-semibold text-white">Contraseña</label>
+                            <input type="password" class="form-control rounded-3" id="password" name="password" placeholder="Ingrese su contraseña" required>
+                        </div>
+                        <div class="col-12 d-grid">
+                            <button type="submit" class="btn btn-primary fw-bold py-2 rounded-3 shadow-sm">Iniciar Sesión</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
-                </div>
-            </form>
+            </div>
+        </div>
+        <div class="col-md-6 text-center d-none d-md-block">
+            <img src="{{ url_for('static', filename='img/login-wave.png') }}" alt="login-wave" style="max-width: 100%; height: auto; transform: scale(0.7);">
         </div>
     </div>
 </div>

@@ -73,6 +73,20 @@
                         <i class="bi bi-people"></i>
                     </a>
                 </li>
+                {% if is_authenticated(session) %}
+                <li class="nav-item" title="Tags">
+                    <a class="nav-link" href="{{ url_for('tags.index') }}">
+                        <i class="bi bi-tags"></i>
+                    </a>
+                </li>
+                {% endif %}
+                {% if is_superAdmin(session) %}
+                <li class="nav-item" title="Feature-Flags">
+                    <a class="nav-link" href="{{ url_for('feature-flags.index') }}">
+                        <i class="bi bi-flag"></i>
+                    </a>
+                </li>
+                {% endif %}
             </ul>
             {% endblock %}
         </nav>
@@ -108,7 +122,7 @@
                 '{{ category }}' === 'danger' ? 'Error' :
                     '{{ category }}' === 'success' ? 'Éxito' :
                         '{{ category }}' === 'warning' ? 'Advertencia' :
-                            '{{ category }}' === 'info' ? 'Información' : 'Mensaje'
+                            '{{ category }}' === 'info' ? 'Información' : 'Error'
             ),
             text: `{{ message|safe }}`,
             icon: ('{{ category }}' === 'danger' ? 'error' : '{{ category }}'),

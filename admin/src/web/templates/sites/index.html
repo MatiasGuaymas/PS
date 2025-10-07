@@ -1,25 +1,172 @@
 {% extends "layout.html" %}
+{% macro url_con_filtros(order_by, sentido, page) %}
+{{ url_for('sites.search',
+site_name=request.args.get('site_name', ''),
+city=request.args.get('city', ''),
+province=request.args.get('province', ''),
+state_id=request.args.get('state_id', ''),
+registration_from=request.args.get('registration_from', ''),
+registration_to=request.args.get('registration_to', ''),
+active=request.args.get('active', ''),
+order_by=order_by,
+sentido=sentido,
+page=page,
+tags=request.args.getlist('tags')
+) }}
+{% endmacro %}
 {% from "macros/paginate.html" import paginate %}
 
 {% block title %}Listado de Sitios | Puff-tóricos{% endblock %}
 
 {% block content %}
-<div class="container-xl">
-    <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden mx-auto">
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css">
+<style>
+    .choices__list--dropdown,
+    .choices__list--multiple {
+        color: #000;
+    }
+</style>
+
+<div class="container-xl p-3">
+    <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden">
         <div class="card-header bg-dark">
             <h2 class="h3 text-white mb-4 mt-1">Listado de Sitios Históricos</h2>
             <div class="d-flex justify-content-end mb-3">
                 <a href="{{ url_for('sites.create') }}" class="btn btn-success">Nuevo sitio</a>
             </div>
         </div>
-        <div class="card-body">
+
+        <div class="card-body p-4">
+            <form method="get" action="{{ url_for('sites.search') }}" class="mb-4">
+                <div class="mb-3">
+                    <strong>Orden actual:</strong>
+                    {% set orden_actual = request.args.get('order_by', 'site_name') %}
+                    {% set sentido_actual = request.args.get('sentido', 'asc') %}
+                    <span class="badge bg-info">{{
+                        'Nombre' if orden_actual == 'site_name'
+                        else 'Ciudad' if orden_actual == 'city'
+                        else 'Fecha de registro' if orden_actual == 'registration'
+                        else orden_actual
+                        }} ({{ 'Ascendente' if sentido_actual == 'asc' else 'Descendente' }})</span>
+                    |
+                    <span class="me-1">Nombre</span>
+                    <a href="{{ url_con_filtros('site_name', 'asc', pagination.current_page if pagination else 1) }}"
+                        class="text-decoration-none me-1" title="Ordenar ascendente">
+                        <i class="bi bi-arrow-up"></i>
+                    </a>
+                    <a href="{{ url_con_filtros('site_name', 'desc', pagination.current_page if pagination else 1) }}"
+                        class="text-decoration-none" title="Ordenar descendente">
+                        <i class="bi bi-arrow-down"></i>
+                    </a>
+                    <span class="mx-2">|</span>
+                    <span class="me-1">Ciudad</span>
+                    <a href="{{ url_con_filtros('city', 'asc', pagination.current_page if pagination else 1) }}"
+                        class="text-decoration-none" title="Ordenar ascendente">
+                        <i class="bi bi-arrow-up"></i>
+                    </a>
+                    <a href="{{ url_con_filtros('city', 'desc', pagination.current_page if pagination else 1) }}"
+                        class="text-decoration-none me-1" title="Ordenar descendente">
+                        <i class="bi bi-arrow-down"></i>
+                    </a>
+                    <span class="mx-2">|</span>
+                    <span class="me-1">Fecha</span>
+                    <a href="{{ url_con_filtros('registration', 'asc', pagination.current_page if pagination else 1) }}"
+                        class="text-decoration-none me-1" title="Ordenar ascendente">
+                        <i class="bi bi-arrow-up"></i>
+                    </a>
+                    <a href="{{ url_con_filtros('registration', 'desc', pagination.current_page if pagination else 1) }}"
+                        class="text-decoration-none" title="Ordenar descendente">
+                        <i class="bi bi-arrow-down"></i>
+                    </a>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <input type="text" name="site_name" class="form-control" placeholder="Nombre o descripción"
+                            value="{{ request.args.get('site_name', '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <select name="province" class="form-select">
+                            <option value="">Provincia</option>
+                            {% for prov in provincias %}
+                            <option value="{{ prov }}" {% if request.args.get('province')==prov %}selected{% endif %}>{{
+                                prov }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="text" name="city" class="form-control" placeholder="Ciudad"
+                            value="{{ request.args.get('city', '') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <select name="state_id" class="form-select">
+                            <option value="">Estado de conservación</option>
+                            <option value="1" {% if request.args.get('state_id')=='1' %}selected{% endif %}>Bueno
+                            </option>
+                            <option value="3" {% if request.args.get('state_id')=='3' %}selected{% endif %}>Regular
+                            </option>
+                            <option value="2" {% if request.args.get('state_id')=='2' %}selected{% endif %}>Malo
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-3 align-items-end">
+                    <div class="col-md-4">
+                        <label for="tags" class="form-label">Tags</label>
+                        <select id="tags" name="tags" class="form-select" multiple>
+                            {% for tag in tags %}
+                            <option value="{{ tag.id }}" {% if tag.id|string in request.args.getlist('tags')%}selected{%
+                                endif %}>
+                                {{ tag.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="registration_from" class="form-label">Fecha desde</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-calendar-date"></i></span>
+                            <input type="date" id="registration_from" name="registration_from" class="form-control"
+                                value="{{ request.args.get('registration_from', '') }}" max="{{ hoy }}">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="registration_to" class="form-label">Fecha hasta</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-calendar-date"></i></span>
+                            <input type="date" id="registration_to" name="registration_to" class="form-control"
+                                value="{{ request.args.get('registration_to', '') }}" max="{{ hoy }}">
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <div class="form-check">
+                            <input type="checkbox" id="active" name="active" value="1" class="form-check-input" {% if
+                                request.args.get('active') %}checked{% endif %}>
+                            <label for="active" class="form-check-label">Visible</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">Buscar</button>
+                        <a href="{{ url_for('sites.search') }}" class="btn btn-secondary">Limpiar</a>
+                    </div>
+                </div>
+            </form>
+
+            {% if sites and (pagination and pagination.total > 0 or sites|length > 0) %}
+            <p>{{ (pagination.total if pagination and pagination.total is defined else sites|length) }} resultados
+                encontrados.</p>
             <div class="table-responsive">
-                <table class="table table-dark table-striped table-hover">
+                <table class="table table-dark table-striped table-hover rounded-3 overflow-hidden">
                     <thead class="table-dark">
                         <tr>
                             <th scope="col">Nombre</th>
                             <th scope="col">Ciudad</th>
                             <th scope="col">Provincia</th>
+                            <th scope="col" class="text-center">Estado</th>
+                            <th scope="col" class="text-center">Visible</th>
                             <th scope="col" class="text-center">Acciones</th>
                         </tr>
                     </thead>
@@ -30,9 +177,32 @@
                             <td>{{ site.city }}</td>
                             <td>{{ site.province }}</td>
                             <td class="text-center">
-                                <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-info btn-sm">Ver</a>
-                                <a href="{{ url_for('sites.edit', site_id=site.id) }}" class="btn btn-warning btn-sm">Editar</a>
-                                <form method="POST" action="{{ url_for('sites.delete', site_id=site.id) }}" style="display:inline;">
+                                {% if site.state_id == 1 %}
+                                <span class="badge bg-success">Bueno</span>
+                                {% elif site.state_id == 2 %}
+                                <span class="badge bg-danger">Malo</span>
+                                {% elif site.state_id == 3 %}
+                                <span class="badge bg-warning text-dark">Regular</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Sin estado</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if site.active %}
+                                <i class="bi bi-check-circle-fill text-success" style="font-size: 1.2rem;"
+                                    title="Visible"></i>
+                                {% else %}
+                                <i class="bi bi-x-circle-fill text-danger" style="font-size: 1.2rem;"
+                                    title="No visible"></i>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <a href="{{ url_for('sites.detail', site_id=site.id) }}"
+                                    class="btn btn-info btn-sm">Ver</a>
+                                <a href="{{ url_for('sites.edit', site_id=site.id) }}"
+                                    class="btn btn-warning btn-sm">Editar</a>
+                                <form method="POST" action="{{ url_for('sites.delete', site_id=site.id) }}"
+                                    style="display:inline;">
                                     <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
                                 </form>
                             </td>
@@ -41,13 +211,140 @@
                     </tbody>
                 </table>
             </div>
+
+            <div class="d-flex justify-content-end mt-3">
+                <form method="post" action="{{ url_for('sites.export_csv') }}">
+                    <input type="hidden" name="site_name" value="{{ filtros.site_name }}">
+                    <input type="hidden" name="city" value="{{ filtros.city }}">
+                    <input type="hidden" name="province" value="{{ filtros.province }}">
+                    <input type="hidden" name="state_id" value="{{ filtros.state_id }}">
+                    <input type="hidden" name="registration_from" value="{{ filtros.registration_from }}">
+                    <input type="hidden" name="registration_to" value="{{ filtros.registration_to }}">
+                    <input type="hidden" name="active" value="{{ filtros.active }}">
+                    <input type="hidden" name="order_by" value="{{ filtros.order_by }}">
+                    <input type="hidden" name="sentido" value="{{ filtros.sentido }}">
+                    <button type="submit" class="btn btn-success">Exportar CSV</button>
+                </form>
+            </div>
+            {% else %}
+            <p>No se encontraron resultados.</p>
+            {% endif %}
         </div>
+    </div>
+
+    <div class="d-flex justify-content-center mt-4">
+        {% if pagination %}
+        <nav aria-label="Page navigation">
+            <ul class="pagination">
+                {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a href="{{ url_con_filtros(filtros.order_by, filtros.sentido, pagination.prev_num) }}"
+                        class="page-link">Anterior</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Anterior</span>
+                </li>
+                {% endif %}
+
+                {% if pagination.has_prev and 1 not in pagination.page_range %}
+                <li class="page-item">
+                    <a href="{{ url_con_filtros(filtros.order_by, filtros.sentido, 1) }}" class="page-link">1</a>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+
+                {% for page_num in pagination.page_range %}
+                <li class="page-item {% if page_num == pagination.current_page %}active{% endif %}">
+                    <a href="{{ url_con_filtros(filtros.order_by, filtros.sentido, page_num) }}" class="page-link">{{
+                        page_num }}</a>
+                </li>
+                {% endfor %}
+
+                {% if pagination.has_next and pagination.pages not in pagination.page_range %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                <li class="page-item">
+                    <a href="{{ url_con_filtros(filtros.order_by, filtros.sentido, pagination.pages) }}"
+                        class="page-link">{{ pagination.pages }}</a>
+                </li>
+                {% endif %}
+
+                {% if pagination.has_next %}
+                <li class="page-item">
+                    <a href="{{ url_con_filtros(filtros.order_by, filtros.sentido, pagination.next_num) }}"
+                        class="page-link">Siguiente</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Siguiente</span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const tagsSelect = document.getElementById('tags');
+        if (tagsSelect) {
+            new Choices(tagsSelect, {
+                removeItemButton: true,
+                searchPlaceholderValue: 'Buscar...',
+                shouldSort: false,
+                noResultsText: 'Sin resultados',
+                itemSelectText: 'Seleccionar',
+                noChoicesText: 'Sin opciones',
+                loadingText: 'Cargando...',
+            });
+        }
 
-<div class="d-flex justify-content-center mt-3">
-        {{ paginate(pagination=pagination, url='sites.index') }}
-</div>
-    
+        const buscarBtn = document.querySelector('form button[type="submit"]');
+        const desde = document.getElementById('registration_from');
+        const hasta = document.getElementById('registration_to');
+        const hoy = "{{ hoy }}";
+
+        if (buscarBtn) {
+            buscarBtn.addEventListener('click', function (e) {
+                if (desde && hasta && desde.value && hasta.value && desde.value > hasta.value) {
+                    e.preventDefault();
+                    alert("La fecha 'desde' no puede ser mayor que la fecha 'hasta'.");
+                }
+                if ((desde && desde.value > hoy) || (hasta && hasta.value > hoy)) {
+                    e.preventDefault();
+                    alert("No se pueden seleccionar fechas futuras.");
+                }
+            });
+        }
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const exportForm = document.querySelector('form[action="{{ url_for("sites.export_csv") }}"]');
+        const searchSelect = document.querySelector('form[action="{{ url_for("sites.search") }}"] select[name="tags"]');
+
+        if (exportForm && searchSelect) {
+            exportForm.addEventListener('submit', function () {
+                exportForm.querySelectorAll('input[name="tags"]').forEach(el => el.remove());
+
+                // Copiar los tags seleccionados del select de búsqueda
+                Array.from(searchSelect.selectedOptions).forEach(opt => {
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = 'tags';
+                    hidden.value = opt.value;
+                    exportForm.appendChild(hidden);
+                });
+            });
+        }
+    });
+</script>
+
 {% endblock %}

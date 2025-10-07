@@ -1,4 +1,4 @@
-from os import environ
+import os
 
 class config:
     TESTING = False
@@ -12,8 +12,7 @@ class config:
 
 class ProductionConfig(config):
     """Production configuration."""
-
-    SQLALCHEMY_DATABASE_URI = (environ.get("DATABASE_URL"))
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "")
     DEBUG=False
 
 
@@ -41,3 +40,8 @@ config = {
     'production': ProductionConfig,
     'testing': TestingConfig
 }
+
+def get_current_config(env=None):
+    if env is None:
+        env = os.getenv("FLASK_ENV", "production")
+    return config.get(env, ProductionConfig)

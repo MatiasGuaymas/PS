@@ -267,6 +267,7 @@ def search_users():
     
 @user_blueprint.route("/deactivate/<int:user_id>", methods=["POST"])
 @login_required
+@require_role(['Administrador'])
 def deactivate_user(user_id):
     try:
         user = User.query.get_or_404(user_id);
