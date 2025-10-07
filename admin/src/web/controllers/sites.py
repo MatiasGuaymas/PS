@@ -568,6 +568,8 @@ def search():
         )
     sites = pagination["items"] if pagination else []
 
+    print(f"Encontrado {len(sites)} sitios con filtros: {filtros}")
+
     provincias = [row[0] for row in db.session.query(Site.province).distinct().order_by(Site.province).all()]
     all_tags = Tag.query.order_by(Tag.name.asc()).all()
 
@@ -613,8 +615,10 @@ def export_csv():
         Solo usuarios con rol 'Administrador' pueden exportar datos.
         El archivo se genera con timestamp en el nombre.
     """
+
     tags_raw = request.form.getlist("tags")
-    tags = [int(t) for t in tags_raw if str(t).isdigit()]
+    tags = [int(t) for t in tags_raw if t and str(t).isdigit()]
+
     filtros = {
         "site_name": request.form.get("site_name", ""),
         "city": request.form.get("city", ""),
@@ -623,19 +627,24 @@ def export_csv():
         "registration_from": request.form.get("registration_from", ""),
         "registration_to": request.form.get("registration_to", ""),
         "active": request.form.get("active", ""),
+        "order_by": request.form.get("order_by", "site_name"),
+        "sentido": request.form.get("sentido", "asc"),
     }
+
+    print("Filtros recibidos en export_csv:", filtros)
+
     state_id_raw = request.form.get("state_id", "")
     if state_id_raw and state_id_raw.isdigit():
         filtros["state_id"] = int(state_id_raw)
-    order_by = request.form.get("order_by", "site_name")
-    sorted_by = request.form.get("sentido", "asc")
 
     sites = SiteService.get_sites_filtered(
         filters=filtros,
-        order_by=order_by,
-        sorted_by=sorted_by,
+        order_by=filtros["order_by"],
+        sorted_by=filtros["sentido"],
         paginate=False,
     )
+
+    print(f"Exportando {len(sites)} sitios con filtros: {filtros}")
 
     if not sites:
         return "No hay datos para exportar", 400

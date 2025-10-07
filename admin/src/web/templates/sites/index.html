@@ -118,8 +118,8 @@ tags=request.args.getlist('tags')
                         <label for="tags" class="form-label">Tags</label>
                         <select id="tags" name="tags" class="form-select" multiple>
                             {% for tag in tags %}
-                            <option value="{{ tag.id }}" {% if tag.id|string in request.args.getlist('tags')
-                                %}selected{% endif %}>
+                            <option value="{{ tag.id }}" {% if tag.id|string in request.args.getlist('tags')%}selected{%
+                                endif %}>
                                 {{ tag.name }}
                             </option>
                             {% endfor %}
@@ -196,9 +196,6 @@ tags=request.args.getlist('tags')
                     <input type="hidden" name="city" value="{{ filtros.city }}">
                     <input type="hidden" name="province" value="{{ filtros.province }}">
                     <input type="hidden" name="state_id" value="{{ filtros.state_id }}">
-                    {% for tag in filtros.tags %}
-                    <input type="hidden" name="tags" value="{{ tag }}">
-                    {% endfor %}
                     <input type="hidden" name="registration_from" value="{{ filtros.registration_from }}">
                     <input type="hidden" name="registration_to" value="{{ filtros.registration_to }}">
                     <input type="hidden" name="active" value="{{ filtros.active }}">
@@ -251,6 +248,28 @@ tags=request.args.getlist('tags')
                     e.preventDefault();
                     alert("No se pueden seleccionar fechas futuras.");
                 }
+            });
+        }
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const exportForm = document.querySelector('form[action="{{ url_for("sites.export_csv") }}"]');
+        const searchSelect = document.querySelector('form[action="{{ url_for("sites.search") }}"] select[name="tags"]');
+
+        if (exportForm && searchSelect) {
+            exportForm.addEventListener('submit', function () {
+                exportForm.querySelectorAll('input[name="tags"]').forEach(el => el.remove());
+
+                // Copiar los tags seleccionados del select de búsqueda
+                Array.from(searchSelect.selectedOptions).forEach(opt => {
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = 'tags';
+                    hidden.value = opt.value;
+                    exportForm.appendChild(hidden);
+                });
             });
         }
     });
