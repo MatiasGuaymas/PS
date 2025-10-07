@@ -244,19 +244,29 @@ def edit(tag_id):
         404: Si el tag no existe
     """
     tag = Tag.query.get_or_404(tag_id)
+    current_user_id = session.get("user_id")
     
     if request.method == "POST":
         name = request.form.get("name", "").strip()
+        
+        # LOG: Inicio de edición
+        logger.info(f"Usuario {current_user_id} editando tag ID={tag_id}: '{tag.name}' -> '{name}'")
         
         # Validar y actualizar tag usando función auxiliar
         success, error_msg = validate_and_update_tag(tag, name)
         
         if not success:
+            # LOG: Error de validación
+            logger.warning(f"Error validando tag en edición: {error_msg}")
             flash(error_msg, "danger")
             return render_template("tags/edit.html", tag=tag)
         
         # Guardar cambios
         db.session.commit()
+        
+        # LOG: Éxito
+        logger.info(f"Tag editado exitosamente: ID={tag_id}, nuevo_nombre='{tag.name}', nuevo_slug='{tag.slug}'")
+        
         flash("Tag actualizado correctamente.", "success")
         return redirect(url_for("tags.index"))
     
@@ -284,9 +294,20 @@ def delete(tag_id):
         No se puede eliminar un tag que esté asociado a sitios históricos.
     """
     tag = Tag.query.get_or_404(tag_id)
+    current_user_id = session.get("user_id")
+    
+    # LOG: Inicio de eliminación
+    logger.info(f"Usuario {current_user_id} intentando eliminar tag ID={tag_id}: '{tag.name}'")
+    
     if tag.site_associations.count() > 0:  
+        # LOG: Error por dependencias
+        logger.warning(f"No se puede eliminar tag ID={tag_id} porque tiene {tag.site_associations.count()} sitios asociados")
         flash("No se puede eliminar el tag porque está asignado a uno o más sitios.", "danger")
         return redirect(url_for("tags.index"))
+    
+    # LOG: Eliminación exitosa
+    logger.info(f"Tag eliminado exitosamente: ID={tag_id}, nombre='{tag.name}', slug='{tag.slug}'")
+    
     db.session.delete(tag)
     db.session.commit()
     flash("Tag eliminado correctamente.", "success")
