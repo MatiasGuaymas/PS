@@ -61,7 +61,6 @@ class SiteService:
 
         # Ordenar
         query = apply_ordering(query, Site, order_by, sorted_by)
-
         if paginate:
             return paginate_query(
                 query, page=page, per_page=per_page, order_by=order_by, sorted_by=sorted_by
