@@ -82,6 +82,7 @@ def seed_data():
         Role_permission(role_id=r_admin.id, permission_id=s_destroy.id),        
         Role_permission(role_id=r_admin.id, permission_id=s_new.id),
         Role_permission(role_id=r_admin.id, permission_id=s_update.id),                
+        Role_permission(role_id=r_admin.id, permission_id=s_history.id),                
         Role_permission(role_id=r_admin.id, permission_id=t_index.id),           
         Role_permission(role_id=r_admin.id, permission_id=t_new.id),
         Role_permission(role_id=r_admin.id, permission_id=t_update.id),
