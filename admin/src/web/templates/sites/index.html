@@ -198,12 +198,12 @@ tags=request.args.getlist('tags')
                             </td>
                             <td class="text-center">
                                 <a href="{{ url_for('sites.detail', site_id=site.id) }}"
-                                    class="btn btn-info btn-sm">Ver</a>
+                                    class="btn btn-info btn-sm mx-1">Ver</a>
                                 <a href="{{ url_for('sites.edit', site_id=site.id) }}"
-                                    class="btn btn-warning btn-sm">Editar</a>
+                                    class="btn btn-warning btn-sm mx-1">Editar</a>
                                 <form method="POST" action="{{ url_for('sites.delete', site_id=site.id) }}"
                                     style="display:inline;">
-                                    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                                    <button type="submit" class="btn btn-danger btn-sm mx-1">Eliminar</button>
                                 </form>
                             </td>
                         </tr>
