@@ -471,16 +471,20 @@ def delete(site_id):
         Solo usuarios con rol 'Administrador' pueden eliminar sitios.
     """
     site = Site.query.get_or_404(site_id)
-    if(site):
+    if site:
         site.deleted = True
-        # Crear instancia Audit
+        
+        # Registrar el log de auditoría con parámetros correctos
         SiteService._register_audit_log(
+            site_id=site.id,
             user_id=session.get("user_id"),
-            site_id= site.id,
-            action_type='DELETED',
-            details= f"Se elimino un nuevo sitio {site.site_name}"
+            action_type='DELETE',
+            description=f"Se eliminó el sitio {site.site_name}"
         )
-    db.session.commit()
+        
+        db.session.commit()
+        flash("Sitio eliminado correctamente.", "success")
+    
     return redirect(url_for("sites.index"))
 
 @sites_blueprint.route("/search", methods=["GET"])
