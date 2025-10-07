@@ -6,6 +6,9 @@ from src.core.services.role_service import RoleService;
 def is_authenticated(session):
     return session.get("user") is not None
 
+def is_superAdmin(session):
+    return session.get("is_admin")
+
 
 def login_required(f):
     @wraps(f)
