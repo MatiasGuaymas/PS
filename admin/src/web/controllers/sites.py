@@ -53,6 +53,23 @@ def get_coords_from_point(point):
 @login_required
 @require_role(['Administrador', 'Editor'])
 def index():
+    """
+    Maneja la página principal de sitios históricos.
+    
+    GET: Muestra la lista de sitios con filtros, ordenamiento y paginación.
+         Reutiliza la lógica de la función search() para evitar duplicación de código.
+    
+    POST: Crea un nuevo sitio histórico.
+          Valida los campos obligatorios y registra la acción en el log de auditoría.
+    
+    Returns:
+        GET: render_template con la lista de sitios filtrados
+        POST: redirect a la página principal tras crear el sitio
+        
+    Raises:
+        400: Si faltan campos obligatorios en el POST
+        405: Si se usa un método HTTP no permitido
+    """
     if request.method == "POST":
         site_name = request.form.get("site_name")
         short_desc = request.form.get("short_desc")
@@ -98,7 +115,7 @@ def index():
 
         return redirect(url_for("sites.index"))
     elif request.method == "GET":
-        # Reutilizar la lógica de búsqueda para evitar duplicación de código
+        # Reutilizar la lógica de search()
         return search()
     else:
         return "Método no permitido", 405
@@ -188,6 +205,22 @@ def detail(site_id):
 @login_required
 @require_role(['Administrador', 'Editor'])
 def create():
+    """
+    Maneja la creación de nuevos sitios históricos.
+    
+    GET: Muestra el formulario de creación de sitios con todas las etiquetas disponibles.
+    
+    POST: Procesa el formulario de creación.
+          Valida campos obligatorios, coordenadas y crea el sitio con sus etiquetas asociadas.
+          Registra la acción en el log de auditoría.
+    
+    Returns:
+        GET: render_template con el formulario de creación
+        POST: redirect a la página principal tras crear exitosamente el sitio
+        
+    Raises:
+        render_template con error: Si hay errores de validación en el POST
+    """
     if request.method == "POST":
         site_name = request.form.get("site_name")
         short_desc = request.form.get("short_desc")
@@ -261,6 +294,27 @@ def create():
 @login_required
 @require_role(['Administrador', 'Editor'])
 def edit(site_id):
+    """
+    Maneja la edición de sitios históricos existentes.
+    
+    GET: Muestra el formulario de edición con los datos del sitio.
+    
+    POST: Procesa los cambios del formulario.
+          Registra cambios específicos en el log de auditoría:
+          - Cambios de estado (STATE_CHANGE)
+          - Cambios de etiquetas (TAG_CHANGE) 
+          - Cambios generales de campos (UPDATE)
+    
+    Args:
+        site_id (int): ID del sitio histórico a editar
+    
+    Returns:
+        GET: render_template con el formulario de edición
+        POST: redirect al detalle del sitio tras actualizar exitosamente
+        
+    Raises:
+        404: Si el sitio no existe
+    """
     site = Site.query.get_or_404(site_id)
     current_user_id = session.get("user_id")
     if request.method == "POST":
@@ -398,6 +452,24 @@ def edit(site_id):
 @login_required
 @require_role(['Administrador'])
 def delete(site_id):
+    """
+    Elimina (soft delete) un sitio histórico.
+    
+    Marca el sitio como eliminado (deleted=True) en lugar de borrarlo físicamente.
+    Registra la acción de eliminación en el log de auditoría.
+    
+    Args:
+        site_id (int): ID del sitio histórico a eliminar
+    
+    Returns:
+        redirect: Redirección a la página principal tras eliminar el sitio
+        
+    Raises:
+        404: Si el sitio no existe
+    
+    Note:
+        Solo usuarios con rol 'Administrador' pueden eliminar sitios.
+    """
     site = Site.query.get_or_404(site_id)
     if(site):
         site.deleted = True
@@ -415,6 +487,38 @@ def delete(site_id):
 @login_required
 @require_role(['Administrador', 'Editor'])
 def search():
+    """
+    Busca y filtra sitios históricos con parámetros avanzados.
+    
+    Procesa múltiples filtros de búsqueda desde query parameters:
+    - site_name: Búsqueda por nombre del sitio
+    - city: Filtro por ciudad
+    - province: Filtro por provincia
+    - tags: Filtro por etiquetas (múltiples valores)
+    - registration_from/registration_to: Rango de fechas de registro
+    - active: Filtro por estado activo/inactivo
+    - state_id: Filtro por estado de conservación
+    - order_by: Campo de ordenamiento
+    - sentido: Dirección del ordenamiento (asc/desc)
+    
+    Valida rangos de fechas y maneja errores de formato.
+    
+    Returns:
+        render_template: Página de resultados con sitios filtrados y paginados
+        
+    Query Parameters:
+        site_name (str): Nombre del sitio a buscar
+        city (str): Ciudad para filtrar
+        province (str): Provincia para filtrar
+        tags (list): Lista de IDs de etiquetas
+        registration_from (str): Fecha de inicio (YYYY-MM-DD)
+        registration_to (str): Fecha de fin (YYYY-MM-DD)
+        active (str): Estado activo ('true'/'false')
+        state_id (str): ID del estado de conservación
+        order_by (str): Campo de ordenamiento
+        sentido (str): Dirección del ordenamiento
+        page (int): Número de página
+    """
     # Filtros del querystring
     tags_raw = request.args.getlist("tags")
     tags = [int(t) for t in tags_raw if str(t).isdigit()]
@@ -478,6 +582,33 @@ def search():
 @login_required
 @require_role(['Administrador'])
 def export_csv():
+    """
+    Exporta sitios históricos filtrados a formato CSV.
+    
+    Aplica los mismos filtros que la función de búsqueda pero exporta
+    todos los resultados (sin paginación) a un archivo CSV descargable.
+    
+    Filtros soportados (desde form data):
+    - site_name: Nombre del sitio
+    - city: Ciudad
+    - province: Provincia
+    - tags: Etiquetas asociadas
+    - registration_from/registration_to: Rango de fechas
+    - active: Estado activo
+    - state_id: Estado de conservación
+    - order_by: Campo de ordenamiento
+    - sentido: Dirección del ordenamiento
+    
+    Returns:
+        Response: Archivo CSV con headers apropiados para descarga
+        
+    Raises:
+        400: Si no hay datos para exportar
+        
+    Note:
+        Solo usuarios con rol 'Administrador' pueden exportar datos.
+        El archivo se genera con timestamp en el nombre.
+    """
     tags_raw = request.form.getlist("tags")
     tags = [int(t) for t in tags_raw if str(t).isdigit()]
     filtros = {
