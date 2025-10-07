@@ -44,6 +44,12 @@ def index():
             flash("Faltan campos obligatorios", "error")
             users = User.query.all()
             return render_template("users/index.html", users=users), 400
+        
+        if not role or role.strip() == "":
+            flash("Debe seleccionar un rol para el usuario", "error")
+            users = User.query.all()
+            return render_template("users/index.html", users=users), 400
+            
             
         if User.query.filter_by(email=email).first():
             flash("El email ya existe en el sistema", "error")
@@ -63,7 +69,7 @@ def index():
             password=hash_password(password),
             email=email,
             active=active,
-            role_id=role,
+            role_id=int(role),
             sysAdmin=False
         )
         db.session.add(new_user)
@@ -73,9 +79,15 @@ def index():
         return redirect(url_for('users.index'))
         
     elif request.method == "GET":
-        users = User.query.all()
+        page = request.args.get('page', 1, type=int)
+
+        users_paginated = User.query.paginate(
+            page=page,
+            per_page=25,
+            error_out=False
+        )
         return render_template(
-            "users/index.html", users=users
+            "users/index.html", users=users_paginated.items, pagination=users_paginated
         )
     else:
         return "Method not allowed", 405
@@ -144,13 +156,6 @@ def delete_user(user_id):
         
         
         db.session.execute(text("""
-            DELETE FROM actions 
-            WHERE audit_id IN (
-                SELECT id FROM audits WHERE user_id = :user_id
-            )
-        """), {"user_id": user_id})
-        
-        db.session.execute(text("""
             DELETE FROM audits WHERE user_id = :user_id
         """), {"user_id": user_id})
         
@@ -179,7 +184,7 @@ def search_users():
         status = request.args.get('status', '').strip()
         role = request.args.get('role', '').strip()
         
-        sort_by = request.args.get('sort_by', 'created_at').strip()
+        sort_by = request.args.get('sort_by', 'id').strip()
         sort_order = request.args.get('sort_order', 'desc').strip()
         
         query = User.query.options(joinedload(User.role))
@@ -201,11 +206,11 @@ def search_users():
         if role:
             query = query.filter(User.role_id == int(role))
         
-        if sort_by == 'created_at':
+        if sort_by == 'id':
             if sort_order == 'asc':
-                query = query.order_by(User.created_at.asc())
+                query = query.order_by(User.id.asc())
             else:
-                query = query.order_by(User.created_at.desc())
+                query = query.order_by(User.id.desc())
 
         pagination = query.paginate(
             page=page,
