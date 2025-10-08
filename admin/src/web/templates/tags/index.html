@@ -55,9 +55,9 @@
           <td>{{ tag.created_at.strftime('%d/%m/%Y') }}</td>
           <td>
             <div class="btn-group gap-2" role="group">
-              <a href="{{ url_for('tags.edit', tag_id=tag.id) }}" class="btn btn-warning btn-sm">Editar</a>
+              <a href="{{ url_for('tags.edit', tag_id=tag.id) }}" class="btn btn-warning btn-sm bi-pencil-fill">Editar</a>
               <form method="POST" action="{{ url_for('tags.delete', tag_id=tag.id) }}" style="display:inline;">
-                <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                <button type="submit" class="btn btn-danger btn-sm bi-trash-fill">Eliminar</button>
               </form>
             </div>
           </td>

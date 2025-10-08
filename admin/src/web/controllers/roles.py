@@ -1,7 +1,5 @@
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, jsonify
 from core.models.Role import Role
-from core.database import db
-from sqlalchemy.orm import joinedload
 
 roles_blueprint = Blueprint("roles", __name__, url_prefix="/roles")
 

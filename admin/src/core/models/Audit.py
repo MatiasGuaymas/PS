@@ -22,5 +22,5 @@ class Audit(db.Model):
 
     # RELACIÓN 2: una auditoria se hace a un sitio historico.
     # CLAVE FORÁNEA: Columna que referencia la tabla 'site'.
-    site_id = Column(Integer, ForeignKey('site.id'), nullable=False)
+    site_id = Column(Integer, ForeignKey('sites.id'), nullable=False)
     site = relationship("Site", back_populates="audits")

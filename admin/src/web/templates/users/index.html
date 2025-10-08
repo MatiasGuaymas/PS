@@ -136,9 +136,14 @@
                                 </td>
                                 <td class="text-center">
                                     <button type="button" class="btn btn-warning btn-sm btn-editar mx-1"
-                                        data-user-id="{{ user.id }}">Editar</button>
+                                        data-user-id="{{ user.id }}"><i class="bi bi-pencil-fill"></i>Editar</button>
+                                    {% if user.deleted %}
+                                    <button type="button" class="btn btn-success btn-sm btn-restaurar mx-1"
+                                        data-user-id="{{ user.id }}"><i class="bi bi-arrow-counterclockwise"></i>Restaurar</button>
+                                    {% else %}
                                     <button type="button" class="btn btn-danger btn-sm btn-borrar mx-1"
-                                        data-user-id="{{ user.id }}">Borrar</button>
+                                        data-user-id="{{ user.id }}"><i class="bi bi-trash-fill"></i>Borrar</button>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}
@@ -304,14 +309,19 @@
             ? `<span class="badge bg-primary">${user.role.name}</span>`
             : '<span class="badge bg-secondary">Sin rol</span>';
 
+        const actionButton = user.deleted
+        ? `<button type="button" class="btn btn-success btn-sm btn-restaurar mx-1" data-user-id="${user.id}" data-action="restore"><i class="bi bi-arrow-counterclockwise"></i>Restaurar</button>`
+        : `<button type="button" class="btn btn-danger btn-sm btn-borrar mx-1" data-user-id="${user.id}" data-action="delete"><i class="bi bi-trash-fill"></i>Borrar</button>`;
+
+
         row.innerHTML = `
             <td>${user.first_name} ${user.last_name}</td>
             <td>${user.email}</td>
             <td class="text-center">${activeIcon}</td>
             <td class="text-center">${roleBadge}</td>
             <td class="text-center">
-                <button type="button" class="btn btn-warning btn-sm btn-editar mx-1" data-user-id="${user.id}">Editar</button>
-                <button type="button" class="btn btn-danger btn-sm btn-borrar mx-1" data-user-id="${user.id}">Borrar</button>
+                <button type="button" class="btn btn-warning btn-sm btn-editar mx-1" data-user-id="${user.id}"><i class="bi bi-pencil-fill"></i>Editar</button>
+                ${actionButton}
             </td>
         `;
 
@@ -327,24 +337,42 @@
             });
         });
 
-        document.querySelectorAll('.btn-borrar').forEach(button => {
+        document.querySelectorAll('.btn-borrar, .btn-restaurar').forEach(button => {
             button.addEventListener('click', function () {
                 const userId = this.getAttribute('data-user-id');
+                const action = this.getAttribute('data-action');
+
+                let title, text, confirmButtonText, confirmButtonColor, actionUrl;
+
+                if (action === 'restore') {
+                    title = '¿Deseas restaurar este usuario?';
+                    text = "El usuario volverá a estar activo en el sistema.";
+                    confirmButtonText = 'Sí, restaurar';
+                    confirmButtonColor = '#28a745'; 
+                    actionUrl = `/users/restore/${userId}`; 
+                } else { // action === 'delete'
+                    title = '¿Estás seguro de borrar?';
+                    text = "Esta acción lo marcará como borrado lógicamente.";
+                    confirmButtonText = 'Sí, borrar';
+                    confirmButtonColor = '#d33'; 
+                    actionUrl = `/users/delete/${userId}`; 
+                }
 
                 Swal.fire({
-                    title: '¿Estás seguro?',
-                    text: "Esta acción no se puede deshacer",
-                    icon: 'warning',
+                    title: title,
+                    text: text,
+                    icon: action === 'restore' ? 'info' : 'warning',
                     showCancelButton: true,
-                    confirmButtonColor: '#d33',
+                    confirmButtonColor: confirmButtonColor,
                     cancelButtonColor: '#3085d6',
                     confirmButtonText: 'Sí, borrar',
-                    cancelButtonText: 'Cancelar'
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonText: confirmButtonText
                 }).then((result) => {
                     if (result.isConfirmed) {
                         const form = document.createElement('form');
                         form.method = 'POST';
-                        form.action = `/users/delete/${userId}`;
+                        form.action = actionUrl;
                         document.body.appendChild(form);
                         form.submit();
                     }
