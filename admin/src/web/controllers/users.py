@@ -13,6 +13,49 @@ user_blueprint = Blueprint("users", __name__, url_prefix="/users")
 @login_required
 @require_role(['Administrador'])
 def index():
+    """
+    Controlador principal para la gestión de usuarios.
+    
+    Maneja tanto la visualización paginada de usuarios (GET) como la creación 
+    de nuevos usuarios (POST) en el sistema administrativo.
+    
+    Métodos HTTP soportados:
+        GET: Muestra la lista paginada de usuarios con formulario de creación
+        POST: Procesa la creación de un nuevo usuario con validaciones
+    
+    Parámetros de consulta (GET):
+        page (int, opcional): Número de página para paginación. Default: 1
+        
+    Parámetros de formulario (POST):
+        first_name (str): Nombre del usuario. Requerido.
+        last_name (str): Apellido del usuario. Requerido.
+        email (str): Email único del usuario. Requerido.
+        password (str): Contraseña (mín. 8 caracteres). Requerida.
+        active (str): Estado del usuario ('true'/'false'). Default: 'false'.
+        role (str): ID del rol asignado. Requerido.
+    
+    Validaciones:
+        - Campos obligatorios no pueden estar vacíos
+        - Email debe ser único en el sistema
+        - Contraseña debe tener al menos 8 caracteres
+        - Debe seleccionarse un rol válido
+    
+    Retorna:
+        GET: Renderiza 'users/index.html' con usuarios paginados (25 por página)
+        POST exitoso: Redirección a la misma página con mensaje de éxito
+        POST con errores: Renderiza template con mensajes de error y código 400
+        
+    Excepciones:
+        405: Método HTTP no permitido
+        
+    Decoradores:
+        @login_required: Requiere autenticación de usuario
+        @require_role(['Administrador']): Solo acceso para administradores
+        
+    Ejemplo de uso:
+        GET /users/ -> Lista usuarios con paginación
+        POST /users/ -> Crea nuevo usuario con datos del formulario
+    """
     if request.method == "POST":
         first_name = request.form.get("first_name")
         last_name = request.form.get("last_name")
@@ -78,6 +121,51 @@ def index():
 @login_required
 @require_role(['Administrador'])
 def update(user_id):
+    """
+    Controlador para actualizar datos de un usuario existente.
+    
+    Permite visualizar y modificar la información de un usuario específico
+    identificado por su ID.
+    
+    Métodos HTTP soportados:
+        GET: Muestra el formulario de edición con datos actuales del usuario
+        POST: Procesa la actualización de datos del usuario
+    
+    Parámetros de ruta:
+        user_id (int): ID único del usuario a actualizar. Requerido.
+        
+    Parámetros de formulario (POST):
+        first_name (str): Nuevo nombre del usuario. Requerido.
+        last_name (str): Nuevo apellido del usuario. Requerido.
+        email (str): Nuevo email único del usuario. Requerido.
+        password (str, opcional): Nueva contraseña (mín. 8 caracteres).
+        active (str): Nuevo estado ('true'/'false'). 
+        role_id (str, opcional): ID del nuevo rol asignado.
+    
+    Validaciones:
+        - Campos obligatorios (nombre, apellido, email) no pueden estar vacíos
+        - Email debe ser único (excepto para el usuario actual)
+        - Si se proporciona contraseña, debe tener al menos 8 caracteres
+        - Usuario debe existir en el sistema
+    
+    Retorna:
+        GET: Renderiza 'users/update.html' con datos del usuario
+        POST exitoso: Redirección a users.index con mensaje de éxito
+        POST con errores: Renderiza template con mensajes de error
+        404: Si el usuario no existe
+        
+    Excepciones:
+        405: Método HTTP no permitido
+        404: Usuario no encontrado
+        
+    Decoradores:
+        @login_required: Requiere autenticación de usuario
+        @require_role(['Administrador']): Solo acceso para administradores
+        
+    Ejemplo de uso:
+        GET /users/update/5 -> Formulario para editar usuario ID 5
+        POST /users/update/5 -> Actualiza datos del usuario ID 5
+    """
     user = User.query.get_or_404(user_id)
     
     if request.method == "GET":
@@ -125,6 +213,50 @@ def update(user_id):
 @login_required
 @require_role(['Administrador'])
 def delete_user(user_id):
+    """
+    Controlador para eliminar (soft delete) un usuario del sistema.
+    
+    Realiza una eliminación lógica marcando el usuario como eliminado
+    en lugar de borrarlo físicamente de la base de datos.
+    
+    Métodos HTTP soportados:
+        GET, POST: Ambos procesan la eliminación del usuario
+    
+    Parámetros de ruta:
+        user_id (int): ID único del usuario a eliminar. Requerido.
+    
+    Restricciones de seguridad:
+        - No permite eliminar el propio usuario (auto-eliminación)
+        - No permite eliminar usuarios administradores del sistema
+        - Solo administradores pueden realizar eliminaciones
+    
+    Lógica de eliminación:
+        - Marca el campo 'deleted' como True (soft delete)
+        - Mantiene la integridad referencial del sistema
+        - Preserva datos para auditoría y relaciones
+    
+    Retorna:
+        Exitoso: Redirección a users.index con mensaje de éxito
+        Error de restricción: Redirección con mensaje de error específico
+        Error de sistema: Redirección con mensaje de error genérico
+        404: Si el usuario no existe
+        
+    Manejo de errores:
+        - Rollback automático en caso de excepción
+        - Logging de errores para debugging
+        - Mensajes de error user-friendly
+        
+    Decoradores:
+        @login_required: Requiere autenticación de usuario
+        @require_role(['Administrador']): Solo acceso para administradores
+        
+    Ejemplo de uso:
+        POST /users/delete/5 -> Elimina (soft delete) usuario ID 5
+        
+    Nota:
+        Esta es una eliminación lógica. El usuario sigue existiendo en la
+        base de datos pero está marcado como eliminado.
+    """
     try:
         user = User.query.get_or_404(user_id)
 
@@ -153,6 +285,84 @@ def delete_user(user_id):
 @login_required
 @require_role(['Administrador'])
 def search_users():
+    """
+    API endpoint para búsqueda y filtrado avanzado de usuarios.
+    
+    Proporciona funcionalidad de búsqueda, filtrado, ordenamiento y paginación
+    de usuarios del sistema. Retorna datos en formato JSON para consumo AJAX.
+    
+    Métodos HTTP soportados:
+        GET: Ejecuta búsqueda con parámetros de consulta especificados
+    
+    Parámetros de consulta (todos opcionales):
+        email (str): Búsqueda parcial por email (case-insensitive)
+        status (str): Filtro por estado ('active', 'inactive')
+        role (str): Filtro por ID de rol específico
+        sort_by (str): Campo de ordenamiento ('id'). Default: 'id'
+        sort_order (str): Dirección de orden ('asc', 'desc'). Default: 'desc'
+        page (int): Número de página para paginación. Default: 1
+    
+    Funcionalidades:
+        - Búsqueda por coincidencia parcial en email
+        - Filtrado por estado de activación
+        - Filtrado por rol asignado
+        - Ordenamiento configurable por ID
+        - Paginación con 25 usuarios por página
+        - Carga optimizada de relaciones (joinedload)
+        - Filtro automático de usuarios eliminados para no-admins
+    
+    Formato de respuesta JSON:
+        {
+            "success": bool,
+            "users": [
+                {
+                    "id": int,
+                    "first_name": str,
+                    "last_name": str,
+                    "email": str,
+                    "active": bool,
+                    "sysAdmin": bool,
+                    "deleted": bool,
+                    "created_at": str (ISO format),
+                    "role": {"id": int, "name": str} | null
+                }
+            ],
+            "pagination": {
+                "page": int,
+                "pages": int,
+                "per_page": int,
+                "total": int,
+                "has_next": bool,
+                "has_prev": bool,
+                "next_num": int | null,
+                "prev_num": int | null
+            },
+            "sort_by": str,
+            "sort_order": str,
+            "filters": {
+                "email": str,
+                "status": str,
+                "role": str
+            }
+        }
+    
+    Retorna:
+        200: JSON con resultados de búsqueda y metadatos de paginación
+        500: JSON con mensaje de error en caso de excepción
+        
+    Optimizaciones:
+        - Uso de joinedload para evitar consultas N+1
+        - Paginación para limitar carga de datos
+        - Filtros aplicados a nivel de base de datos
+        
+    Decoradores:
+        @login_required: Requiere autenticación de usuario
+        @require_role(['Administrador']): Solo acceso para administradores
+        
+    Ejemplo de uso:
+        GET /users/search/?email=admin&status=active&page=2
+        -> Busca usuarios con email que contenga 'admin', activos, página 2
+    """
     try:
         email = request.args.get('email', '').strip()
         status = request.args.get('status', '').strip()
