@@ -11,6 +11,10 @@ from src.web.handlers.auth import login_required, require_role
 from src.web.utils.export import export_sites_to_csv, get_csv_filename
 from datetime import date
 import json
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 sites_blueprint = Blueprint("sites", __name__, url_prefix="/sites")
 
@@ -233,13 +237,20 @@ def create():
         # Obtener tags como string separado por comas
         tags_str = request.form.get("tags", "")
         tag_ids = [tag_id.strip() for tag_id in tags_str.split(",") if tag_id.strip()] if tags_str else []
+        
+        current_user_id = session.get("user_id")
+        
+        # LOG: Inicio de creación
+        logger.info(f"Usuario {current_user_id} intentando crear sitio: '{site_name}' en {city}, {province}")
 
         # Validación básica
         if not site_name or not short_desc or not full_desc or not city or not province or not operning_year:
+            logger.warning(f"Intento de crear sitio con campos faltantes: usuario={current_user_id}, sitio='{site_name}'")
             return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Faltan campos obligatorios")
         
         # Validación de coordenadas
         if not latitude or not longitude:
+            logger.warning(f"Intento de crear sitio sin coordenadas: usuario={current_user_id}, sitio='{site_name}'")
             return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Debe seleccionar una ubicación en el mapa")
         
         # Validar que las coordenadas sean números válidos
@@ -247,8 +258,10 @@ def create():
             lat_float = float(latitude)
             lon_float = float(longitude)
             if not (-90 <= lat_float <= 90 and -180 <= lon_float <= 180):
+                logger.warning(f"Coordenadas inválidas para sitio: usuario={current_user_id}, sitio='{site_name}', lat={latitude}, lon={longitude}")
                 return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Las coordenadas seleccionadas no son válidas")
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Error convirtiendo coordenadas: usuario={current_user_id}, sitio='{site_name}', lat={latitude}, lon={longitude}, error={e}")
             return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Las coordenadas seleccionadas no son válidas")
 
         location = create_point_from_coords(latitude, longitude)
@@ -275,6 +288,10 @@ def create():
             description= f"Se creó un nuevo sitio {new_site.site_name}"
         )
         db.session.commit()
+        
+        # LOG: Éxito
+        logger.info(f"Sitio creado exitosamente: ID={new_site.id}, nombre='{new_site.site_name}', ciudad='{city}', provincia='{province}', usuario={current_user_id}")
+        
         # Asigna los tags usando la relación correcta
         if tag_ids:
             tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
@@ -283,6 +300,8 @@ def create():
                 association = HistoricSiteTag(site_id=new_site.id, tag_id=tag.id)
                 db.session.add(association)
             db.session.commit()
+            logger.info(f"Tags asignados al sitio {new_site.id}: {[tag.name for tag in tags]}")
+        
         return redirect(url_for("sites.index"))
     tags = Tag.query.order_by(Tag.name.asc()).all()
     return render_template("sites/create.html", tags=tags)
@@ -468,6 +487,11 @@ def delete(site_id):
         Solo usuarios con rol 'Administrador' pueden eliminar sitios.
     """
     site = Site.query.get_or_404(site_id)
+    current_user_id = session.get("user_id")
+    
+    # LOG: Inicio de eliminación
+    logger.info(f"Usuario {current_user_id} intentando eliminar sitio ID={site_id}: '{site.site_name}'")
+    
     if site:
         site.deleted = True
         
@@ -480,6 +504,10 @@ def delete(site_id):
         )
         
         db.session.commit()
+        
+        # LOG: Éxito
+        logger.info(f"Sitio eliminado exitosamente: ID={site_id}, nombre='{site.site_name}', ciudad='{site.city}', provincia='{site.province}', usuario={current_user_id}")
+        
         flash("Sitio eliminado correctamente.", "success")
     
     return redirect(url_for("sites.index"))

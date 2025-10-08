@@ -1,8 +1,11 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from core.models.Tag import Tag
 from core.database import db
 from sqlalchemy import func
 from src.web.handlers.auth import login_required, require_role
+import logging
+
+logger = logging.getLogger(__name__)
 
 tags_blueprint = Blueprint("tags", __name__, url_prefix="/tags")
 
@@ -194,17 +197,27 @@ def create():
     """
     if request.method == "POST":
         name = request.form.get("name", "").strip()
+        current_user_id = session.get("user_id")
+        
+        # LOG: Inicio de creación
+        logger.info(f"Usuario {current_user_id} intentando crear tag: '{name}'")
         
         # Validar y crear tag usando función auxiliar
         tag, error_msg = validate_and_create_tag(name)
         
         if error_msg:
+            # LOG: Error de validación
+            logger.warning(f"Error validando tag: {error_msg}")
             flash(error_msg, "danger")
             return render_template("tags/create.html")
         
         # Guardar en base de datos
         db.session.add(tag)
         db.session.commit()
+        
+        # LOG: Éxito
+        logger.info(f"Tag creado exitosamente: ID={tag.id}, nombre='{tag.name}', slug='{tag.slug}'")
+        
         flash("Tag creado correctamente.", "success")
         return redirect(url_for("tags.index"))
     
@@ -231,19 +244,29 @@ def edit(tag_id):
         404: Si el tag no existe
     """
     tag = Tag.query.get_or_404(tag_id)
+    current_user_id = session.get("user_id")
     
     if request.method == "POST":
         name = request.form.get("name", "").strip()
+        
+        # LOG: Inicio de edición
+        logger.info(f"Usuario {current_user_id} editando tag ID={tag_id}: '{tag.name}' -> '{name}'")
         
         # Validar y actualizar tag usando función auxiliar
         success, error_msg = validate_and_update_tag(tag, name)
         
         if not success:
+            # LOG: Error de validación
+            logger.warning(f"Error validando tag en edición: {error_msg}")
             flash(error_msg, "danger")
             return render_template("tags/edit.html", tag=tag)
         
         # Guardar cambios
         db.session.commit()
+        
+        # LOG: Éxito
+        logger.info(f"Tag editado exitosamente: ID={tag_id}, nuevo_nombre='{tag.name}', nuevo_slug='{tag.slug}'")
+        
         flash("Tag actualizado correctamente.", "success")
         return redirect(url_for("tags.index"))
     
@@ -271,9 +294,20 @@ def delete(tag_id):
         No se puede eliminar un tag que esté asociado a sitios históricos.
     """
     tag = Tag.query.get_or_404(tag_id)
+    current_user_id = session.get("user_id")
+    
+    # LOG: Inicio de eliminación
+    logger.info(f"Usuario {current_user_id} intentando eliminar tag ID={tag_id}: '{tag.name}'")
+    
     if tag.site_associations.count() > 0:  
+        # LOG: Error por dependencias
+        logger.warning(f"No se puede eliminar tag ID={tag_id} porque tiene {tag.site_associations.count()} sitios asociados")
         flash("No se puede eliminar el tag porque está asignado a uno o más sitios.", "danger")
         return redirect(url_for("tags.index"))
+    
+    # LOG: Eliminación exitosa
+    logger.info(f"Tag eliminado exitosamente: ID={tag_id}, nombre='{tag.name}', slug='{tag.slug}'")
+    
     db.session.delete(tag)
     db.session.commit()
     flash("Tag eliminado correctamente.", "success")
