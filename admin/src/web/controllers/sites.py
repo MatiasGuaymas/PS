@@ -417,8 +417,10 @@ def edit(site_id):
         # B. Registro de CAMBIO DE TAGS
         if tag_change:
             new_tag_ids = set(new_tag_ids)
-            added_tags = [str(id) for id in new_tag_ids - original_tag_ids]
-            removed_tags = [str(id) for id in original_tag_ids - new_tag_ids]
+            all_tags = Tag.query.all()
+            tags_map = {tag.id: tag.name for tag in all_tags}
+            added_tags = [str(tags_map[id]) for id in new_tag_ids - original_tag_ids]
+            removed_tags = [str(tags_map[id]) for id in original_tag_ids - new_tag_ids]
             
             desc = f"Tags modificados. Añadidos IDs: {', '.join(added_tags)}. Eliminados IDs: {', '.join(removed_tags)}."
             SiteService._register_audit_log(

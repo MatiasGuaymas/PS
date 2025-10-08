@@ -11,10 +11,10 @@ class Audit(db.Model):
     updated_at = Column(DateTime(timezone=True), server_default=func.now())
     action_type=Column(String(50), nullable=False)
 
-    description = Column(String(80), nullable=False)
+    description = Column(Text, nullable=False)
 
     # Detalles especificos de la auditoría
-    details = Column(String(2505), nullable=True)
+    details = Column(Text, nullable=True)
 
     # RELACIÓN 1: Una Auditoría es realizada por un único Usuario.
     # CLAVE FORÁNEA: Columna que referencia la tabla 'users'.
