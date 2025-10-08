@@ -1,6 +1,5 @@
 from functools import wraps
 from flask import session, redirect, url_for, flash, abort
-from src.core.services.flag_service import FlagService
 from src.core.services.role_service import RoleService;
 
 def is_authenticated(session):

@@ -1,5 +1,4 @@
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
-
 from core.services.flag_service import FlagService
 from core.services.user_service import UserService
 from web.handlers.auth import login_required,system_admin_required
@@ -11,8 +10,30 @@ feature_flag_blueprint = Blueprint("feature-flags", __name__, url_prefix="/featu
 @login_required
 @system_admin_required
 def index():
+    """Muestra el estado todas las flags del sistema, muestra el email en lugar del id del usuario para una mejor UX"""
     flags = FlagService.get_all_flags()
-    return render_template("flags/index.html", flags=flags)
+    users = UserService.get_all_sysAdmin()
+    user_email_map = {user.id: user.email for user in users}
+    flags_data = []
+    for flag in flags:
+        user_email = user_email_map.get(flag.user_id) if flag.user_id else None
+    
+        flag_info = flag.__dict__.copy() 
+        
+        flag_info = {
+            'id': flag.id,
+            'name': flag.name,
+            'description': flag.description,
+            'is_enabled': flag.is_enabled,
+            'is_maintenance': flag.is_maintenance,
+            'message': flag.message,
+            'last_edit': flag.last_edit,
+            'user_email': user_email
+        }
+        
+        flags_data.append(flag_info)
+    
+    return render_template("flags/index.html", flags=flags_data)
 
 @feature_flag_blueprint.post("/<int:flag_id>/toggle")
 @login_required

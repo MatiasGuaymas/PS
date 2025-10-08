@@ -3,29 +3,11 @@ from flask import session
 from core.models.User import User
 from core.database import db
 from sqlalchemy.orm import joinedload
-from sqlalchemy import text
-from core.models.Role import Role
-from src.web.handlers.auth import is_authenticated
-from src.web.handlers.auth import login_required, require_role
-import bcrypt
-import bcrypt
+from src.web.handlers.auth import login_required, require_role, system_admin_required
 from core.services.user_service import UserService 
 
 
 user_blueprint = Blueprint("users", __name__, url_prefix="/users")
-
-
-def hash_password(password: str) -> bytes:
-    salt = bcrypt.gensalt()
-    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
-    return hashed
-
-
-def verify_password(password: str, hashed: bytes) -> bool:
-    try:
-        return bcrypt.checkpw(password.encode('utf-8'), hashed)
-    except Exception:
-        return False
 
 @user_blueprint.route("/", methods=["GET", "POST"])
 @login_required
@@ -66,7 +48,7 @@ def index():
         new_user = User(
             first_name=first_name,
             last_name=last_name,
-            password=hash_password(password),
+            password=UserService.hash_password(password),
             email=email,
             active=active,
             role_id=int(role),
@@ -125,7 +107,7 @@ def update(user_id):
         user.role_id = role_id if role_id else None
         
         if password and len(password) >= 8:
-            user.password = hash_password(password)
+            user.password = UserService.hash_password(password)
         elif password and len(password) < 8:
             flash("La contraseña debe tener al menos 8 caracteres", "error")
             return render_template("users/update.html", user=user)
@@ -155,15 +137,7 @@ def delete_user(user_id):
             return redirect(url_for('users.index'))
         
         
-        db.session.execute(text("""
-            DELETE FROM audits WHERE user_id = :user_id
-        """), {"user_id": user_id})
-        
-        db.session.execute(text("""
-            DELETE FROM flags WHERE user_id = :user_id
-        """), {"user_id": user_id})
-
-        db.session.delete(user)
+        user.deleted = True
         db.session.commit()
         
         flash(f"Usuario {user.first_name} {user.last_name} eliminado exitosamente", "success")
@@ -192,7 +166,8 @@ def search_users():
         page = request.args.get('page', 1, type=int)
         per_page = 25
 
-
+        if session.get("is_admin") == False:
+            query = query.filter(User.deleted == False)
 
         if email:
             query = query.filter(User.email.ilike(f'%{email}%'))
@@ -229,6 +204,7 @@ def search_users():
                 'email': user.email,
                 'active': user.active,
                 'sysAdmin': user.sysAdmin,
+                'deleted': user.deleted,
                 'created_at': user.created_at.isoformat() if user.created_at else None,
                 'role': {
                     'id': user.role.id,
@@ -303,3 +279,15 @@ def view_profile():
 
     except Exception as e:
         return f"Ocurrió un error al cargar tu perfil: {e}", 500
+    
+@user_blueprint.route("/restore/<int:user_id>", methods=["POST"])
+@login_required
+@system_admin_required
+def restore_user(user_id):
+    user = UserService.get_user_by_id(user_id)
+    if (user):
+        user.deleted = False
+        db.session.commit()
+    else:
+        flash("Usuario no encontrado", "warning")
+    return redirect(url_for('users.index'))

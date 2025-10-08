@@ -1,22 +1,20 @@
-from flask import Blueprint, render_template, request, redirect, url_for,session, flash,abort
+from flask import Blueprint, render_template, request, redirect, url_for,session, flash,abort,Response
 from core.models.Site import Site
 from core.models.Tag import Tag
+from core.models.Audit import Audit
 from core.database import db
 from shapely.geometry import Point
 from geoalchemy2.elements import WKTElement
-from src.web.handlers.auth import login_required
-from core.models.Audit import Audit
 from core.services.sites_service import SiteService
 from core.services.user_service import UserService
-from web.handlers.auth import login_required
-import json
-from flask import Response, request
+from src.web.handlers.auth import login_required, require_role
 from src.web.utils.export import export_sites_to_csv, get_csv_filename
 from datetime import date
-from src.web.handlers.auth import login_required, require_role
+import json
 import logging
 
 logger = logging.getLogger(__name__)
+
 
 sites_blueprint = Blueprint("sites", __name__, url_prefix="/sites")
 

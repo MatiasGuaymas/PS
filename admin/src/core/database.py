@@ -20,7 +20,7 @@ def configure_db(app):
 
 
 def reset_db(app):
-
+    "Elimina la db actual y crea todas las tablas"
     with app.app_context():
         db.drop_all()
         db.create_all()

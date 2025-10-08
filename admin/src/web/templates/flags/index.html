@@ -14,7 +14,7 @@
                     <th scope="col" class="text-center">Estado</th>
                     <th scope="col" class="text-center">Mensaje (si aplica)</th>
                     <th scope="col">Última modificación</th>
-                    <th scope="col">ID Usuario</th>
+                    <th scope="col">Usuario</th>
                     <th scope="col" class="text-center">Toggle</th>
                 </tr>
             </thead>
@@ -38,7 +38,7 @@
                         <small>{{ flag.last_edit.strftime("%d/%m/%y %H:%M") }}</small>
                     </td>
                     <td>
-                        <small>{{ flag.user_id or 'Sistema/Seeds' }}</small>
+                        <small>{{ flag.user_email or 'Sistema/Seeds' }}</small>
                     </td>
                     <td class="text-center">
                         <div class="form-check form-switch d-inline-block">
