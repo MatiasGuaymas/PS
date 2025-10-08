@@ -117,7 +117,7 @@
         <tr>
           <th>Usuario</th>
           <th>Acción</th>
-          <th>Fecha</th>
+          <th>Fecha y hora</th>
           <th>Descripción</th>
           <th>Detalles</th>
         </tr>
@@ -127,7 +127,7 @@
         <tr>
           <td>{{ user_id_to_email_map[item.user.id] }}</td>
           <td>{{ item.action_type }}</td>
-          <td>{{ item.updated_at.strftime('%d/%m/%Y')}}</td>
+          <td>{{ item.updated_at.strftime('%d/%m/%Y - %H:%M')}}</td>
           <td>{{ item.description }}</td>
           <td>
             {% if item.parsed_details %}
