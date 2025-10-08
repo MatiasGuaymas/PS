@@ -20,7 +20,7 @@
         </div>
       </div>
       <p><strong>Estado de conservación:</strong> {{ site.state.name }}</p>
-      <p><strong>Año de inauguración:</strong> {{ site.operning_year }}</p>
+      <p><strong>Año de inauguración:</strong> {{ site.opening_year }}</p>
       <p><strong>Categoría:</strong> {{ site.category.name }}</p>
       <p><strong>Etiquetas:</strong>
         {% if site.tag_associations %}
@@ -39,10 +39,7 @@
           <p><strong>Longitud:</strong> {{ site.longitude }}</p>
         </div>
       </div>
-      <!-- 
-      Dudo que esto se deba mostrar pero lo dejo comentado por las dudas
       <p><strong>¿Visible en el portal?:</strong> {{ 'Sí' if site.active else 'No' }}</p>
-      -->
       <p><strong>Fecha de registro: </strong>{{ site.registration.strftime('%d/%m/%Y')}}</p>
       <a href="{{ url_for('sites.edit', site_id=site_id) }}" class="btn btn-secondary">Editar</a>
     </div>
@@ -64,7 +61,7 @@
             <select name="user_id" id="user_id" class="form-select bg-dark text-white border-secondary">
               <option value="">-- Todos --</option>
               {% for user in all_users %}
-              <option value="{{ user.id  }}" {% if request.args.get('user.id')==user.id %}selected{% endif %}>{{
+              <option value="{{ user.id  }}" {% if request.args.get('user_id')==user.id %}selected{% endif %}>{{
                 user.email }}</option>
               {% endfor %}
             </select>
@@ -76,7 +73,7 @@
             <select name="action_type" id="action_type" class="form-select bg-dark text-white border-secondary">
               <option value="">-- Todos --</option>
               {% for action in all_actions_types %}
-              <option value="{{ action }}" {% if request.args.get('action')==action %}selected{% endif %}>
+              <option value="{{ action }}" {% if request.args.get('action_type')==action %}selected{% endif %}>
                 {{ action }}
               </option>
               {% endfor %}
@@ -120,7 +117,7 @@
         <tr>
           <th>Usuario</th>
           <th>Acción</th>
-          <th>Fecha</th>
+          <th>Fecha y hora</th>
           <th>Descripción</th>
           <th>Detalles</th>
         </tr>
@@ -130,7 +127,7 @@
         <tr>
           <td>{{ user_id_to_email_map[item.user.id] }}</td>
           <td>{{ item.action_type }}</td>
-          <td>{{ item.updated_at.strftime('%d/%m/%Y')}}</td>
+          <td>{{ item.updated_at.strftime('%d/%m/%Y - %H:%M')}}</td>
           <td>{{ item.description }}</td>
           <td>
             {% if item.parsed_details %}

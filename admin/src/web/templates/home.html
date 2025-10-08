@@ -4,13 +4,8 @@
 
 {% block content %}
 <div class="container text-center py-5">
-    <h1 class="display-4">Inicio</h1>
-    <div class="card mt-4">
-        <div class="card-body">
-            <p class="lead mb-0">
-                Bienvenido a la página de inicio de Puff-tóricos.
-            </p>
-        </div>
-    </div>
+    <h1 class="display-4 fw-bold text-white">Bienvenido a Puff-tóricos</h1>
+    <p class="text-white-50">Plataforma de gestión de Sitios Históricos.</p>
+    <img src="{{ url_for('static', filename='img/penguin-homepage.png') }}" style="max-width: 200px; margin-top: 40px;" />
 </div>
 {% endblock %}

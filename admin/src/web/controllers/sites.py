@@ -1,19 +1,20 @@
-from flask import Blueprint, render_template, request, redirect, url_for,session, flash,abort
+from flask import Blueprint, render_template, request, redirect, url_for,session, flash,abort,Response
 from core.models.Site import Site
 from core.models.Tag import Tag
+from core.models.Audit import Audit
 from core.database import db
 from shapely.geometry import Point
 from geoalchemy2.elements import WKTElement
-from src.web.handlers.auth import login_required
-from core.models.Audit import Audit
 from core.services.sites_service import SiteService
 from core.services.user_service import UserService
-from web.handlers.auth import login_required
-import json
-from flask import Response, request
+from src.web.handlers.auth import login_required, require_role
 from src.web.utils.export import export_sites_to_csv, get_csv_filename
 from datetime import date
-from src.web.handlers.auth import login_required, require_role
+import json
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 sites_blueprint = Blueprint("sites", __name__, url_prefix="/sites")
 
@@ -53,6 +54,23 @@ def get_coords_from_point(point):
 @login_required
 @require_role(['Administrador', 'Editor'])
 def index():
+    """
+    Maneja la página principal de sitios históricos.
+    
+    GET: Muestra la lista de sitios con filtros, ordenamiento y paginación.
+         Reutiliza la lógica de la función search() para evitar duplicación de código.
+    
+    POST: Crea un nuevo sitio histórico.
+          Valida los campos obligatorios y registra la acción en el log de auditoría.
+    
+    Returns:
+        GET: render_template con la lista de sitios filtrados
+        POST: redirect a la página principal tras crear el sitio
+        
+    Raises:
+        400: Si faltan campos obligatorios en el POST
+        405: Si se usa un método HTTP no permitido
+    """
     if request.method == "POST":
         site_name = request.form.get("site_name")
         short_desc = request.form.get("short_desc")
@@ -98,33 +116,8 @@ def index():
 
         return redirect(url_for("sites.index"))
     elif request.method == "GET":
-        order_by = request.args.get("order_by", "name")
-        sorted_by = request.args.get("sorted_by", "asc")
-        page = request.args.get("page", 1)
-
-        pagination = SiteService.get_sites_filtered(
-            order_by=order_by,
-            sorted_by=sorted_by,
-            paginate=True,
-            page=page,
-            per_page=25,
-        )
-        sites = pagination["items"]
-
-        filtros = request.args if request.args else {}
-
-        # Agregar esto:
-        provincias = [row[0] for row in db.session.query(Site.province).distinct().order_by(Site.province).all()]
-        all_tags = Tag.query.order_by(Tag.name.asc()).all()
-
-        return render_template("sites/index.html", sites=sites,
-                   pagination=pagination,
-                   order_by=order_by,
-                   sorted_by=sorted_by,
-                   filtros=filtros,
-                   provincias=provincias,
-                   tags=all_tags,
-                   hoy=date.today().isoformat())
+        # Reutilizar la lógica de search()
+        return search()
     else:
         return "Método no permitido", 405
 
@@ -213,6 +206,22 @@ def detail(site_id):
 @login_required
 @require_role(['Administrador', 'Editor'])
 def create():
+    """
+    Maneja la creación de nuevos sitios históricos.
+    
+    GET: Muestra el formulario de creación de sitios con todas las etiquetas disponibles.
+    
+    POST: Procesa el formulario de creación.
+          Valida campos obligatorios, coordenadas y crea el sitio con sus etiquetas asociadas.
+          Registra la acción en el log de auditoría.
+    
+    Returns:
+        GET: render_template con el formulario de creación
+        POST: redirect a la página principal tras crear exitosamente el sitio
+        
+    Raises:
+        render_template con error: Si hay errores de validación en el POST
+    """
     if request.method == "POST":
         site_name = request.form.get("site_name")
         short_desc = request.form.get("short_desc")
@@ -228,13 +237,20 @@ def create():
         # Obtener tags como string separado por comas
         tags_str = request.form.get("tags", "")
         tag_ids = [tag_id.strip() for tag_id in tags_str.split(",") if tag_id.strip()] if tags_str else []
+        
+        current_user_id = session.get("user_id")
+        
+        # LOG: Inicio de creación
+        logger.info(f"Usuario {current_user_id} intentando crear sitio: '{site_name}' en {city}, {province}")
 
         # Validación básica
         if not site_name or not short_desc or not full_desc or not city or not province or not operning_year:
+            logger.warning(f"Intento de crear sitio con campos faltantes: usuario={current_user_id}, sitio='{site_name}'")
             return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Faltan campos obligatorios")
         
         # Validación de coordenadas
         if not latitude or not longitude:
+            logger.warning(f"Intento de crear sitio sin coordenadas: usuario={current_user_id}, sitio='{site_name}'")
             return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Debe seleccionar una ubicación en el mapa")
         
         # Validar que las coordenadas sean números válidos
@@ -242,8 +258,10 @@ def create():
             lat_float = float(latitude)
             lon_float = float(longitude)
             if not (-90 <= lat_float <= 90 and -180 <= lon_float <= 180):
+                logger.warning(f"Coordenadas inválidas para sitio: usuario={current_user_id}, sitio='{site_name}', lat={latitude}, lon={longitude}")
                 return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Las coordenadas seleccionadas no son válidas")
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Error convirtiendo coordenadas: usuario={current_user_id}, sitio='{site_name}', lat={latitude}, lon={longitude}, error={e}")
             return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Las coordenadas seleccionadas no son válidas")
 
         location = create_point_from_coords(latitude, longitude)
@@ -270,6 +288,10 @@ def create():
             description= f"Se creó un nuevo sitio {new_site.site_name}"
         )
         db.session.commit()
+        
+        # LOG: Éxito
+        logger.info(f"Sitio creado exitosamente: ID={new_site.id}, nombre='{new_site.site_name}', ciudad='{city}', provincia='{province}', usuario={current_user_id}")
+        
         # Asigna los tags usando la relación correcta
         if tag_ids:
             tags = Tag.query.filter(Tag.id.in_(tag_ids)).all()
@@ -278,6 +300,8 @@ def create():
                 association = HistoricSiteTag(site_id=new_site.id, tag_id=tag.id)
                 db.session.add(association)
             db.session.commit()
+            logger.info(f"Tags asignados al sitio {new_site.id}: {[tag.name for tag in tags]}")
+        
         return redirect(url_for("sites.index"))
     tags = Tag.query.order_by(Tag.name.asc()).all()
     return render_template("sites/create.html", tags=tags)
@@ -286,6 +310,27 @@ def create():
 @login_required
 @require_role(['Administrador', 'Editor'])
 def edit(site_id):
+    """
+    Maneja la edición de sitios históricos existentes.
+    
+    GET: Muestra el formulario de edición con los datos del sitio.
+    
+    POST: Procesa los cambios del formulario.
+          Registra cambios específicos en el log de auditoría:
+          - Cambios de estado (STATE_CHANGE)
+          - Cambios de etiquetas (TAG_CHANGE) 
+          - Cambios generales de campos (UPDATE)
+    
+    Args:
+        site_id (int): ID del sitio histórico a editar
+    
+    Returns:
+        GET: render_template con el formulario de edición
+        POST: redirect al detalle del sitio tras actualizar exitosamente
+        
+    Raises:
+        404: Si el sitio no existe
+    """
     site = Site.query.get_or_404(site_id)
     current_user_id = session.get("user_id")
     if request.method == "POST":
@@ -372,8 +417,10 @@ def edit(site_id):
         # B. Registro de CAMBIO DE TAGS
         if tag_change:
             new_tag_ids = set(new_tag_ids)
-            added_tags = [str(id) for id in new_tag_ids - original_tag_ids]
-            removed_tags = [str(id) for id in original_tag_ids - new_tag_ids]
+            all_tags = Tag.query.all()
+            tags_map = {tag.id: tag.name for tag in all_tags}
+            added_tags = [str(tags_map[id]) for id in new_tag_ids - original_tag_ids]
+            removed_tags = [str(tags_map[id]) for id in original_tag_ids - new_tag_ids]
             
             desc = f"Tags modificados. Añadidos IDs: {', '.join(added_tags)}. Eliminados IDs: {', '.join(removed_tags)}."
             SiteService._register_audit_log(
@@ -423,33 +470,99 @@ def edit(site_id):
 @login_required
 @require_role(['Administrador'])
 def delete(site_id):
+    """
+    Elimina (soft delete) un sitio histórico.
+    
+    Marca el sitio como eliminado (deleted=True) en lugar de borrarlo físicamente.
+    Registra la acción de eliminación en el log de auditoría.
+    
+    Args:
+        site_id (int): ID del sitio histórico a eliminar
+    
+    Returns:
+        redirect: Redirección a la página principal tras eliminar el sitio
+        
+    Raises:
+        404: Si el sitio no existe
+    
+    Note:
+        Solo usuarios con rol 'Administrador' pueden eliminar sitios.
+    """
     site = Site.query.get_or_404(site_id)
-    if(site):
+    current_user_id = session.get("user_id")
+    
+    # LOG: Inicio de eliminación
+    logger.info(f"Usuario {current_user_id} intentando eliminar sitio ID={site_id}: '{site.site_name}'")
+    
+    if site:
         site.deleted = True
-        # Crear instancia Audit
+        
+        # Registrar el log de auditoría con parámetros correctos
         SiteService._register_audit_log(
+            site_id=site.id,
             user_id=session.get("user_id"),
-            site_id= site.id,
-            action_type='DELETED',
-            details= f"Se elimino un nuevo sitio {site.site_name}"
+            action_type='DELETE',
+            description=f"Se eliminó el sitio {site.site_name}"
         )
-    db.session.commit()
+        
+        db.session.commit()
+        
+        # LOG: Éxito
+        logger.info(f"Sitio eliminado exitosamente: ID={site_id}, nombre='{site.site_name}', ciudad='{site.city}', provincia='{site.province}', usuario={current_user_id}")
+        
+        flash("Sitio eliminado correctamente.", "success")
+    
     return redirect(url_for("sites.index"))
 
 @sites_blueprint.route("/search", methods=["GET"])
 @login_required
 @require_role(['Administrador', 'Editor'])
 def search():
-    # Filtros del querystring
+    """
+    Busca y filtra sitios históricos con parámetros avanzados.
+    
+    Procesa múltiples filtros de búsqueda desde query parameters:
+    - site_name: Búsqueda por nombre del sitio
+    - city: Filtro por ciudad
+    - province: Filtro por provincia
+    - tags: Filtro por etiquetas (múltiples valores)
+    - registration_from/registration_to: Rango de fechas de registro
+    - active: Filtro por estado activo/inactivo
+    - state_id: Filtro por estado de conservación
+    - order_by: Campo de ordenamiento
+    - sentido: Dirección del ordenamiento (asc/desc)
+    
+    Valida rangos de fechas y maneja errores de formato.
+    
+    Returns:
+        render_template: Página de resultados con sitios filtrados y paginados
+        
+    Query Parameters:
+        site_name (str): Nombre del sitio a buscar
+        city (str): Ciudad para filtrar
+        province (str): Provincia para filtrar
+        tags (list): Lista de IDs de etiquetas
+        registration_from (str): Fecha de inicio (YYYY-MM-DD)
+        registration_to (str): Fecha de fin (YYYY-MM-DD)
+        active (str): Estado activo ('true'/'false')
+        state_id (str): ID del estado de conservación
+        order_by (str): Campo de ordenamiento
+        sentido (str): Dirección del ordenamiento
+        page (int): Número de página
+    """
     tags_raw = request.args.getlist("tags")
     tags = [int(t) for t in tags_raw if str(t).isdigit()]
+    
+    registration_from = request.args.get("registration_from", "")
+    registration_to = request.args.get("registration_to", "")
+    
     filtros = {
         "site_name": request.args.get("site_name", ""),
         "city": request.args.get("city", ""),
         "province": request.args.get("province", ""),
         "tags": tags,
-        "registration_from": request.args.get("registration_from", ""),
-        "registration_to": request.args.get("registration_to", ""),
+        "registration_from": registration_from,
+        "registration_to": registration_to,
         "active": request.args.get("active", ""),
         "order_by": request.args.get("order_by", "site_name"),
         "sentido": request.args.get("sentido", "asc"),
@@ -461,22 +574,40 @@ def search():
     error_msg = None
     page = request.args.get("page", 1, type=int)
 
-    # Validación de fechas
-    if filtros["registration_from"] and filtros["registration_to"]:
+    if registration_from and registration_to:
         try:
             from datetime import datetime
-            date_from = datetime.strptime(filtros["registration_from"], "%Y-%m-%d")
-            date_to = datetime.strptime(filtros["registration_to"], "%Y-%m-%d")
+            date_from = datetime.strptime(registration_from, "%Y-%m-%d")
+            date_to = datetime.strptime(registration_to, "%Y-%m-%d")
             if date_from > date_to:
                 error_msg = "La fecha 'desde' no puede ser mayor que la fecha 'hasta'."
                 flash(error_msg, "error")
         except Exception:
             error_msg = "Formato de fecha inválido."
 
+    service_filters = {
+        "site_name": filtros["site_name"],
+        "city": filtros["city"],
+        "province": filtros["province"],
+        "tags": filtros["tags"],
+        "active": filtros["active"],
+    }
+
+    if registration_from:
+        service_filters["date_from"] = registration_from
+    if registration_to:
+        service_filters["date_to"] = registration_to
+    
+    if state_id_raw and state_id_raw.isdigit():
+        service_filters["state_id"] = int(state_id_raw)
+    
+    if state_id_raw and state_id_raw.isdigit():
+        service_filters["state_id"] = int(state_id_raw)
+
     pagination = None
     if not error_msg:
         pagination = SiteService.get_sites_filtered(
-            filters=filtros,
+            filters=service_filters,
             order_by=filtros["order_by"],
             sorted_by=filtros["sentido"],
             paginate=True,
@@ -484,6 +615,8 @@ def search():
             per_page=25,
         )
     sites = pagination["items"] if pagination else []
+
+    print(f"Encontrado {len(sites)} sitios con filtros: {filtros}")
 
     provincias = [row[0] for row in db.session.query(Site.province).distinct().order_by(Site.province).all()]
     all_tags = Tag.query.order_by(Tag.name.asc()).all()
@@ -503,29 +636,82 @@ def search():
 @login_required
 @require_role(['Administrador'])
 def export_csv():
+    """
+    Exporta sitios históricos filtrados a formato CSV.
+    
+    Aplica los mismos filtros que la función de búsqueda pero exporta
+    todos los resultados (sin paginación) a un archivo CSV descargable.
+    
+    Filtros soportados (desde form data):
+    - site_name: Nombre del sitio
+    - city: Ciudad
+    - province: Provincia
+    - tags: Etiquetas asociadas
+    - registration_from/registration_to: Rango de fechas
+    - active: Estado activo
+    - state_id: Estado de conservación
+    - order_by: Campo de ordenamiento
+    - sentido: Dirección del ordenamiento
+    
+    Returns:
+        Response: Archivo CSV con headers apropiados para descarga
+        
+    Raises:
+        400: Si no hay datos para exportar
+        
+    Note:
+        Solo usuarios con rol 'Administrador' pueden exportar datos.
+        El archivo se genera con timestamp en el nombre.
+    """
+
     tags_raw = request.form.getlist("tags")
-    tags = [int(t) for t in tags_raw if str(t).isdigit()]
+    tags = [int(t) for t in tags_raw if t and str(t).isdigit()]
+
+    registration_from = request.form.get("registration_from", "")
+    registration_to = request.form.get("registration_to", "")
+
     filtros = {
         "site_name": request.form.get("site_name", ""),
         "city": request.form.get("city", ""),
         "province": request.form.get("province", ""),
         "tags": tags,
-        "registration_from": request.form.get("registration_from", ""),
-        "registration_to": request.form.get("registration_to", ""),
+        "registration_from": registration_from,
+        "registration_to": registration_to,
         "active": request.form.get("active", ""),
+        "order_by": request.form.get("order_by", "site_name"),
+        "sentido": request.form.get("sentido", "asc"),
     }
+
+    print("Filtros recibidos en export_csv:", filtros)
+
     state_id_raw = request.form.get("state_id", "")
     if state_id_raw and state_id_raw.isdigit():
         filtros["state_id"] = int(state_id_raw)
-    order_by = request.form.get("order_by", "site_name")
-    sorted_by = request.form.get("sentido", "asc")
+
+    service_filters = {
+        "site_name": filtros["site_name"],
+        "city": filtros["city"],
+        "province": filtros["province"],
+        "tags": filtros["tags"],
+        "active": filtros["active"],
+    }
+    
+    if registration_from:
+        service_filters["date_from"] = registration_from
+    if registration_to:
+        service_filters["date_to"] = registration_to
+    
+    if state_id_raw and state_id_raw.isdigit():
+        service_filters["state_id"] = int(state_id_raw)
 
     sites = SiteService.get_sites_filtered(
-        filters=filtros,
-        order_by=order_by,
-        sorted_by=sorted_by,
+        filters=service_filters,
+        order_by=filtros["order_by"],
+        sorted_by=filtros["sentido"],
         paginate=False,
     )
+
+    print(f"Exportando {len(sites)} sitios con filtros: {filtros}")
 
     if not sites:
         return "No hay datos para exportar", 400

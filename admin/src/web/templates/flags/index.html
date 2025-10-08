@@ -3,61 +3,66 @@
 {% block title %}Panel de Feature Flags | Puff-tóricos{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <h1 class="text-center mb-4">Gestión de Feature Flags</h1>
-    <div class="table-responsive">
-        <table class="table table-dark table-striped table-hover align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th scope="col">Nombre</th>
-                    <th scope="col">Descripción</th>
-                    <th scope="col" class="text-center">Estado</th>
-                    <th scope="col" class="text-center">Mensaje (si aplica)</th>
-                    <th scope="col">Última modificación</th>
-                    <th scope="col">ID Usuario</th>
-                    <th scope="col" class="text-center">Toggle</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for flag in flags %}
-                {% set is_maint = flag.is_maintenance %}
-                <tr id="flag-row-{{ flag.id }}" class="{{ 'table-warning' if flag.is_enabled and is_maint else '' }}">
-                    <td><strong>{{ flag.name }}</strong></td>
-                    <td>{{ flag.description }}</td>
-                    <td class="text-center">
-                        {% if flag.is_enabled %}
-                            <span class="badge bg-success">ACTIVO</span>
-                        {% else %}
-                            <span class="badge bg-danger">INACTIVO</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <small>{{ flag.message or 'No hay un mensaje' }}</small>
-                    </td>
-                    <td>
-                        <small>{{ flag.last_edit.strftime("%d/%m/%y %H:%M") }}</small>
-                    </td>
-                    <td>
-                        <small>{{ flag.user_id or 'Sistema/Seeds' }}</small>
-                    </td>
-                    <td class="text-center">
-                        <div class="form-check form-switch d-inline-block">
-                            <input 
-                                class="form-check-input toggle-switch-input" 
-                                type="checkbox" 
-                                role="switch" 
-                                id="flagSwitch-{{ flag.id }}"
-                                data-flag-id="{{ flag.id }}"
-                                data-is-maintenance="{{ 'true' if is_maint else 'false' }}"
-                                {% if flag.is_enabled %}checked{% endif %}
-                            >
-                            <label class="form-check-label visually-hidden" for="flagSwitch-{{ flag.id }}">Toggle</label>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="container-xl">
+    <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden mx-auto">
+        <div class="p-4">
+            <h3 class="h3 fw-bolder mb-1 text-white">Gestión de Feature Flags</h3>
+            <p class="text-white-50">Administrá las flags del sistema y sus estados.</p>
+            <div class="table-responsive">
+                <table class="table table-dark table-striped table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col">Nombre</th>
+                            <th scope="col">Descripción</th>
+                            <th scope="col" class="text-center">Estado</th>
+                            <th scope="col" class="text-center">Mensaje (si aplica)</th>
+                            <th scope="col">Última modificación</th>
+                            <th scope="col">Usuario</th>
+                            <th scope="col" class="text-center">Toggle</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for flag in flags %}
+                        {% set is_maint = flag.is_maintenance %}
+                        <tr id="flag-row-{{ flag.id }}" class="{{ 'table-warning' if flag.is_enabled and is_maint else '' }}">
+                            <td class="text-white"><strong>{{ flag.name }}</strong></td>
+                            <td class="text-white">{{ flag.description }}</td>
+                            <td class="text-center">
+                                {% if flag.is_enabled %}
+                                    <span class="badge bg-success">ACTIVO</span>
+                                {% else %}
+                                    <span class="badge bg-danger">INACTIVO</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-white">
+                                <small>{{ flag.message or 'No hay un mensaje' }}</small>
+                            </td>
+                            <td class="text-white">
+                                <small>{{ flag.last_edit.strftime("%d/%m/%y %H:%M") }}</small>
+                            </td>
+                            <td class="text-white">
+                                <small>{{ flag.user_email or 'Sistema/Seeds' }}</small>
+                            </td>
+                            <td class="text-center">
+                                <div class="form-check form-switch d-inline-block">
+                                    <input 
+                                        class="form-check-input toggle-switch-input" 
+                                        type="checkbox" 
+                                        role="switch" 
+                                        id="flagSwitch-{{ flag.id }}"
+                                        data-flag-id="{{ flag.id }}"
+                                        data-is-maintenance="{{ 'true' if is_maint else 'false' }}"
+                                        {% if flag.is_enabled %}checked{% endif %}
+                                    >
+                                    <label class="form-check-label visually-hidden" for="flagSwitch-{{ flag.id }}">Toggle</label>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -73,14 +78,14 @@
                 <div class="modal-body">
                     <p class="text-danger">Debe ingresar un mensaje de mantenimiento para activar esta funcionalidad.</p>
                     <div class="mb-3">
-                        <label for="maintenance-message" class="form-label">Mensaje de Mantenimiento:</label>
-                        <textarea class="form-control" id="maintenance-message" name="message" rows="3" maxlength="100" required></textarea>
+                        <label for="maintenance-message" class="form-label fw-semibold">Mensaje de Mantenimiento:</label>
+                        <textarea class="form-control rounded-3" id="maintenance-message" name="message" rows="3" maxlength="100" required></textarea>
                         <small class="text-muted">Máximo 100 caracteres (según tu modelo).</small>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-warning">Activar y Guardar Mensaje</button>
+                    <button type="button" class="btn btn-secondary rounded-3 px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning rounded-3 px-4">Activar y Guardar Mensaje</button>
                 </div>
             </form>
         </div>

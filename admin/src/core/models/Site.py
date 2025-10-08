@@ -6,7 +6,7 @@ from geoalchemy2 import Geometry
 from geoalchemy2.shape import to_shape
 
 class Site(db.Model):
-    __tablename__ = 'site'
+    __tablename__ = 'sites'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     site_name = Column(String(50), unique=True, nullable=False)

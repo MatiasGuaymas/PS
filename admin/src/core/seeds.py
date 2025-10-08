@@ -19,7 +19,7 @@ import bcrypt
 
 
 def seed_data():
-    print("🌱 Cargando seeds en db")
+    print(" Cargando seeds en db")
     # 1) Roles
     r_admin = Role(name='Administrador')
     r_user = Role(name='Usuario')
@@ -115,12 +115,8 @@ def seed_data():
     # 4) Categories
     c_arq = Category(name='Arquitectura')
     c_dino = Category(name='Sitio Arqueológico')
-    c_monument = Category(name='Monumento')
-    c_religion = Category(name='Religión')
-    c_fuerte = Category(name='Fuerte/Muralla')
-    c_cult = Category(name='Cultural')
-    c_nat = Category(name='Natural/Arqueológico')
-    db.session.add_all([c_arq, c_dino, c_monument,c_cult,c_nat,c_fuerte,c_religion])
+    c_infra = Category(name='Infraestructura')
+    db.session.add_all([c_arq, c_dino, c_infra])
     db.session.flush()
 
     # 5) States
@@ -131,7 +127,7 @@ def seed_data():
     db.session.flush()
 
     # 6) Sites (dependen de category_id y state_id)
-    CATEGORIES = {'ARQ': c_arq.id, 'DINO': c_dino.id, 'MONU': c_monument.id, 'RELI': c_religion.id, 'FORT': c_fuerte.id, 'CULT': c_cult.id, 'NAT': c_nat.id}
+    CATEGORIES = {'ARQ': c_arq.id, 'DINO': c_dino.id, 'INFRA': c_infra.id}
     STATES = {'Bueno': s_bueno.id, 'Regular': s_regular.id, 'Malo': s_malo.id}
     sites=_sitios(CATEGORIES,STATES)
     db.session.flush()
@@ -229,6 +225,7 @@ def seed_data():
     print('Datos seed cargados exitosamente')
 
 def _tags():
+    """Genera multiples tags para verificar la paginación"""
     tags = [
         Tag(name='Historia', slug='historia'),
         Tag(name='Arte', slug='arte'),
@@ -310,6 +307,7 @@ def _create_site_tags_random_associations(sites, tags):
     db.session.add_all(associations)
 
 def _sitios(CATEGORIES,STATES):
+    """Genera multiples sitios para poder paginarlos y filtrarlos con diferentes estados"""
     sites = []
     STATE_BUENO = STATES['Bueno']
     STATE_REGULAR = STATES['Regular']
@@ -333,21 +331,21 @@ def _sitios(CATEGORIES,STATES):
         site_name='Museo Histórico Nacional', short_desc='Antigua Quinta de Gregorio Lezama',
         full_desc='Ubicado en la antigua Quinta de Gregorio Lezama, este museo alberga colecciones históricas del país.',
         city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.370500 -34.620000)', srid=4326),
-        operning_year=1891, category_id=CATEGORIES['CULT'], 
+        operning_year=1891, category_id=CATEGORIES['DINO'], 
         state_id=STATE_REGULAR
     ))
     sites.append(Site(
         site_name='Puente de la Mujer', short_desc='Puente peatonal móvil en Puerto Madero',
         full_desc='Diseñado por Santiago Calatrava, representa una pareja bailando tango. Es un ícono moderno en un barrio histórico-portuario.',
         city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.363717 -34.603500)', srid=4326),
-        operning_year=2001, category_id=CATEGORIES['MONU'], 
+        operning_year=2001, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_BUENO # Moderno
     ))
     sites.append(Site(
         site_name='Monumento a los Dos Congresos', short_desc='Memorial en Plaza Congreso',
         full_desc='Imponente monumento frente al Congreso Nacional, simbolizando la Asamblea de 1813 y el Congreso de 1816.',
         city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.394100 -34.609400)', srid=4326),
-        operning_year=1914, category_id=CATEGORIES['MONU'], 
+        operning_year=1914, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_REGULAR
     ))
 
@@ -363,14 +361,14 @@ def _sitios(CATEGORIES,STATES):
         site_name='Catedral Basílica de Salta', short_desc='Templo principal de Salta, estilo neoclásico',
         full_desc='Templo de gran valor arquitectónico y religioso, que alberga las imágenes del Señor y la Virgen del Milagro.',
         city='Salta', province='Salta', location=WKTElement('POINT(-65.412400 -24.789100)', srid=4326),
-        operning_year=1882, category_id=CATEGORIES['RELI'], 
+        operning_year=1882, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_REGULAR
     ))
     sites.append(Site(
         site_name='Pucará de Tilcara', short_desc='Fortaleza preincaica',
         full_desc='Ruinas de una antigua fortificación y asentamiento de la Quebrada de Humahuaca, con una antigüedad de más de 900 años.',
         city='Tilcara', province='Jujuy', location=WKTElement('POINT(-65.352000 -23.578600)', srid=4326),
-        operning_year=1100, category_id=CATEGORIES['FORT'], 
+        operning_year=1100, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_MALO # Ruinas/Muy antiguo
     ))
 
@@ -386,14 +384,14 @@ def _sitios(CATEGORIES,STATES):
         site_name='Monumento a la Bandera', short_desc='Homenaje a la Bandera Nacional',
         full_desc='Complejo arquitectónico monumental construido en el lugar donde Manuel Belgrano izó por primera vez la Bandera Argentina en 1812.',
         city='Rosario', province='Santa Fe', location=WKTElement('POINT(-60.632900 -32.946300)', srid=4326),
-        operning_year=1957, category_id=CATEGORIES['MONU'], 
+        operning_year=1957, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_BUENO
     ))
     sites.append(Site(
         site_name='Convento de San Lorenzo', short_desc='Escenario de la Batalla de San Lorenzo',
         full_desc='Templo y convento franciscano, famoso por haber sido el sitio de la única batalla de San Martín en suelo argentino en 1813.',
         city='San Lorenzo', province='Santa Fe', location=WKTElement('POINT(-60.741000 -32.748300)', srid=4326),
-        operning_year=1796, category_id=CATEGORIES['RELI'], 
+        operning_year=1796, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_REGULAR
     ))
     sites.append(Site(
@@ -409,7 +407,7 @@ def _sitios(CATEGORIES,STATES):
         site_name='Misión Salesiana La Candelaria', short_desc='Antigua misión en Tierra del Fuego',
         full_desc='Fundada a fines del siglo XIX, fue la primera misión salesiana en la provincia, clave en la historia fueguina.',
         city='Río Grande', province='Tierra del Fuego', location=WKTElement('POINT(-67.750000 -53.799700)', srid=4326),
-        operning_year=1893, category_id=CATEGORIES['RELI'], 
+        operning_year=1893, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_REGULAR
     ))
     sites.append(Site(
@@ -423,7 +421,7 @@ def _sitios(CATEGORIES,STATES):
         site_name='Monumento al Ejército de los Andes', short_desc='Homenaje a la gesta sanmartiniana',
         full_desc='Ubicado en el Cerro de la Gloria, conmemora el cruce de los Andes y la Campaña Libertadora del General San Martín.',
         city='Mendoza', province='Mendoza', location=WKTElement('POINT(-68.868700 -32.871500)', srid=4326),
-        operning_year=1914, category_id=CATEGORIES['MONU'], 
+        operning_year=1914, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_BUENO
     ))
     sites.append(Site(
@@ -446,7 +444,7 @@ def _sitios(CATEGORIES,STATES):
         site_name='Fuerte Independencia', short_desc='Fuerte que dio origen a la ciudad de Tandil',
         full_desc='Fundado por Martín Rodríguez para establecer la frontera sur. Sus restos marcan el origen de la ciudad de Tandil en la provincia de Buenos Aires.',
         city='Tandil', province='Buenos Aires', location=WKTElement('POINT(-59.136400 -37.323600)', srid=4326),
-        operning_year=1823, category_id=CATEGORIES['FORT'], 
+        operning_year=1823, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_REGULAR
     ))
 
@@ -455,14 +453,14 @@ def _sitios(CATEGORIES,STATES):
         site_name='Misión Jesuítica San Ignacio Miní', short_desc='Ruinas jesuitas en Misiones',
         full_desc='Una de las misiones jesuíticas mejor conservadas del siglo XVII, declarada Patrimonio de la Humanidad por la UNESCO.',
         city='San Ignacio', province='Misiones', location=WKTElement('POINT(-55.534200 -27.251400)', srid=4326),
-        operning_year=1696, category_id=CATEGORIES['RELI'], 
+        operning_year=1696, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_MALO # Ruinas
     ))
     sites.append(Site(
         site_name='Basílica de Nuestra Señora de Luján', short_desc='Santuario Nacional de la Virgen de Luján',
         full_desc='Impresionante templo de estilo neogótico, centro de peregrinación y uno de los sitios religiosos más importantes de Argentina.',
         city='Luján', province='Buenos Aires', location=WKTElement('POINT(-59.108400 -30.457800)', srid=4326),
-        operning_year=1930, category_id=CATEGORIES['RELI'], 
+        operning_year=1930, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_BUENO
     ))
     sites.append(Site(
@@ -476,14 +474,14 @@ def _sitios(CATEGORIES,STATES):
         site_name='Monasterio de San Francisco', short_desc='Iglesia y convento histórico en Salta',
         full_desc='Templo de fachada barroca y neoclásica, famoso por su campanario y su relevancia durante las guerras de independencia.',
         city='Salta', province='Salta', location=WKTElement('POINT(-65.412100 -24.791500)', srid=4326),
-        operning_year=1778, category_id=CATEGORIES['RELI'], 
+        operning_year=1778, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_REGULAR
     ))
     sites.append(Site(
         site_name='Teatro Argentino de La Plata', short_desc='Sede de la ópera y el ballet bonaerense',
         full_desc='Uno de los teatros líricos más importantes de Argentina, construido en la ciudad capital de la provincia de Buenos Aires.',
         city='La Plata', province='Buenos Aires', location=WKTElement('POINT(-57.954700 -34.921300)', srid=4326),
-        operning_year=1977, category_id=CATEGORIES['CULT'], 
+        operning_year=1977, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_BUENO
     ))
     sites.append(Site(
@@ -511,35 +509,35 @@ def _sitios(CATEGORIES,STATES):
         site_name='Cueva de las Manos', short_desc='Sitio arqueológico con arte rupestre',
         full_desc='Patrimonio de la Humanidad por sus pinturas rupestres de hace hasta 9.300 años, principalmente siluetas de manos.',
         city='Perito Moreno', province='Santa Cruz', location=WKTElement('POINT(-70.662200 -47.114700)', srid=4326),
-        operning_year=7378, category_id=CATEGORIES['NAT'], 
+        operning_year=7378, category_id=CATEGORIES['DINO'], 
         state_id=STATE_MALO # Sitio natural/arqueológico (fragilidad)
     ))
     sites.append(Site(
         site_name='Iglesia y Museo de San Ignacio', short_desc='Templo histórico en la Capital',
         full_desc='La iglesia más antigua que se mantiene en pie en la Ciudad de Buenos Aires. Parte de la Manzana de las Luces.',
         city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.374500 -34.609400)', srid=4326),
-        operning_year=1734, category_id=CATEGORIES['RELI'], 
+        operning_year=1734, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_REGULAR
     ))
     sites.append(Site(
         site_name='Museo Histórico Cornelio de Saavedra', short_desc='Museo en la antigua Chacra de Saavedra',
         full_desc='Ubicado en el barrio de Saavedra, conserva objetos y documentos de la historia de la ciudad y la gesta de Mayo.',
         city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.487800 -34.560400)', srid=4326),
-        operning_year=1921, category_id=CATEGORIES['CULT'], 
+        operning_year=1921, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_BUENO
     ))
     sites.append(Site(
         site_name='Monumento al Gaucho', short_desc='Homenaje a la figura del gaucho',
         full_desc='Ubicado en Salta, rinde homenaje a los gauchos que participaron en las luchas por la independencia.',
         city='Salta', province='Salta', location=WKTElement('POINT(-65.405500 -24.793600)', srid=4326),
-        operning_year=1968, category_id=CATEGORIES['MONU'], 
+        operning_year=1968, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_REGULAR
     ))
     sites.append(Site(
         site_name='Museo del Bicentenario', short_desc='Museo de historia argentina',
         full_desc='Ubicado en el subsuelo de la Casa Rosada, conserva los restos de la Aduana de Taylor y el Fuerte de Buenos Aires.',
         city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.371200 -34.607500)', srid=4326),
-        operning_year=2011, category_id=CATEGORIES['CULT'], 
+        operning_year=2011, category_id=CATEGORIES['INFRA'], 
         state_id=STATE_BUENO
     ))
 

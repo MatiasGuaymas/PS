@@ -129,7 +129,8 @@
     <label for="tags" class="form-label">Etiquetas</label>
     <div id="tags-container" class="tags-multiselect">
       {% for tag in tags %}
-      <div class="tag-option" data-value="{{ tag.id }}" {% if selected_tag_ids is defined and tag.id in selected_tag_ids %}class="selected"{% endif %}>
+      <div class="tag-option {% if selected_tag_ids is defined and tag.id in selected_tag_ids %}selected{% endif %}"
+        data-value="{{ tag.id }}">
         {{ tag.name }}
       </div>
       {% endfor %}

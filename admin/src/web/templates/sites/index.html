@@ -51,32 +51,32 @@ tags=request.args.getlist('tags')
                         }} ({{ 'Ascendente' if sentido_actual == 'asc' else 'Descendente' }})</span>
                     |
                     <span class="me-1">Nombre</span>
-                    <a href="{{ url_con_filtros('site_name', 'asc', sites.page) }}" class="text-decoration-none me-1"
-                        title="Ordenar ascendente">
+                    <a href="{{ url_con_filtros('site_name', 'asc', pagination.current_page if pagination else 1) }}"
+                        class="text-decoration-none me-1" title="Ordenar ascendente">
                         <i class="bi bi-arrow-up"></i>
                     </a>
-                    <a href="{{ url_con_filtros('site_name', 'desc', sites.page) }}" class="text-decoration-none"
-                        title="Ordenar descendente">
+                    <a href="{{ url_con_filtros('site_name', 'desc', pagination.current_page if pagination else 1) }}"
+                        class="text-decoration-none" title="Ordenar descendente">
                         <i class="bi bi-arrow-down"></i>
                     </a>
                     <span class="mx-2">|</span>
                     <span class="me-1">Ciudad</span>
-                    <a href="{{ url_con_filtros('city', 'asc', sites.page) }}" class="text-decoration-none"
-                        title="Ordenar ascendente">
+                    <a href="{{ url_con_filtros('city', 'asc', pagination.current_page if pagination else 1) }}"
+                        class="text-decoration-none" title="Ordenar ascendente">
                         <i class="bi bi-arrow-up"></i>
                     </a>
-                    <a href="{{ url_con_filtros('city', 'desc', sites.page) }}" class="text-decoration-none me-1"
-                        title="Ordenar descendente">
+                    <a href="{{ url_con_filtros('city', 'desc', pagination.current_page if pagination else 1) }}"
+                        class="text-decoration-none me-1" title="Ordenar descendente">
                         <i class="bi bi-arrow-down"></i>
                     </a>
                     <span class="mx-2">|</span>
                     <span class="me-1">Fecha</span>
-                    <a href="{{ url_con_filtros('registration', 'asc', sites.page) }}" class="text-decoration-none me-1"
-                        title="Ordenar ascendente">
+                    <a href="{{ url_con_filtros('registration', 'asc', pagination.current_page if pagination else 1) }}"
+                        class="text-decoration-none me-1" title="Ordenar ascendente">
                         <i class="bi bi-arrow-up"></i>
                     </a>
-                    <a href="{{ url_con_filtros('registration', 'desc', sites.page) }}" class="text-decoration-none"
-                        title="Ordenar descendente">
+                    <a href="{{ url_con_filtros('registration', 'desc', pagination.current_page if pagination else 1) }}"
+                        class="text-decoration-none" title="Ordenar descendente">
                         <i class="bi bi-arrow-down"></i>
                     </a>
                 </div>
@@ -118,8 +118,8 @@ tags=request.args.getlist('tags')
                         <label for="tags" class="form-label">Tags</label>
                         <select id="tags" name="tags" class="form-select" multiple>
                             {% for tag in tags %}
-                            <option value="{{ tag.id }}" {% if tag.id|string in request.args.getlist('tags')
-                                %}selected{% endif %}>
+                            <option value="{{ tag.id }}" {% if tag.id|string in request.args.getlist('tags')%}selected{%
+                                endif %}>
                                 {{ tag.name }}
                             </option>
                             {% endfor %}
@@ -165,6 +165,8 @@ tags=request.args.getlist('tags')
                             <th scope="col">Nombre</th>
                             <th scope="col">Ciudad</th>
                             <th scope="col">Provincia</th>
+                            <th scope="col" class="text-center">Estado</th>
+                            <th scope="col" class="text-center">Visible</th>
                             <th scope="col" class="text-center">Acciones</th>
                         </tr>
                     </thead>
@@ -175,13 +177,33 @@ tags=request.args.getlist('tags')
                             <td>{{ site.city }}</td>
                             <td>{{ site.province }}</td>
                             <td class="text-center">
+                                {% if site.state_id == 1 %}
+                                <span class="badge bg-success">Bueno</span>
+                                {% elif site.state_id == 2 %}
+                                <span class="badge bg-danger">Malo</span>
+                                {% elif site.state_id == 3 %}
+                                <span class="badge bg-warning text-dark">Regular</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Sin estado</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if site.active %}
+                                <i class="bi bi-check-circle-fill text-success" style="font-size: 1.2rem;"
+                                    title="Visible"></i>
+                                {% else %}
+                                <i class="bi bi-x-circle-fill text-danger" style="font-size: 1.2rem;"
+                                    title="No visible"></i>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
                                 <a href="{{ url_for('sites.detail', site_id=site.id) }}"
-                                    class="btn btn-info btn-sm">Ver</a>
+                                    class="btn btn-info btn-sm mx-1 bi-eye-fill">Ver</a>
                                 <a href="{{ url_for('sites.edit', site_id=site.id) }}"
-                                    class="btn btn-warning btn-sm">Editar</a>
+                                    class="btn btn-warning btn-sm mx-1 bi-pencil-fill">Editar</a>
                                 <form method="POST" action="{{ url_for('sites.delete', site_id=site.id) }}"
                                     style="display:inline;">
-                                    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                                    <button type="submit" class="btn btn-danger btn-sm mx-1 bi-trash-fill">Eliminar</button>
                                 </form>
                             </td>
                         </tr>
@@ -196,9 +218,6 @@ tags=request.args.getlist('tags')
                     <input type="hidden" name="city" value="{{ filtros.city }}">
                     <input type="hidden" name="province" value="{{ filtros.province }}">
                     <input type="hidden" name="state_id" value="{{ filtros.state_id }}">
-                    {% for tag in filtros.tags %}
-                    <input type="hidden" name="tags" value="{{ tag }}">
-                    {% endfor %}
                     <input type="hidden" name="registration_from" value="{{ filtros.registration_from }}">
                     <input type="hidden" name="registration_to" value="{{ filtros.registration_to }}">
                     <input type="hidden" name="active" value="{{ filtros.active }}">
@@ -215,7 +234,57 @@ tags=request.args.getlist('tags')
 
     <div class="d-flex justify-content-center mt-4">
         {% if pagination %}
-        {{ paginate(pagination=pagination, url='sites.index') }}
+        <nav aria-label="Page navigation">
+            <ul class="pagination">
+                {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a href="{{ url_con_filtros(filtros.order_by, filtros.sentido, pagination.prev_num) }}"
+                        class="page-link">Anterior</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Anterior</span>
+                </li>
+                {% endif %}
+
+                {% if pagination.has_prev and 1 not in pagination.page_range %}
+                <li class="page-item">
+                    <a href="{{ url_con_filtros(filtros.order_by, filtros.sentido, 1) }}" class="page-link">1</a>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                {% endif %}
+
+                {% for page_num in pagination.page_range %}
+                <li class="page-item {% if page_num == pagination.current_page %}active{% endif %}">
+                    <a href="{{ url_con_filtros(filtros.order_by, filtros.sentido, page_num) }}" class="page-link">{{
+                        page_num }}</a>
+                </li>
+                {% endfor %}
+
+                {% if pagination.has_next and pagination.pages not in pagination.page_range %}
+                <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                </li>
+                <li class="page-item">
+                    <a href="{{ url_con_filtros(filtros.order_by, filtros.sentido, pagination.pages) }}"
+                        class="page-link">{{ pagination.pages }}</a>
+                </li>
+                {% endif %}
+
+                {% if pagination.has_next %}
+                <li class="page-item">
+                    <a href="{{ url_con_filtros(filtros.order_by, filtros.sentido, pagination.next_num) }}"
+                        class="page-link">Siguiente</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">Siguiente</span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
         {% endif %}
     </div>
 </div>
@@ -251,6 +320,28 @@ tags=request.args.getlist('tags')
                     e.preventDefault();
                     alert("No se pueden seleccionar fechas futuras.");
                 }
+            });
+        }
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const exportForm = document.querySelector('form[action="{{ url_for("sites.export_csv") }}"]');
+        const searchSelect = document.querySelector('form[action="{{ url_for("sites.search") }}"] select[name="tags"]');
+
+        if (exportForm && searchSelect) {
+            exportForm.addEventListener('submit', function () {
+                exportForm.querySelectorAll('input[name="tags"]').forEach(el => el.remove());
+
+                // Copiar los tags seleccionados del select de búsqueda
+                Array.from(searchSelect.selectedOptions).forEach(opt => {
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = 'tags';
+                    hidden.value = opt.value;
+                    exportForm.appendChild(hidden);
+                });
             });
         }
     });
