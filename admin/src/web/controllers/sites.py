@@ -550,16 +550,19 @@ def search():
         sentido (str): Dirección del ordenamiento
         page (int): Número de página
     """
-    # Filtros del querystring
     tags_raw = request.args.getlist("tags")
     tags = [int(t) for t in tags_raw if str(t).isdigit()]
+    
+    registration_from = request.args.get("registration_from", "")
+    registration_to = request.args.get("registration_to", "")
+    
     filtros = {
         "site_name": request.args.get("site_name", ""),
         "city": request.args.get("city", ""),
         "province": request.args.get("province", ""),
         "tags": tags,
-        "registration_from": request.args.get("registration_from", ""),
-        "registration_to": request.args.get("registration_to", ""),
+        "registration_from": registration_from,
+        "registration_to": registration_to,
         "active": request.args.get("active", ""),
         "order_by": request.args.get("order_by", "site_name"),
         "sentido": request.args.get("sentido", "asc"),
@@ -571,22 +574,40 @@ def search():
     error_msg = None
     page = request.args.get("page", 1, type=int)
 
-    # Validación de fechas
-    if filtros["registration_from"] and filtros["registration_to"]:
+    if registration_from and registration_to:
         try:
             from datetime import datetime
-            date_from = datetime.strptime(filtros["registration_from"], "%Y-%m-%d")
-            date_to = datetime.strptime(filtros["registration_to"], "%Y-%m-%d")
+            date_from = datetime.strptime(registration_from, "%Y-%m-%d")
+            date_to = datetime.strptime(registration_to, "%Y-%m-%d")
             if date_from > date_to:
                 error_msg = "La fecha 'desde' no puede ser mayor que la fecha 'hasta'."
                 flash(error_msg, "error")
         except Exception:
             error_msg = "Formato de fecha inválido."
 
+    service_filters = {
+        "site_name": filtros["site_name"],
+        "city": filtros["city"],
+        "province": filtros["province"],
+        "tags": filtros["tags"],
+        "active": filtros["active"],
+    }
+
+    if registration_from:
+        service_filters["date_from"] = registration_from
+    if registration_to:
+        service_filters["date_to"] = registration_to
+    
+    if state_id_raw and state_id_raw.isdigit():
+        service_filters["state_id"] = int(state_id_raw)
+    
+    if state_id_raw and state_id_raw.isdigit():
+        service_filters["state_id"] = int(state_id_raw)
+
     pagination = None
     if not error_msg:
         pagination = SiteService.get_sites_filtered(
-            filters=filtros,
+            filters=service_filters,
             order_by=filtros["order_by"],
             sorted_by=filtros["sentido"],
             paginate=True,
@@ -646,13 +667,16 @@ def export_csv():
     tags_raw = request.form.getlist("tags")
     tags = [int(t) for t in tags_raw if t and str(t).isdigit()]
 
+    registration_from = request.form.get("registration_from", "")
+    registration_to = request.form.get("registration_to", "")
+
     filtros = {
         "site_name": request.form.get("site_name", ""),
         "city": request.form.get("city", ""),
         "province": request.form.get("province", ""),
         "tags": tags,
-        "registration_from": request.form.get("registration_from", ""),
-        "registration_to": request.form.get("registration_to", ""),
+        "registration_from": registration_from,
+        "registration_to": registration_to,
         "active": request.form.get("active", ""),
         "order_by": request.form.get("order_by", "site_name"),
         "sentido": request.form.get("sentido", "asc"),
@@ -664,8 +688,24 @@ def export_csv():
     if state_id_raw and state_id_raw.isdigit():
         filtros["state_id"] = int(state_id_raw)
 
+    service_filters = {
+        "site_name": filtros["site_name"],
+        "city": filtros["city"],
+        "province": filtros["province"],
+        "tags": filtros["tags"],
+        "active": filtros["active"],
+    }
+    
+    if registration_from:
+        service_filters["date_from"] = registration_from
+    if registration_to:
+        service_filters["date_to"] = registration_to
+    
+    if state_id_raw and state_id_raw.isdigit():
+        service_filters["state_id"] = int(state_id_raw)
+
     sites = SiteService.get_sites_filtered(
-        filters=filtros,
+        filters=service_filters,
         order_by=filtros["order_by"],
         sorted_by=filtros["sentido"],
         paginate=False,

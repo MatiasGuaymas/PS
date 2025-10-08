@@ -87,8 +87,12 @@ class GenericSearchBuilder:
         if not date_value:
             return query
 
-        # Por defecto usar la primera columna de fecha (generalmente created_at)
-        date_column = date_columns[0]
+        date_column = None
+        if hasattr(self.model_class, 'registration'):
+            date_column = getattr(self.model_class, 'registration')
+        else:
+            date_column = date_columns[0]
+        
         return query.filter(date_column >= date_value)
 
     def _apply_date_to(self, query: Query, date_to: Union[str, datetime]) -> Query:
@@ -101,10 +105,18 @@ class GenericSearchBuilder:
         if not date_value:
             return query
 
-        # Ajustar a final del día
-        date_value = date_value.replace(hour=23, minute=59, second=59)
+        from datetime import time
+        if not isinstance(date_value, datetime):
+            date_value = datetime.combine(date_value, time.max)
+        else:
+            date_value = date_value.replace(hour=23, minute=59, second=59)
 
-        date_column = date_columns[0]
+        date_column = None
+        if hasattr(self.model_class, 'registration'):
+            date_column = getattr(self.model_class, 'registration')
+        else:
+            date_column = date_columns[0]
+        
         return query.filter(date_column <= date_value)
 
     def _apply_date_range(self, query: Query, date_range: Dict[str, str]) -> Query:
