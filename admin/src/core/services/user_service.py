@@ -28,7 +28,7 @@ class UserService:
         ).scalars().all()
     
     def get_all_sysAdmin() -> List[User]:
-        """Recupera todos los usuarios que están activos."""
+        """Recupera todos los usuarios que son sysAdmin."""
         return db.session.query(User).filter_by(sysAdmin=True).all()
     
     def get_all_users() -> List[User]:
