@@ -1,7 +1,7 @@
 from flask import Flask
 from flask import render_template
 from flask_session import Session
-
+from flask_cors import CORS
 from web.handlers import error
 from core import database
 from web.config import config
@@ -30,6 +30,8 @@ def create_app(env = 'development', static_folder = "../../static"):
 
     database.init_db(app)
     session.init_app(app)
+
+    CORS(app, resources={r"/*": {"origins": "http://localhost:8080"}}) 
 
     @app.route('/')
     def home():
@@ -84,7 +86,7 @@ def create_app(env = 'development', static_folder = "../../static"):
             reset_db(app)
             # Corre los seeds
             seed_db()
-
+    
 
 
     return app

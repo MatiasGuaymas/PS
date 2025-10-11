@@ -20,6 +20,20 @@ services:
     networks:
       - app-network
 
+  frontend-vue:
+    build:
+      context: ./frontend-vue 
+      dockerfile: Dockerfile
+    container_name: frontend_vue_proyecto
+    restart: unless-stopped
+    ports:
+      - "5173:5173" 
+    volumes:
+      - ./frontend-vue:/app 
+      - /app/node_modules 
+    networks:
+      - app-network
+
   pgadmin:
     image: dpage/pgadmin4:9.8.0
     container_name: pgadmin_proyecto
