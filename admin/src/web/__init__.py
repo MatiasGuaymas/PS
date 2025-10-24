@@ -17,7 +17,7 @@ from .config import get_current_config
 import os
 from dotenv import load_dotenv
 from core import seeds
-
+from src.web.storage import storage
 load_dotenv()
 
 session = Session()
@@ -30,6 +30,7 @@ def create_app(env = 'development', static_folder = "../../static"):
 
     database.init_db(app)
     session.init_app(app)
+    storage.init_app(app)
 
     CORS(app, resources={r"/*": {"origins": "http://localhost:8080"}}) 
 

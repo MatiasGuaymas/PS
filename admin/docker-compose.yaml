@@ -29,7 +29,7 @@ services:
     ports:
       - "5173:5173" 
     volumes:
-      - ./frontend-vue:/app 
+      - ./src/web/frontend-vue:/app 
       - /app/node_modules 
     networks:
       - app-network
@@ -51,12 +51,29 @@ services:
         condition: service_healthy
     networks:
       - app-network
-
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    ports:
+      - "9000:9000" 
+      - "9001:9001" 
+    command: server --console-address ":9001" /data
+    volumes:
+      - minio_data:/data 
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD} 
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
 
 volumes:
   postgres_data:
     driver: local
   pgadmin_data:
+    driver: local
+  minio_data: 
     driver: local
 
 networks:

@@ -12,6 +12,11 @@ class config:
 
 class ProductionConfig(config):
     """Production configuration."""
+    MINIO_SERVER = os.getenv("MINIO_SERVER", "")
+    MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "")
+    MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "")
+    MINIO_SECURE = True
+    MINIO_BUCKET = "grupo21"
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "")
     DEBUG=False
 
@@ -19,7 +24,11 @@ class ProductionConfig(config):
 
 class DevelopmentConfig(config):
     """Development configuration."""
-
+    MINIO_SERVER = os.getenv("MINIO_SERVER", "localhost:9000")
+    MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "LaRompeToda")
+    MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "LaRompeToda1234")
+    MINIO_SECURE = os.getenv("MINIO_SECURE", "False")
+    MINIO_BUCKET = os.getenv("MINIO_BUCKET", "grupo21")
     DEBUG = True
     DB_USER = "proyecto_user"
     DB_PASS = "123456"
