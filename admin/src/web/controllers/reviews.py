@@ -125,63 +125,13 @@ def index():
         )
 
 
-@reviews_blueprint.route("/<int:review_id>", methods=["GET", "POST"])
+@reviews_blueprint.route("/<int:review_id>", methods=["GET"])
 @login_required
 @require_role(['Administrador', 'Editor', 'Moderador'])
 def detail(review_id):
     """
-    Muestra el detalle completo de una reseña específica y maneja acciones.
+    Muestra el detalle completo de una reseña específica. 
     """
-    if request.method == "POST":
-        action = request.form.get("action")
-        rejection_reason = request.form.get("rejection_reason", "").strip()
-        
-        # Validaciones básicas
-        if not action:
-            flash("Faltan parámetros obligatorios", "error")
-            return redirect(url_for('reviews.detail', review_id=review_id))
-        
-        try:
-            moderator_id = session.get("user_id")
-            
-            if action == "approve":
-                success = ReviewService.approve_review(
-                    review_id=review_id,
-                    moderator_id=moderator_id,
-                    description="Reseña aprobada desde el detalle"
-                )
-                if success:
-                    flash(" Reseña aprobada exitosamente. La reseña ahora es visible en el portal público.", "success")
-                else:
-                    flash(" No se pudo aprobar la reseña. Inténtalo nuevamente.", "error")
-                    
-            elif action == "reject":
-                if not rejection_reason:
-                    flash("El motivo de rechazo es obligatorio", "error")
-                    return redirect(url_for('reviews.detail', review_id=review_id))
-                
-                if len(rejection_reason) > 200:
-                    flash("El motivo de rechazo no puede exceder 200 caracteres", "error")
-                    return redirect(url_for('reviews.detail', review_id=review_id))
-                
-                success = ReviewService.reject_review(
-                    review_id=review_id,
-                    moderator_id=moderator_id,
-                    rejection_reason=rejection_reason,
-                    description="Reseña rechazada desde el detalle"
-                )
-                if success:
-                    flash(" Reseña rechazada exitosamente. La reseña no será visible en el portal público.", "success")
-                else:
-                    flash(" No se pudo rechazar la reseña. Inténtalo nuevamente.", "error")
-            else:
-                flash("Acción no válida", "error")
-                
-        except Exception as e:
-            flash(f"Error inesperado: {str(e)}", "error")
-        
-        return redirect(url_for('reviews.detail', review_id=review_id))
-    
     # GET: Mostrar detalle
     review = ReviewService.get_review_by_id(review_id)
     
