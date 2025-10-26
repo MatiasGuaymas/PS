@@ -19,11 +19,38 @@ class ReviewService:
         return db.session.get(Review, review_id)
 
     @staticmethod
-    def get_all_reviews() -> List[Review]:
-        """Recupera todas las reseñas con información del sitio."""
-        return db.session.query(Review).options(
-            joinedload(Review.site)
-        ).all()
+    def get_reviews_paginated(page: int = 1, per_page: int = 25) -> dict:
+        """
+        Recupera reseñas paginadas.
+        
+        Args:
+            page: Número de página (default: 1)
+            per_page: Elementos por página (default: 25)
+        
+        Returns:
+            Dict con información de paginación
+        """
+        
+        query = db.session.query(Review)
+
+        # Paginación
+        pagination = query.paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+
+        return {
+            'reviews': pagination.items,
+            'total': pagination.total,
+            'pages': pagination.pages,
+            'current_page': page,
+            'has_prev': pagination.has_prev,
+            'has_next': pagination.has_next,
+            'prev_num': pagination.prev_num,
+            'next_num': pagination.next_num,
+            'page_range': list(range(max(1, page-2), min(pagination.pages+1, page+3)))
+        }
 
     @staticmethod
     def approve_review(review_id: int, moderator_id: int, description: str = "Reseña aprobada") -> bool:
@@ -61,7 +88,6 @@ class ReviewService:
 
         except Exception as e:
             db.session.rollback()
-            print(f"Error al aprobar reseña: {e}")
             return False
 
     @staticmethod
@@ -105,42 +131,35 @@ class ReviewService:
 
         except Exception as e:
             db.session.rollback()
-            print(f"Error al rechazar reseña: {e}")
             return False
 
     @staticmethod
-    def delete_review(review_id: int, moderator_id: int, description: str = "Reseña eliminada") -> bool:
+    def delete_review(review_id: int) -> bool:
         """
         Elimina una reseña definitivamente.
+        NO se crea auditoría porque la reseña se borra de la BD.
         
         Args:
             review_id: ID de la reseña a eliminar
-            moderator_id: ID del moderador que elimina
-            description: Descripción de la acción
         
         Returns:
             True si se eliminó exitosamente, False en caso contrario
         """
         try:
-            review = ReviewService.get_review_by_id(review_id)
+            # Buscar la reseña
+            review = db.session.query(Review).filter_by(id=review_id).first()
             if not review:
                 return False
 
-            # Crear auditoría antes de eliminar
-            audit = ReviewAudit(
-                review_id=review_id,
-                user_id=moderator_id,
-                action_type='DELETE',
-                description=description,
-                details=f"Reseña eliminada por moderador {moderator_id}"
-            )
-
-            db.session.add(audit)
+            # Eliminar primero las auditorías asociadas
+            from core.models.ReviewAudit import ReviewAudit
+            db.session.query(ReviewAudit).filter_by(review_id=review_id).delete()
+            
+            # Eliminar la reseña
             db.session.delete(review)
             db.session.commit()
             return True
 
         except Exception as e:
             db.session.rollback()
-            print(f"Error al eliminar reseña: {e}")
             return False
