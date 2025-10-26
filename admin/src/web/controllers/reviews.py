@@ -10,9 +10,39 @@ from sqlalchemy.orm import joinedload
 reviews_blueprint = Blueprint("reviews", __name__, url_prefix="/reviews")
 
 
+
+
+@reviews_blueprint.route("/<int:review_id>/confirm-delete", methods=["GET"])
+@login_required
+@require_role(['Administrador', 'Editor', 'Moderador'])
+def confirm_delete(review_id):
+    """Muestra la página de confirmación para eliminar una reseña"""
+    review = ReviewService.get_review_by_id(review_id)
+    if not review:
+        flash("Reseña no encontrada", "error")
+        return redirect(url_for('reviews.index'))
+    
+    return render_template("reviews/confirm_delete.html", review=review)
+
+@reviews_blueprint.route("/<int:review_id>/delete", methods=["POST"])
+@login_required
+@require_role(['Administrador', 'Editor', 'Moderador'])
+def delete(review_id):
+    """Elimina una reseña permanentemente"""
+    try:
+        success = ReviewService.delete_review(review_id)
+        if success:
+            flash(" Reseña eliminada exitosamente. La reseña ha sido eliminada permanentemente del sistema.", "success")
+        else:
+            flash(" No se pudo eliminar la reseña. Inténtalo nuevamente.", "error")
+    except Exception as e:
+        flash(f"Error al eliminar la reseña: {str(e)}", "error")
+    
+    return redirect(url_for('reviews.index'))
+
 @reviews_blueprint.route("/", methods=["GET", "POST"])
 @login_required
-@require_role(['Moderador', 'Editor', 'Administrador'])
+@require_role(['Administrador', 'Editor', 'Moderador'])
 def index():
     """
     Controlador principal para la moderación de reseñas.
@@ -66,11 +96,7 @@ def index():
                     flash("Error al rechazar la reseña", "error")
                     
             elif action == "delete":
-                success = ReviewService.delete_review(
-                    review_id=review_id,
-                    moderator_id=moderator_id,
-                    description="Reseña eliminada desde panel de moderación"
-                )
+                success = ReviewService.delete_review(review_id)
                 if success:
                     flash("Reseña eliminada exitosamente", "success")
                 else:
@@ -86,22 +112,77 @@ def index():
         return redirect(url_for('reviews.index'))
         
     elif request.method == "GET":
-        # Obtener todas las reseñas
-        reviews = ReviewService.get_all_reviews()
+        # Obtener parámetros de paginación
+        page = int(request.args.get('page', 1))
+        
+        # Obtener reseñas paginadas
+        reviews_data = ReviewService.get_reviews_paginated(page=page, per_page=25)
         
         return render_template(
             "reviews/index.html",
-            reviews=reviews
+            reviews=reviews_data['reviews'],
+            pagination=reviews_data
         )
 
 
-@reviews_blueprint.route("/<int:review_id>")
+@reviews_blueprint.route("/<int:review_id>", methods=["GET", "POST"])
 @login_required
-@require_role(['Moderador', 'Editor', 'Administrador'])
+@require_role(['Administrador', 'Editor', 'Moderador'])
 def detail(review_id):
     """
-    Muestra el detalle completo de una reseña específica.
+    Muestra el detalle completo de una reseña específica y maneja acciones.
     """
+    if request.method == "POST":
+        action = request.form.get("action")
+        rejection_reason = request.form.get("rejection_reason", "").strip()
+        
+        # Validaciones básicas
+        if not action:
+            flash("Faltan parámetros obligatorios", "error")
+            return redirect(url_for('reviews.detail', review_id=review_id))
+        
+        try:
+            moderator_id = session.get("user_id")
+            
+            if action == "approve":
+                success = ReviewService.approve_review(
+                    review_id=review_id,
+                    moderator_id=moderator_id,
+                    description="Reseña aprobada desde el detalle"
+                )
+                if success:
+                    flash(" Reseña aprobada exitosamente. La reseña ahora es visible en el portal público.", "success")
+                else:
+                    flash(" No se pudo aprobar la reseña. Inténtalo nuevamente.", "error")
+                    
+            elif action == "reject":
+                if not rejection_reason:
+                    flash("El motivo de rechazo es obligatorio", "error")
+                    return redirect(url_for('reviews.detail', review_id=review_id))
+                
+                if len(rejection_reason) > 200:
+                    flash("El motivo de rechazo no puede exceder 200 caracteres", "error")
+                    return redirect(url_for('reviews.detail', review_id=review_id))
+                
+                success = ReviewService.reject_review(
+                    review_id=review_id,
+                    moderator_id=moderator_id,
+                    rejection_reason=rejection_reason,
+                    description="Reseña rechazada desde el detalle"
+                )
+                if success:
+                    flash(" Reseña rechazada exitosamente. La reseña no será visible en el portal público.", "success")
+                else:
+                    flash(" No se pudo rechazar la reseña. Inténtalo nuevamente.", "error")
+            else:
+                flash("Acción no válida", "error")
+                
+        except Exception as e:
+            flash(f"Error inesperado: {str(e)}", "error")
+        
+        return redirect(url_for('reviews.detail', review_id=review_id))
+    
+    # GET: Mostrar detalle
     review = ReviewService.get_review_by_id(review_id)
     
     if not review:
