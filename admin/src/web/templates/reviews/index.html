@@ -1,0 +1,83 @@
+{% extends "layout.html" %}
+{% from "macros/paginate.html" import paginate %}
+
+{% block title %}Moderación de Reseñas | Puff-tóricos{% endblock %}
+
+{% block content %}
+
+<div class="container-xl p-3">
+    <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden">
+        <div class="card-header bg-dark">
+            <h2 class="h3 text-white mb-4 mt-1">Moderación de Reseñas</h2>
+        </div>
+
+        <div class="card-body p-4">
+            <!-- Tabla de reseñas -->
+            <div class="table-responsive">
+                <table class="table table-dark table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">Sitio</th>
+                            <th scope="col">Usuario</th>
+                            <th scope="col">Calificación</th>
+                            <th scope="col">Contenido</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col">Fecha</th>
+                            <th scope="col">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for review in reviews %}
+                        <tr>
+                            <td>{{ review.site.site_name }}</td>
+                            <td>{{ review.user_email }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% for i in range(1, 6) %}
+                                        {% if i <= review.rating %}
+                                            <i class="fas fa-star text-warning me-1"></i>
+                                        {% else %}
+                                            <i class="far fa-star text-warning me-1"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                    <span class="ms-2">{{ review.rating }}/5</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 200px;" title="{{ review.content }}">
+                                    {{ review.content }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if review.status == 'Pendiente' %}
+                                    <span class="badge bg-warning">Pendiente</span>
+                                {% elif review.status == 'Aprobada' %}
+                                    <span class="badge bg-success">Aprobada</span>
+                                {% elif review.status == 'Rechazada' %}
+                                    <span class="badge bg-danger">Rechazada</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ review.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>
+                                <!-- Solo botón Ver detalle -->
+                                <a href="{{ url_for('reviews.detail', review_id=review.id) }}" 
+                                   class="btn btn-sm btn-info" title="Ver detalle">
+                                    <i class="fas fa-eye me-1"></i> Ver detalle
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            {% if pagination.pages > 1 %}
+                {{ paginate(pagination, 'reviews.index') }}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}
