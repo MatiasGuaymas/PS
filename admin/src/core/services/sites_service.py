@@ -1,8 +1,11 @@
 from core.utils.pagination import paginate_query
 from core.models.Site import Site
+from core.models.SiteImage import SiteImage
 from core.models.Audit import Audit
 from core.database import db
 from core.utils.search import build_search_query,apply_ordering
+import logging
+logger = logging.getLogger(__name__)
 class SiteService:
     def get_sites_filtered(
         filters=None,
@@ -131,3 +134,125 @@ class SiteService:
             )
         else:
             return query.all()
+        
+    def get_site_images_count(self, site_id: int) -> int:
+        """
+        Obtiene el número total de imágenes asociadas a un sitio.
+        
+        Args:
+            site_id (int): ID del sitio.
+            
+        Returns:
+            int: Cantidad de imágenes.
+        """
+        return SiteImage.query.filter_by(site_id=site_id).count()
+
+    def get_cover_image(self, site_id: int):
+        """
+        Obtiene el objeto SiteImage marcado como portada para un sitio.
+        
+        Args:
+            site_id (int): ID del sitio.
+            
+        Returns:
+            SiteImage | None: La imagen de portada o None si no se encuentra.
+        """
+        return SiteImage.query.filter_by(site_id=site_id, is_cover=True).first()
+
+    def get_next_image_order(self, site_id: int) -> int:
+        """
+        Calcula el siguiente índice de orden disponible para una nueva imagen.
+        
+        Args:
+            site_id (int): ID del sitio.
+            
+        Returns:
+            int: El máximo order_index actual + 1, o 1 si no hay imágenes.
+        """
+        # Encuentra el máximo order_index para el sitio
+        max_order = db.session.query(db.func.max(SiteImage.order_index)).filter(SiteImage.site_id == site_id).scalar()
+        
+        # Si no hay imágenes, el siguiente orden es 1. De lo contrario, max + 1.
+        return (max_order or 0) + 1
+
+    # --- MÉTODOS DE MANIPULACIÓN (Lógica de Negocio) ---
+
+    def reorder_image(self, site_id: int, image_id: int, new_index: int) -> bool:
+        """
+        Ajusta el índice de orden de una imagen y reajusta las demás si es necesario.
+        
+        Args:
+            site_id (int): ID del sitio.
+            image_id (int): ID de la imagen a mover.
+            new_index (int): La nueva posición deseada (empezando en 1).
+            
+        Returns:
+            bool: True si la operación fue exitosa.
+        """
+        try:
+            # 1. Obtener la imagen que se va a mover y su orden actual
+            image_to_move = SiteImage.query.filter_by(id=image_id, site_id=site_id).first()
+            if not image_to_move:
+                logger.warning(f"Intento de reordenar imagen ID={image_id} que no existe en sitio ID={site_id}.")
+                return False
+                
+            old_index = image_to_move.order_index
+            
+            # 2. Obtener el rango de movimiento
+            # Si se mueve hacia abajo (old < new): Desplazar imágenes old < index <= new hacia atrás (index - 1)
+            if old_index < new_index:
+                db.session.query(SiteImage) \
+                    .filter(SiteImage.site_id == site_id, 
+                            SiteImage.order_index > old_index,
+                            SiteImage.order_index <= new_index) \
+                    .update({SiteImage.order_index: SiteImage.order_index - 1}, synchronize_session='fetch')
+
+            # Si se mueve hacia arriba (old > new): Desplazar imágenes new <= index < old hacia adelante (index + 1)
+            elif old_index > new_index:
+                 db.session.query(SiteImage) \
+                    .filter(SiteImage.site_id == site_id, 
+                            SiteImage.order_index >= new_index,
+                            SiteImage.order_index < old_index) \
+                    .update({SiteImage.order_index: SiteImage.order_index + 1}, synchronize_session='fetch')
+            
+            # 3. Asignar el nuevo índice a la imagen movida
+            if old_index != new_index:
+                image_to_move.order_index = new_index
+                db.session.commit()
+                logger.info(f"Imagen ID={image_id} reordenada de {old_index} a {new_index} en sitio {site_id}.")
+            
+            return True
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error al reordenar imagen ID={image_id} para sitio {site_id}: {e}", exc_info=True)
+            return False
+
+    def set_cover_image(self, site_id: int, image_id: int) -> bool:
+        """
+        Establece una imagen específica como portada del sitio, desmarcando la anterior.
+        
+        Args:
+            site_id (int): ID del sitio.
+            image_id (int): ID de la imagen a establecer como portada.
+            
+        Returns:
+            bool: True si la operación fue exitosa.
+        """
+        try:
+            # 1. Desmarcar todas las portadas actuales del sitio
+            db.session.query(SiteImage) \
+                .filter(SiteImage.site_id == site_id, SiteImage.is_cover == True) \
+                .update({SiteImage.is_cover: False}, synchronize_session=False)
+
+            # 2. Marcar la nueva imagen como portada
+            SiteImage.query.filter_by(id=image_id, site_id=site_id).update({SiteImage.is_cover: True})
+            
+            db.session.commit()
+            logger.info(f"Imagen ID={image_id} establecida como portada para sitio {site_id}.")
+            return True
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error al establecer imagen ID={image_id} como portada: {e}", exc_info=True)
+            return False

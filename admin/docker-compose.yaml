@@ -22,7 +22,7 @@ services:
 
   frontend-vue:
     build:
-      context: ./frontend-vue 
+      context: ./src/web/frontend-vue 
       dockerfile: Dockerfile
     container_name: frontend_vue_proyecto
     restart: unless-stopped

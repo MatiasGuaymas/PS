@@ -18,7 +18,7 @@
 
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-        <form method="POST" action="{{ url_for('sites.create') }}">
+        <form method="POST" action="{{ url_for('sites.create') }}",enctype="multipart/form-data"></form>>
           <div class="row g-3">
             <div class="col-md-6">
               <label for="site_name" class="form-label text-white">Nombre del sitio</label>
@@ -108,6 +108,16 @@
               <i class="bi bi-info-circle"></i>
               Haz clic en las etiquetas para seleccionarlas. Las seleccionadas se verán resaltadas.
             </small>
+          </div>
+          <div class="p-4 mb-4 border border-info rounded-3">
+            <h5 class="text-white">Imágenes para el Sitio (Opcional, Máx 10)</h5>
+            <div class="mb-3">
+              <label for="images" class="form-label">Seleccionar archivos (Máx 5MB c/u, JPG/PNG/WEBP)</label>
+              <input class="form-control" type="file" id="images" name="images" multiple accept="image/jpeg,image/png,image/webp">
+              <small class="form-text text-white">Puedes seleccionar hasta 10 imágenes al crear el sitio.</small>
+              <div id="image-upload-preview" class="mt-3 d-flex flex-wrap gap-3">
+                </div>
+            </div>
           </div>
           <div class="d-flex gap-2">
             <button type="submit" class="btn btn-primary">Registrar</button>
@@ -221,8 +231,99 @@
         alert('Error al validar las coordenadas.');
         return false;
       }
+
+      // Validar imágenes
+      const imageInput = document.getElementById('images');
+      const files = imageInput.files;
+      const MAX_IMAGES = 10;
+      const MAX_FILE_SIZE_MB = 5; // MB
+      const ALLOWED_EXTENSIONS = ['jpg', 'png', 'webp'];
+
+      if (files.length > MAX_IMAGES) {
+          e.preventDefault();
+          alert(`Solo puedes subir un máximo de ${MAX_IMAGES} imágenes.`);
+          return false;
+      }
+
+      for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const fileSizeMB = file.size / (1024 * 1024); // Convertir a MB
+          const fileExtension = file.name.split('.').pop().toLowerCase();
+
+          if (fileSizeMB > MAX_FILE_SIZE_MB) {
+              e.preventDefault();
+              alert(`El archivo ${file.name} excede el tamaño máximo de ${MAX_FILE_SIZE_MB} MB.`);
+              return false;
+          }
+          if (!ALLOWED_EXTENSIONS.includes(fileExtension)) {
+              e.preventDefault();
+              alert(`El archivo ${file.name} tiene un formato no permitido. Solo se permiten JPG, PNG, WEBP.`);
+              return false;
+          }
+      }
+
+    });
+
+    // --- Lógica de previsualización de imágenes ---
+    const imageInput = document.getElementById('images');
+    const previewContainer = document.getElementById('image-upload-preview');
+
+    imageInput.addEventListener('change', function() {
+        previewContainer.innerHTML = ''; // Limpiar previsualizaciones anteriores
+
+        const files = this.files;
+        const MAX_IMAGES = 10;
+
+        if (files.length > MAX_IMAGES) {
+            alert(`Solo puedes seleccionar un máximo de ${MAX_IMAGES} imágenes.`);
+            this.value = ''; // Limpiar selección
+            return;
+        }
+
+        Array.from(files).forEach((file, index) => {
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'image-preview-item border p-2 rounded';
+                    previewItem.style.width = '120px'; // Tamaño de la miniatura
+                    previewItem.style.height = 'auto';
+                    previewItem.style.backgroundColor = '#3d3d3d';
+                    
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = `Previsualización de ${file.name}`;
+                    img.style.width = '100px';
+                    img.style.height = '100px';
+                    img.style.objectFit = 'cover';
+                    img.style.borderRadius = '4px';
+                    img.className = 'mb-2';
+
+                    const titleInput = document.createElement('input');
+                    titleInput.type = 'text';
+                    titleInput.name = `title_alt_${index}`; // Nombre único para cada imagen
+                    titleInput.className = 'form-control form-control-sm mb-1';
+                    titleInput.placeholder = 'Título/Alt (obligatorio)';
+                    titleInput.required = true;
+
+                    const descTextarea = document.createElement('textarea');
+                    descTextarea.name = `description_${index}`; // Nombre único
+                    descTextarea.className = 'form-control form-control-sm';
+                    descTextarea.rows = '2';
+                    descTextarea.placeholder = 'Descripción (opcional)';
+                    
+                    previewItem.appendChild(img);
+                    previewItem.appendChild(titleInput);
+                    previewItem.appendChild(descTextarea);
+                    previewContainer.appendChild(previewItem);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
     });
   });
+
+  
 
   // Función para inicializar la selección múltiple de tags
   function initializeTagSelection() {
