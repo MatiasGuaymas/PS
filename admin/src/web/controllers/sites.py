@@ -15,10 +15,9 @@ import logging
 
 import uuid
 import os
-from werkzeug.utils import secure_filename
+from werkzeug import *
+from flask import current_app
 from core.models.SiteImage import SiteImage 
-#from core.services.minio_service import MinioService # Asumiendo que existe este servicio
-#from core.config import Config # Para obtener las extensiones y el tamaño máximo
 
 from web.storage import storage
 ALLOWED_EXTENSIONS = {'jpg', 'png', 'webp'}
@@ -301,13 +300,14 @@ def create():
         files = request.files.getlist("images")
         image_data = [] # Para almacenar info de cada imagen para la BD
         errors = []
+        print(files)
         if len(files) > 10:
             errors.append("Se pueden subir un máximo de 10 imágenes por sitio.")
 
         for i, file in enumerate(files):
             if file.filename == '': # Si no se seleccionó un archivo en ese input
                 continue
-
+            print(file)
             is_valid, error_msg = is_valid_image(file)
             if not is_valid:
                 errors.append(f"Error con el archivo '{file.filename}': {error_msg}")
@@ -371,18 +371,28 @@ def create():
             db.session.commit()
             logger.info(f"Tags asignados al sitio {new_site.id}: {[tag.name for tag in tags]}")
         
+        client = current_app.storage
+        print(image_data)
         if image_data:
+                    print('algo')
                     for idx, img_info in enumerate(image_data):
                         file = img_info["file"]
                         titulo_alt = img_info["title_alt"]
                         descripcion = img_info["description"]
-
+                        file.seek(0, os.SEEK_END)
+                        file_size = file.tell()
+                        file.seek(0)
                         extension = file.filename.rsplit('.', 1)[1].lower()
                         file_uuid = str(uuid.uuid4())
                         # Guardar en una subcarpeta con el site_id en MinIO
                         minio_path = f"{new_site.id}/{file_uuid}.{extension}"
                         
-                        public_url = storage.upload_file(file, minio_path)
+                        res= client.put_object(bucket_name = current_app.config["MINIO_BUCKET"],
+                                          object_name=minio_path,
+                                          data=file,
+                                          length=file_size,
+                                          content_type=file.content_type)
+                        public_url = f"/{current_app.config['MINIO_BUCKET']}/{minio_path}"
                         
                         # La primera imagen subida será la portada por defecto
                         is_cover = (idx == 0)
@@ -397,14 +407,6 @@ def create():
                             is_cover=is_cover
                         )
                         db.session.add(new_image)
-                
-        # --- 7. Registrar Auditoría y Commit Final ---
-        SiteService._register_audit_log(
-                user_id=current_user_id,
-                site_id=new_site.id,
-                action_type='CREATE',
-                description=f"Se creó un nuevo sitio '{new_site.site_name}'."
-                )
                 
         db.session.commit()
         flash(f"Sitio '{new_site.site_name}' creado exitosamente.", "success")
@@ -862,10 +864,6 @@ def add_images(site_id):
             flash(f"Error con el archivo {file.filename}: {error_msg}", "error")
             continue
             
-        # Obtener metadata del formulario (si se envía por imagen)
-        # Aquí simplificaremos asumiendo un solo campo de formulario para título/alt si se suben múltiples.
-        # En una interfaz real, esto se manejaría con campos dinámicos por cada archivo.
-        
         titulo_alt = request.form.get(f"title_alt_{i}", f"Imagen {i+1} de {site.site_name}")
         descripcion = request.form.get(f"description_{i}")
         
@@ -873,24 +871,31 @@ def add_images(site_id):
             flash(f"El Título/Alt es obligatorio para el archivo {file.filename}.", "error")
             continue
             
-        # 1. Renombrar archivo (evitar colisiones)
+        # Renombrar archivo (evitar colisiones)
         extension = file.filename.rsplit('.', 1)[1].lower()
         # Generar un nombre único: site_id/uuid.ext
         file_uuid = str(uuid.uuid4())
         new_filename = f"{site_id}/{file_uuid}.{extension}"
-        
+        client= current_app.storage
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
         try:
-            # 2. Subir a MinIO
-            public_url = storage.upload_file(file, new_filename)
-            
-            # 3. Determinar el orden y si es portada (solo si es la primera imagen)
+            # Subir a MinIO
+            res= client.put_object(bucket_name = current_app.config["MINIO_BUCKET"],
+                                          object_name=new_filename,
+                                          data=file,
+                                          length=file_size,
+                                          content_type=file.content_type)
+            public_url = f"/{current_app.config['MINIO_BUCKET']}/{new_filename}"
+            # Determinar el orden y si es portada 
             # El orden será el siguiente número disponible
             next_order = SiteService.get_next_image_order(site_id)
             
             # Si es la primera imagen y no hay portada, se marca como portada
             is_cover = (SiteService.get_cover_image(site_id) is None)
             
-            # 4. Registrar en la Base de Datos
+            # Registrar en la Base de Datos
             new_image = SiteImage(
                 site_id=site_id,
                 public_url=public_url,

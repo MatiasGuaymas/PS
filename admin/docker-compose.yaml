@@ -20,16 +20,16 @@ services:
     networks:
       - app-network
 
-  frontend-vue:
+  portal:
     build:
-      context: ./src/web/frontend-vue 
+      context: ../portal
       dockerfile: Dockerfile
-    container_name: frontend_vue_proyecto
+    container_name: portal
     restart: unless-stopped
     ports:
       - "5173:5173" 
     volumes:
-      - ./src/web/frontend-vue:/app 
+      - ../portal:/app 
       - /app/node_modules 
     networks:
       - app-network
