@@ -41,6 +41,58 @@
 #map, .map {
   z-index: 1000;
 }
+
+
+  /* --- ESTILOS RESPONSIVE PARA LA GALERÍA DE IMÁGENES --- */
+  .image-list-container {
+    display: flex;
+    flex-wrap: wrap; /* Permite que los ítems salten a la siguiente línea */
+    gap: 15px;
+    padding: 0;
+    margin: 0;
+    list-style: none; /* Asegura que no haya viñetas si se usa <ul> */
+  }
+
+  .image-item {
+    /* Ajuste principal para el responsive */
+    width: 100%; /* Por defecto, ocupa todo el ancho en móvil */
+    max-width: 300px; /* Limita el ancho en pantallas grandes */
+    flex-grow: 1; /* Permite que crezca para llenar el espacio disponible */
+    
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 10px;
+    background-color: #2d2d2d;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    cursor: grab;
+  }
+
+  /* Media Query para pantallas medianas (tabletas y escritorios pequeños) */
+  @media (min-width: 768px) {
+    .image-item {
+      width: calc(50% - 15px); /* 2 columnas */
+      flex-grow: 0;
+    }
+  }
+
+  /* Media Query para pantallas grandes (escritorio) */
+  @media (min-width: 1200px) {
+    .image-item {
+      width: calc(33.333% - 15px); /* 3 columnas */
+    }
+  }
+  
+  .image-item.sortable-chosen {
+    border: 2px dashed #bb86fc;
+    opacity: 0.8; /* Efecto visual durante el arrastre */
+  }
+
+  .image-thumbnail {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 6px;
+  }
 </style>
 
 {% endblock %}
@@ -145,6 +197,72 @@
     <button type="submit" class="btn btn-primary">Guardar cambios</button>
     <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-secondary">Cancelar</a>
   </div>
+  <h4 class="mb-4 text-info">Gestión de Imágenes ({{ site.images | length }} / 10)</h4>
+
+      {% if site.images | length < 10 %}
+      <div class="p-4 mb-4 border border-info rounded-3">
+        <h5 class="text-white">Subir Nuevas Imágenes</h5>
+        <form action="{{ url_for('sites.add_images', site_id=site.id) }}" method="POST" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label for="images" class="form-label">Seleccionar archivos (Máx 5MB c/u, JPG/PNG/WEBP)</label>
+            <input class="form-control" type="file" id="images" name="images" multiple accept="image/jpeg,image/png,image/webp" required>
+            <small class="form-text text-white">Puedes seleccionar múltiples archivos a la vez.</small>
+          </div>
+          <button type="submit" class="btn btn-success">Subir Imágen(es)</button>
+        </form>
+      </div>
+      {% else %}
+      <div class="alert alert-warning" role="alert">
+        <i class="bi bi-exclamation-triangle"></i> Has alcanzado el límite de 10 imágenes para este sitio.
+      </div>
+      {% endif %}
+  <h5 class="text-white mb-3">Imágenes Actuales (Arrastra para reordenar)</h5>
+
+<div id="image-list-container" class="image-list-container">
+    {% for image in site.images | sort(attribute='order_index') %}
+    <div class="image-item" data-image-id="{{ image.id }}">
+        <img src="{{ image.public_url }}" alt="{{ image.title_alt }}" class="image-thumbnail mb-2">
+
+        {% if image.is_cover %}
+        <span class="badge bg-warning mb-2"><i class="bi bi-star-fill"></i> PORTADA</span>
+        {% endif %}
+
+        <form action="{{ url_for('sites.update_image_metadata', site_id=site.id, image_id=image.id) }}" method="POST" class="image-metadata-form">
+            <input type="hidden" name="order_index" value="{{ image.order_index }}" class="image-order-input">
+
+            <div class="mb-2">
+                <label class="form-label small mb-0">Título/Alt <span class="text-danger">*</span></label>
+                <input type="text" name="title_alt" class="form-control form-control-sm" value="{{ image.title_alt }}" required>
+            </div>
+            <div class="mb-2">
+                <label class="form-label small mb-0">Descripción</label>
+                <textarea name="description" class="form-control form-control-sm" rows="2">{{ image.description or '' }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-info btn-sm w-100 mb-2">Guardar Metadatos</button>
+        </form>
+
+        <div class="d-flex gap-2">
+            {% if not image.is_cover %}
+            <form action="{{ url_for('sites.set_cover_image', site_id=site.id, image_id=image.id) }}" method="POST" class="w-50">
+                <button type="submit" class="btn btn-warning btn-sm w-100" title="Marcar como portada">
+                    <i class="bi bi-star"></i> Portada
+                </button>
+            </form>
+
+            <form action="{{ url_for('sites.delete_image', site_id=site.id, image_id=image.id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar esta imagen? Esta acción es irreversible.');" class="w-50">
+                <button type="submit" class="btn btn-danger btn-sm w-100" title="Eliminar imagen">
+                    <i class="bi bi-trash"></i> Eliminar
+                </button>
+            </form>
+            {% else %}
+            <button type="button" class="btn btn-danger btn-sm w-100" disabled title="Debe seleccionar otra portada antes de eliminar esta">
+                <i class="bi bi-trash"></i> Eliminar
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
 </form>
 
 {% endblock %}
@@ -252,7 +370,55 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+    // --- Lógica de Reordenamiento de Imágenes con SortableJS ---
+    const imageList = document.getElementById('image-list-container');
+
+    if (imageList) {
+        new Sortable(imageList, {
+            animation: 150,
+            ghostClass: 'bg-secondary', // Clase para el elemento fantasma
+            onEnd: function (evt) {
+                // Se dispara cuando el arrastre finaliza
+                
+                // 1. Recalcular el índice de orden
+                const items = imageList.querySelectorAll('.image-item');
+                items.forEach((item, index) => {
+                    // El nuevo orden es el índice (empezando en 0, pero lo queremos en 1 para BD)
+                    const newOrder = index + 1; 
+                    
+                    // 2. Actualizar el campo oculto 'order_index' de la imagen
+                    const orderInput = item.querySelector('.image-order-input');
+                    orderInput.value = newOrder;
+                    
+                    // 3. Crear un objeto FormData con los datos
+                    const form = item.querySelector('.image-metadata-form');
+                    const formData = new FormData(form);
+
+                    // 4. Enviar una solicitud asíncrona (AJAX/Fetch) al servidor
+                    // Esto evita recargar la página por cada imagen movida
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Error al actualizar el orden de la imagen.');
+                        }
+                        // Opcional: Mostrar un mensaje de éxito silencioso
+                        console.log(`Orden de imagen ID ${item.getAttribute('data-image-id')} actualizado a ${newOrder}.`);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        // Mostrar un mensaje de error al usuario (flash message)
+                        alert('Error al reordenar la imagen. Recargue la página e inténtelo de nuevo.');
+                        window.location.reload(); // Recargar para restaurar el orden correcto
+                    });
+                });
+            }
+        });
+    }
 });
+
 
 // Función para inicializar la selección múltiple de tags
 function initializeTagSelection() {

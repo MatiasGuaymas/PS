@@ -4,7 +4,7 @@ from sqlalchemy import func, Boolean as bool
 from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry 
 from geoalchemy2.shape import to_shape
-
+from core.models import SiteImage
 class Site(db.Model):
     __tablename__ = 'sites'
 
@@ -83,4 +83,8 @@ class Site(db.Model):
                 pass
             return None
 
-
+    @property
+    def cover_image(self):
+        """Retorna la imagen marcada como portada."""
+        # Esto usará el backref 'images'
+        return SiteImage.query.filter_by(site_id=self.id, is_cover=True).first()
