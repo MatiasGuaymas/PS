@@ -1,7 +1,7 @@
 from flask import Flask
 from flask import render_template
 from flask_session import Session
-
+from flask_cors import CORS
 from web.handlers import error
 from core import database
 from web.config import config
@@ -10,6 +10,7 @@ from web.controllers.roles import roles_blueprint
 from src.web.controllers.sites import sites_blueprint
 from src.web.controllers.tags import tags_blueprint
 from src.web.controllers.flags import feature_flag_blueprint
+from src.web.controllers.reviews import reviews_blueprint
 from src.web.controllers.auth import bp as auth_bp
 from src.web.handlers.auth import is_authenticated,is_superAdmin,is_granted
 from .utils.hooks import hook_admin_maintenance
@@ -17,7 +18,7 @@ from .config import get_current_config
 import os
 from dotenv import load_dotenv
 from core import seeds
-
+from src.web.storage import storage
 load_dotenv()
 
 session = Session()
@@ -30,6 +31,9 @@ def create_app(env = 'development', static_folder = "../../static"):
 
     database.init_db(app)
     session.init_app(app)
+    storage.init_app(app)
+
+    CORS(app, resources={r"/*": {"origins": "http://localhost:8080"}}) 
 
     @app.route('/')
     def home():
@@ -45,6 +49,7 @@ def create_app(env = 'development', static_folder = "../../static"):
     app.register_blueprint(sites_blueprint)
     app.register_blueprint(tags_blueprint)
     app.register_blueprint(feature_flag_blueprint)
+    app.register_blueprint(reviews_blueprint)
     app.register_blueprint(auth_bp)
 
     #Manejo de errores
@@ -84,7 +89,7 @@ def create_app(env = 'development', static_folder = "../../static"):
             reset_db(app)
             # Corre los seeds
             seed_db()
-
+    
 
 
     return app

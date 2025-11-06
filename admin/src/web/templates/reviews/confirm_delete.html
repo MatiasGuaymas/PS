@@ -1,0 +1,117 @@
+{% extends "layout.html" %}
+
+{% block title %}Confirmar Eliminación | Puff-tóricos{% endblock %}
+
+{% block content %}
+
+<div class="container-xl p-3">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden">
+                <div class="card-header bg-danger">
+                    <h2 class="h3 text-white mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Confirmar Eliminación de Reseña
+                    </h2>
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="alert alert-danger" role="alert">
+                        <h4 class="alert-heading">
+                            <i class="fas fa-warning me-2"></i>¡Atención!
+                        </h4>
+                        <p class="mb-0">
+                            Esta acción es <strong>definitiva</strong> y no se puede deshacer. 
+                            La reseña será eliminada permanentemente del sistema.
+                        </p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="text-primary">Información de la Reseña</h5>
+                            <table class="table table-dark table-borderless">
+                                <tr>
+                                    <td><strong>Sitio:</strong></td>
+                                    <td>{{ review.site.site_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Usuario:</strong></td>
+                                    <td>{{ review.user_email }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Calificación:</strong></td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% for i in range(1, 6) %}
+                                                {% if i <= review.rating %}
+                                                    <i class="fas fa-star text-warning me-1"></i>
+                                                {% else %}
+                                                    <i class="far fa-star text-warning me-1"></i>
+                                                {% endif %}
+                                            {% endfor %}
+                                            <span class="ms-2">{{ review.rating }}/5</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Estado:</strong></td>
+                                    <td>
+                                        {% if review.status == 'Pendiente' %}
+                                            <span class="badge bg-warning">Pendiente</span>
+                                        {% elif review.status == 'Aprobada' %}
+                                            <span class="badge bg-success">Aprobada</span>
+                                        {% elif review.status == 'Rechazada' %}
+                                            <span class="badge bg-danger">Rechazada</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Fecha:</strong></td>
+                                    <td>{{ review.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h5 class="text-primary">Contenido de la Reseña</h5>
+                            <div class="bg-secondary bg-opacity-25 p-3 rounded">
+                                <p class="mb-0">{{ review.content }}</p>
+                            </div>
+                            
+                            {% if review.rejection_reason %}
+                            <h5 class="text-primary mt-3">Motivo de Rechazo</h5>
+                            <div class="bg-danger bg-opacity-25 p-3 rounded">
+                                <p class="mb-0">{{ review.rejection_reason }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <h5 class="text-primary">¿Estás seguro de que quieres eliminar esta reseña?</h5>
+                        <p class="text-muted">
+                            Esta acción eliminará permanentemente la reseña y toda su información asociada.
+                        </p>
+                    </div>
+
+                    <div class="d-flex gap-3 mt-4">
+                        <form method="POST" action="{{ url_for('reviews.delete', review_id=review.id) }}" class="flex-grow-1">
+                            <button type="submit" class="btn btn-danger w-100">
+                                <i class="fas fa-trash me-2"></i>
+                                Sí, Eliminar Definitivamente
+                            </button>
+                        </form>
+                        
+                        <a href="{{ url_for('reviews.detail', review_id=review.id) }}" 
+                           class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Cancelar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
