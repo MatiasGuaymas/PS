@@ -31,7 +31,7 @@ def create_app(env = 'development', static_folder = "../../static"):
 
     database.init_db(app)
     session.init_app(app)
-    storage.init_app(app)
+    
 
     CORS(app, resources={r"/*": {"origins": "http://localhost:8080"}}) 
 
@@ -89,7 +89,7 @@ def create_app(env = 'development', static_folder = "../../static"):
             reset_db(app)
             # Corre los seeds
             seed_db()
-    
+            storage.init_app(app)
 
 
     return app
