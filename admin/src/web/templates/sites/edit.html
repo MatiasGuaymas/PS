@@ -5,7 +5,6 @@
 {% block head %}
 {{ super() }}
 <style>
-  /* Estilos para el selector de tags */
 .tags-multiselect {
     background-color: #2d2d2d;
     border: 1px solid #4b0082;
@@ -42,64 +41,84 @@
   z-index: 1000;
 }
 
-
-  /* --- ESTILOS RESPONSIVE PARA LA GALERÍA DE IMÁGENES --- */
-  .image-list-container {
+/* --- ESTILOS RESPONSIVE PARA LA GALERÍA DE IMÁGENES ACTUALES --- */
+.image-list-container {
     display: flex;
-    flex-wrap: wrap; /* Permite que los ítems salten a la siguiente línea */
+    flex-wrap: wrap; 
     gap: 15px;
     padding: 0;
     margin: 0;
-    list-style: none; /* Asegura que no haya viñetas si se usa <ul> */
-  }
+    list-style: none;
+}
 
-  .image-item {
-    /* Ajuste principal para el responsive */
-    width: 100%; /* Por defecto, ocupa todo el ancho en móvil */
-    max-width: 300px; /* Limita el ancho en pantallas grandes */
-    flex-grow: 1; /* Permite que crezca para llenar el espacio disponible */
-    
+.image-item {
+    width: 100%;
+    max-width: 300px;
+    flex-grow: 1;
     border: 1px solid #444;
     border-radius: 8px;
     padding: 10px;
     background-color: #2d2d2d;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     cursor: grab;
-  }
+}
 
-  /* Media Query para pantallas medianas (tabletas y escritorios pequeños) */
-  @media (min-width: 768px) {
+@media (min-width: 768px) {
     .image-item {
-      width: calc(50% - 15px); /* 2 columnas */
+      width: calc(50% - 15px); 
       flex-grow: 0;
     }
-  }
+}
 
-  /* Media Query para pantallas grandes (escritorio) */
-  @media (min-width: 1200px) {
+@media (min-width: 1200px) {
     .image-item {
-      width: calc(33.333% - 15px); /* 3 columnas */
+      width: calc(33.333% - 15px);
     }
-  }
+}
   
-  .image-item.sortable-chosen {
+.image-item.sortable-chosen {
     border: 2px dashed #bb86fc;
-    opacity: 0.8; /* Efecto visual durante el arrastre */
-  }
+    opacity: 0.8; 
+}
 
-  .image-thumbnail {
+.image-thumbnail {
     width: 100%;
     height: 150px;
     object-fit: cover;
     border-radius: 6px;
-  }
+}
+
+/* --- ESTILOS PARA LA PREVISUALIZACIÓN DE SUBIDA DE NUEVAS IMÁGENES --- */
+#new-image-upload-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px; /* Espacio entre las miniaturas */
+    padding-top: 10px;
+}
+
+.image-preview-item {
+    width: 150px; /* Tamaño fijo para la previsualización */
+    flex-shrink: 0;
+    background-color: #3d3d3d;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #555;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.image-preview-item img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
 </style>
 
 {% endblock %}
 
 {% block content %}
 <h2>Editar Sitio Histórico</h2>
-
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
@@ -193,35 +212,40 @@
       Haz clic en las etiquetas para seleccionarlas. Las seleccionadas se verán resaltadas.
     </small>
   </div>
-  <div class="d-flex gap-2">
-    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+  <div class="d-flex gap-2 mb-4">
+    <button type="submit" class="btn btn-primary">Guardar cambios del Sitio</button>
     <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-secondary">Cancelar</a>
   </div>
-  <h4 class="mb-4 text-info">Gestión de Imágenes ({{ site.images | length }} / 10)</h4>
+</form>
+<h4 class="mb-4 text-info">Gestión de Imágenes ({{ site.images.count() }} / 10)</h4>
 
-      {% if site.images | length < 10 %}
-      <div class="p-4 mb-4 border border-info rounded-3">
-        <h5 class="text-white">Subir Nuevas Imágenes</h5>
-        <form action="{{ url_for('sites.add_images', site_id=site.id) }}" method="POST" enctype="multipart/form-data">
-          <div class="mb-3">
-            <label for="images" class="form-label">Seleccionar archivos (Máx 5MB c/u, JPG/PNG/WEBP)</label>
-            <input class="form-control" type="file" id="images" name="images" multiple accept="image/jpeg,image/png,image/webp" required>
-            <small class="form-text text-white">Puedes seleccionar múltiples archivos a la vez.</small>
-          </div>
-          <button type="submit" class="btn btn-success">Subir Imágen(es)</button>
-        </form>
+  {% if site.images.count() < 10 %}
+  <div class="p-4 mb-4 border border-info rounded-3">
+    <h5 class="text-white">Subir Nuevas Imágenes</h5>
+    <form action="{{ url_for('sites.add_images', site_id=site.id) }}" method="POST" enctype="multipart/form-data" id="add-images-form">
+      <div class="mb-3">
+        <label for="images" class="form-label">Seleccionar archivos (Máx 5MB c/u, JPG/PNG/WEBP)</label>
+        <input class="form-control" type="file" id="images" name="images" multiple accept="image/jpeg,image/png,image/webp">
+        <small class="form-text text-white">Puedes seleccionar hasta {{ 10 - site.images.count() }} imágenes.</small>
+        
+        <div id="new-image-upload-preview">
+        </div>
       </div>
-      {% else %}
-      <div class="alert alert-warning" role="alert">
-        <i class="bi bi-exclamation-triangle"></i> Has alcanzado el límite de 10 imágenes para este sitio.
-      </div>
-      {% endif %}
+      <button type="submit" class="btn btn-success" id="submit-new-images-btn" disabled>Subir Imágen(es)</button>
+    </form>
+  </div>
+  {% else %}
+  <div class="alert alert-warning" role="alert">
+    <i class="bi bi-exclamation-triangle"></i> Has alcanzado el límite de 10 imágenes para este sitio.
+  </div>
+  {% endif %}
+  
   <h5 class="text-white mb-3">Imágenes Actuales (Arrastra para reordenar)</h5>
 
 <div id="image-list-container" class="image-list-container">
     {% for image in site.images | sort(attribute='order_index') %}
     <div class="image-item" data-image-id="{{ image.id }}">
-        <img src="{{ image.public_url }}" alt="{{ image.title_alt }}" class="image-thumbnail mb-2">
+        <img src="{{ getImageUrl(image)}}" alt="{{ image.title_alt }}" class="image-thumbnail mb-2">
 
         {% if image.is_cover %}
         <span class="badge bg-warning mb-2"><i class="bi bi-star-fill"></i> PORTADA</span>
@@ -263,77 +287,55 @@
     </div>
     {% endfor %}
 </div>
-</form>
 
 {% endblock %}
 
 {% block scripts %}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <script>
-// Inicializar mapa
-var map = L.map('map').setView([-34.6037, -58.3816], 10); // Buenos Aires por defecto
-
-// Agregar capa de tiles
+// --- CÓDIGO LEAFLET Y MAPA (Sin cambios importantes) ---
+var map = L.map('map').setView([-34.6037, -58.3816], 10);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
 }).addTo(map);
-
 var marker = null;
-
-// Función para manejar clics en el mapa
 map.on('click', function(e) {
     var lat = e.latlng.lat;
     var lon = e.latlng.lng;
-    
-    // Actualizar campos ocultos
     document.getElementById('latitude').value = lat;
     document.getElementById('longitude').value = lon;
-    
-    // Actualizar display
     document.getElementById('lat-display').textContent = lat.toFixed(6);
     document.getElementById('lon-display').textContent = lon.toFixed(6);
-    
-    // Agregar/actualizar marcador
     if (marker) {
         map.removeLayer(marker);
     }
     marker = L.marker([lat, lon]).addTo(map);
 });
-
-// Función para centrar en ubicación actual
 function getCurrentLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
             var lat = position.coords.latitude;
             var lon = position.coords.longitude;
-            
             map.setView([lat, lon], 15);
-            
-            // Simular clic en la ubicación actual
             map.fire('click', {latlng: L.latLng(lat, lon)});
         });
     }
 }
-
-// Botón para ubicación actual
 document.addEventListener('DOMContentLoaded', function() {
     var locationBtn = document.createElement('button');
     locationBtn.type = 'button';
     locationBtn.className = 'btn btn-outline-primary btn-sm mt-2';
     locationBtn.innerHTML = '📍 Usar mi ubicación actual';
     locationBtn.onclick = getCurrentLocation;
-    
     document.getElementById('map').parentNode.appendChild(locationBtn);
-    
-    // Cargar ubicación existente si existe
     var coordsEl = document.getElementById('site-coords');
     if (coordsEl) {
         var coords = JSON.parse(coordsEl.textContent);
         var existingLat = coords.lat;
         var existingLon = coords.lon;
-        
         if (existingLat && existingLon) {
         map.setView([existingLat, existingLon], 15);
         marker = L.marker([existingLat, existingLon]).addTo(map);
@@ -343,16 +345,13 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('longitude').value = existingLon;
         }
     }
-    
-    // Inicializar selección múltiple de tags
     initializeTagSelection();
     
-    // Asegurar sincronización antes de enviar
+    // Sincronización de coordenadas al enviar el formulario principal
     var form = document.getElementById('edit-form');
     form.addEventListener('submit', function() {
         var latInput = document.getElementById('latitude');
         var lonInput = document.getElementById('longitude');
-        // Si existe marcador, tomar sus coords
         if (marker) {
             var pos = marker.getLatLng();
             if (pos) {
@@ -360,7 +359,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 lonInput.value = pos.lng;
             }
         }
-        // Si siguen vacíos pero hay display numérico, tomar del display
         if ((!latInput.value || !lonInput.value)) {
             var latText = document.getElementById('lat-display').textContent;
             var lonText = document.getElementById('lon-display').textContent;
@@ -370,32 +368,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
     // --- Lógica de Reordenamiento de Imágenes con SortableJS ---
     const imageList = document.getElementById('image-list-container');
-
     if (imageList) {
         new Sortable(imageList, {
             animation: 150,
-            ghostClass: 'bg-secondary', // Clase para el elemento fantasma
+            ghostClass: 'bg-secondary',
             onEnd: function (evt) {
-                // Se dispara cuando el arrastre finaliza
-                
-                // 1. Recalcular el índice de orden
                 const items = imageList.querySelectorAll('.image-item');
                 items.forEach((item, index) => {
-                    // El nuevo orden es el índice (empezando en 0, pero lo queremos en 1 para BD)
                     const newOrder = index + 1; 
-                    
-                    // 2. Actualizar el campo oculto 'order_index' de la imagen
                     const orderInput = item.querySelector('.image-order-input');
                     orderInput.value = newOrder;
-                    
-                    // 3. Crear un objeto FormData con los datos
                     const form = item.querySelector('.image-metadata-form');
                     const formData = new FormData(form);
 
-                    // 4. Enviar una solicitud asíncrona (AJAX/Fetch) al servidor
-                    // Esto evita recargar la página por cada imagen movida
                     fetch(form.action, {
                         method: 'POST',
                         body: formData
@@ -404,29 +392,127 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (!response.ok) {
                             throw new Error('Error al actualizar el orden de la imagen.');
                         }
-                        // Opcional: Mostrar un mensaje de éxito silencioso
                         console.log(`Orden de imagen ID ${item.getAttribute('data-image-id')} actualizado a ${newOrder}.`);
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        // Mostrar un mensaje de error al usuario (flash message)
                         alert('Error al reordenar la imagen. Recargue la página e inténtelo de nuevo.');
-                        window.location.reload(); // Recargar para restaurar el orden correcto
+                        window.location.reload(); 
                     });
                 });
             }
         });
     }
+
+    // --- Lógica de Previsualización y Metadatos para Subida de Nuevas Imágenes ---
+    const newImageInput = document.getElementById('images');
+    const newPreviewContainer = document.getElementById('new-image-upload-preview');
+    const submitBtn = document.getElementById('submit-new-images-btn');
+    const MAX_CURRENT_IMAGES = {{ site.images.count() }};
+    const MAX_TOTAL_IMAGES = 10;
+    const MAX_FILE_SIZE_MB = 5;
+
+    function validateAndPreviewNewImages(files) {
+        newPreviewContainer.innerHTML = '';
+        submitBtn.disabled = true;
+        
+        let validFiles = true;
+
+        if (files.length === 0) {
+            return;
+        }
+
+        if (MAX_CURRENT_IMAGES + files.length > MAX_TOTAL_IMAGES) {
+            alert(`Solo puedes subir hasta ${MAX_TOTAL_IMAGES - MAX_CURRENT_IMAGES} imágenes más.`);
+            newImageInput.value = '';
+            return;
+        }
+
+        Array.from(files).forEach((file, index) => {
+            const fileSizeMB = file.size / (1024 * 1024);
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            const ALLOWED_EXTENSIONS = ['jpg', 'png', 'webp', 'jpeg']; 
+
+            if (fileSizeMB > MAX_FILE_SIZE_MB || !ALLOWED_EXTENSIONS.includes(fileExtension)) {
+                alert(`El archivo ${file.name} es inválido (tamaño > 5MB o formato no permitido).`);
+                validFiles = false;
+                newImageInput.value = '';
+                return; 
+            }
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewItem = document.createElement('div');
+                    // Usamos las clases CSS definidas en <style> para el layout
+                    previewItem.className = 'image-preview-item'; 
+                    
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = `Previsualización de ${file.name}`;
+                    
+                    const titleInput = document.createElement('input');
+                    titleInput.type = 'text';
+                    titleInput.name = `title_alt_${index}`; 
+                    titleInput.className = 'form-control form-control-sm mb-1';
+                    titleInput.placeholder = 'Título/Alt (obligatorio)';
+                    titleInput.required = true;
+
+                    const descTextarea = document.createElement('textarea');
+                    descTextarea.name = `description_${index}`;
+                    descTextarea.className = 'form-control form-control-sm';
+                    descTextarea.rows = '2';
+                    descTextarea.placeholder = 'Descripción (opcional)';
+                    
+                    previewItem.appendChild(img);
+                    previewItem.appendChild(titleInput);
+                    previewItem.appendChild(descTextarea);
+                    newPreviewContainer.appendChild(previewItem);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Habilitar botón si hay archivos y la validación inicial pasó
+        if (files.length > 0 && validFiles) {
+            submitBtn.disabled = false;
+        }
+    }
+
+    newImageInput.addEventListener('change', function() {
+        validateAndPreviewNewImages(this.files);
+    });
+    
+    // Validación final de metadatos antes del envío del formulario de subida
+    document.getElementById('add-images-form').addEventListener('submit', function(e) {
+        const titleInputs = newPreviewContainer.querySelectorAll('input[type="text"][required]');
+        let allTitlesFilled = true;
+        
+        titleInputs.forEach(input => {
+            if (!input.value.trim()) {
+                allTitlesFilled = false;
+                input.focus();
+                input.style.borderColor = '#dc3545';
+            } else {
+                 input.style.borderColor = '';
+            }
+        });
+        
+        if (!allTitlesFilled) {
+            e.preventDefault();
+            alert('Por favor, complete el Título/Alt obligatorio para todas las nuevas imágenes.');
+        }
+    });
+
 });
 
 
-// Función para inicializar la selección múltiple de tags
+// Función para inicializar la selección múltiple de tags (Sin cambios)
 function initializeTagSelection() {
     const tagOptions = document.querySelectorAll('.tag-option');
     const hiddenInput = document.getElementById('tags');
     const selectedTags = new Set();
     
-    // Cargar tags ya seleccionados
     const initialValue = hiddenInput.value;
     if (initialValue) {
         initialValue.split(',').forEach(value => {
@@ -437,36 +523,22 @@ function initializeTagSelection() {
     }
     
     tagOptions.forEach(option => {
+        if (selectedTags.has(option.getAttribute('data-value'))) {
+             option.classList.add('selected');
+        }
+        
         option.addEventListener('click', function() {
             const value = this.getAttribute('data-value');
             
             if (selectedTags.has(value)) {
-                // Deseleccionar
                 selectedTags.delete(value);
-                this.style.backgroundColor = '#3d3d3d';
-                this.style.border = 'none';
+                this.classList.remove('selected');
             } else {
-                // Seleccionar
                 selectedTags.add(value);
-                this.style.backgroundColor = '#6a0dad';
-                this.style.border = '2px solid #bb86fc';
+                this.classList.add('selected');
             }
             
-            // Actualizar input hidden con los valores seleccionados
             hiddenInput.value = Array.from(selectedTags).join(',');
-        });
-        
-        // Estilo hover
-        option.addEventListener('mouseenter', function() {
-            if (!selectedTags.has(this.getAttribute('data-value'))) {
-                this.style.backgroundColor = '#4d4d4d';
-            }
-        });
-        
-        option.addEventListener('mouseleave', function() {
-            if (!selectedTags.has(this.getAttribute('data-value'))) {
-                this.style.backgroundColor = '#3d3d3d';
-            }
         });
     });
 }
