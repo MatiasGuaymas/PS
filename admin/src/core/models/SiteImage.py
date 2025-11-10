@@ -16,7 +16,7 @@ class SiteImage(db.Model):
     # --- Relación con el Sitio ---
     site_id = Column(Integer, ForeignKey('sites.id', ondelete='CASCADE'), nullable=False)
     # Define la relación inversa para acceder fácilmente a las imágenes desde el sitio
-    site = relationship('Site', backref='images', lazy=True)
+    site = relationship('Site', backref=db.backref('images', lazy='dynamic'),lazy=True)
 
     public_url = Column(String(512), nullable=False)
     file_path = Column(String(255), nullable=False, unique=True)

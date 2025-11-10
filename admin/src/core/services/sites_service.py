@@ -135,7 +135,7 @@ class SiteService:
         else:
             return query.all()
         
-    def get_site_images_count(self, site_id: int) -> int:
+    def get_site_images_count(site_id: int) -> int:
         """
         Obtiene el número total de imágenes asociadas a un sitio.
         
@@ -145,9 +145,9 @@ class SiteService:
         Returns:
             int: Cantidad de imágenes.
         """
-        return SiteImage.query.filter_by(site_id=site_id).count()
+        return db.session.query(SiteImage).filter_by(site_id=site_id).count()
 
-    def get_cover_image(self, site_id: int):
+    def get_cover_image(site_id: int):
         """
         Obtiene el objeto SiteImage marcado como portada para un sitio.
         
@@ -157,9 +157,9 @@ class SiteService:
         Returns:
             SiteImage | None: La imagen de portada o None si no se encuentra.
         """
-        return SiteImage.query.filter_by(site_id=site_id, is_cover=True).first()
+        return db.session.query(SiteImage).filter_by(site_id=site_id, is_cover=True).first()
 
-    def get_next_image_order(self, site_id: int) -> int:
+    def get_next_image_order(site_id: int) -> int:
         """
         Calcula el siguiente índice de orden disponible para una nueva imagen.
         
@@ -177,7 +177,7 @@ class SiteService:
 
     # --- MÉTODOS DE MANIPULACIÓN (Lógica de Negocio) ---
 
-    def reorder_image(self, site_id: int, image_id: int, new_index: int) -> bool:
+    def reorder_image(site_id: int, image_id: int, new_index: int) -> bool:
         """
         Ajusta el índice de orden de una imagen y reajusta las demás si es necesario.
         
@@ -191,7 +191,7 @@ class SiteService:
         """
         try:
             # 1. Obtener la imagen que se va a mover y su orden actual
-            image_to_move = SiteImage.query.filter_by(id=image_id, site_id=site_id).first()
+            image_to_move = db.session.query(SiteImage).filter_by(id=image_id, site_id=site_id).first()
             if not image_to_move:
                 logger.warning(f"Intento de reordenar imagen ID={image_id} que no existe en sitio ID={site_id}.")
                 return False
@@ -228,7 +228,7 @@ class SiteService:
             logger.error(f"Error al reordenar imagen ID={image_id} para sitio {site_id}: {e}", exc_info=True)
             return False
 
-    def set_cover_image(self, site_id: int, image_id: int) -> bool:
+    def set_cover_image(site_id: int, image_id: int) -> bool:
         """
         Establece una imagen específica como portada del sitio, desmarcando la anterior.
         
@@ -246,7 +246,10 @@ class SiteService:
                 .update({SiteImage.is_cover: False}, synchronize_session=False)
 
             # 2. Marcar la nueva imagen como portada
-            SiteImage.query.filter_by(id=image_id, site_id=site_id).update({SiteImage.is_cover: True})
+            db.session.query(SiteImage).filter(
+                            SiteImage.id == image_id, 
+                            SiteImage.site_id == site_id
+                        ).update({SiteImage.is_cover: True}, synchronize_session='fetch')
             
             db.session.commit()
             logger.info(f"Imagen ID={image_id} establecida como portada para sitio {site_id}.")
@@ -256,3 +259,130 @@ class SiteService:
             db.session.rollback()
             logger.error(f"Error al establecer imagen ID={image_id} como portada: {e}", exc_info=True)
             return False
+    
+    def process_new_images_transactional(site_id, image_data):
+        """
+        Procesa un lote de nuevas imágenes: las valida, sube a MinIO y crea registros en BD.
+        
+        Args:
+            site_id (int): ID del sitio al que pertenecen las imágenes.
+            image_data (list): Lista de dicts con {"file": file_obj, "title_alt": "...", "description": "..."}.
+            
+        Returns:
+            int: Número de imágenes procesadas con éxito.
+        """
+        from flask import current_app
+        import os
+        import uuid
+
+        if not image_data:
+            return 0
+
+        client = current_app.storage
+        images_processed = 0
+
+        # Pre-cálculos una sola vez
+        next_order = SiteService.get_next_image_order(site_id)
+        is_first_image_for_site = (SiteService.get_cover_image(site_id) is None)
+        for idx, img_info in enumerate(image_data):
+            file = img_info["file"]
+            titulo_alt = img_info["title_alt"]
+            descripcion = img_info["description"]
+
+            file.seek(0, os.SEEK_END)
+            file_size = file.tell()
+            file.seek(0)
+
+            extension = file.filename.rsplit('.', 1)[1].lower()
+            file_uuid = str(uuid.uuid4())
+            # Guardar en una subcarpeta con el site_id en MinIO
+            minio_path = f"{site_id}/{file_uuid}.{extension}"
+            try:
+                #no hace falta guardar res, esta para deputar errores
+                res= client.put_object(bucket_name = current_app.config["MINIO_BUCKET"],
+                                    object_name=minio_path,
+                                    data=file,
+                                    length=file_size,
+                                    content_type=file.content_type)
+                public_url = f"/{current_app.config['MINIO_BUCKET']}/{minio_path}"
+                
+                # La primera imagen subida será la portada por defecto
+                is_cover = (idx == 0 and is_first_image_for_site)
+
+                new_image = SiteImage(
+                    site_id=site_id,
+                    public_url=public_url,
+                    file_path=minio_path,
+                    title_alt=titulo_alt,
+                    description=descripcion,
+                    order_index=(idx + next_order), # El orden inicial es secuencial
+                    is_cover=is_cover
+                )
+                db.session.add(new_image)
+                db.session.flush()
+                #TO-? Registrar auditoría
+                images_processed += 1
+            except Exception as e:
+                logger.error(f"Error al subir imagen para sitio ID={site_id}: {e}", exc_info=True)
+                continue
+        return images_processed
+    
+    def delete_image_transactional(site_id, image_id, current_user_id):
+        """
+        Elimina una imagen del sitio (requiere no ser portada), de MinIO y de la BD.
+        
+        Returns:
+            bool: True si se eliminó, False si falló la validación o la eliminación.
+        """
+        from flask import current_app
+        image_to_delete = db.session.query(SiteImage).filter_by(id=image_id, site_id=site_id).first()
+        if not image_to_delete:
+            return False
+
+        if image_to_delete.is_cover:
+            raise ValueError("No se puede eliminar la imagen de portada. Por favor, marque otra imagen como portada primero.")
+            
+        image_title = image_to_delete.title_alt
+        image_filepath = image_to_delete.file_path
+
+        try:
+            # 1. Eliminar de MinIO
+            current_app.storage.delete_file(image_filepath) # Asumo que tienes una forma de acceder al storage
+
+            # 2. Eliminar de la Base de Datos
+            db.session.delete(image_to_delete)
+            
+            # 3. Registrar auditoría
+            SiteService._register_audit_log(
+                user_id=current_user_id,
+                site_id=site_id,
+                action_type='UPDATE',
+                description=f"Se eliminó la imagen '{image_title}' (ID: {image_id})."
+            )
+            # El commit será manejado por la vista o se hace commit aquí si se usa solo
+            
+            return True
+        
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error al eliminar imagen de MinIO/BD para sitio {site_id}, imagen {image_id}: {e}")
+            # Relanzar la excepción para que la vista pueda dar un mensaje de error
+            raise Exception("Ocurrió un error al intentar eliminar la imagen.")
+        
+    def build_image_url(site_id: int, image_path: int):
+        from flask import current_app
+        """
+        Obtiene una imagen específica de un sitio.
+        
+        Args:
+            site_id (int): ID del sitio.
+            image_path: Path de la imagen.
+            
+        Returns:
+            SiteImage | None: La imagen solicitada o None si no se encuentra.
+        """
+        client = current_app.storage
+        return client.presigned_get_object(
+            bucket_name=current_app.config["MINIO_BUCKET"],
+            object_name=image_path,
+        )
