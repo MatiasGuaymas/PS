@@ -132,6 +132,7 @@
 
 {% block scripts %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <script>
   // Inicializar mapa
@@ -270,28 +271,48 @@
     // --- Lógica de previsualización de imágenes ---
     const imageInput = document.getElementById('images');
     const previewContainer = document.getElementById('image-upload-preview');
+    let fileList = [];
+    new Sortable(previewContainer, {
+        animation: 150,
+        ghostClass: 'bg-secondary',
+        handle: '.image-preview-item', // Permite arrastrar desde el elemento completo
+        onEnd: function (evt) {
+            // Llamar a la función para reordenar la lista y actualizar los nombres
+            reorderFilesAndInputs();
+        }
+    });
 
+    // Función que maneja la selección de archivos
     imageInput.addEventListener('change', function() {
         previewContainer.innerHTML = ''; // Limpiar previsualizaciones anteriores
-
+        
         const files = this.files;
         const MAX_IMAGES = 10;
 
         if (files.length > MAX_IMAGES) {
             alert(`Solo puedes seleccionar un máximo de ${MAX_IMAGES} imágenes.`);
             this.value = ''; // Limpiar selección
+            fileList = []; // Limpiar lista
             return;
         }
 
-        Array.from(files).forEach((file, index) => {
+        // Guardar la lista de archivos en la variable global
+        fileList = Array.from(files);
+
+        // Generar previsualizaciones
+        fileList.forEach((file, index) => {
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const previewItem = document.createElement('div');
                     previewItem.className = 'image-preview-item border p-2 rounded';
-                    previewItem.style.width = '120px'; // Tamaño de la miniatura
+                    // Añadir estilo para cursor de arrastre
+                    previewItem.style.cursor = 'grab';
+                    previewItem.style.width = '120px'; 
                     previewItem.style.height = 'auto';
                     previewItem.style.backgroundColor = '#3d3d3d';
+                    // Almacenar el índice original del archivo para referencia
+                    previewItem.setAttribute('data-file-index', index); 
                     
                     const img = document.createElement('img');
                     img.src = e.target.result;
@@ -302,16 +323,16 @@
                     img.style.borderRadius = '4px';
                     img.className = 'mb-2';
 
+                    // Los nombres de los inputs se establecerán en reorderFilesAndInputs()
+
                     const titleInput = document.createElement('input');
                     titleInput.type = 'text';
-                    titleInput.name = `title_alt_${index}`; // Nombre único para cada imagen
-                    titleInput.className = 'form-control form-control-sm mb-1';
+                    titleInput.className = 'form-control form-control-sm mb-1 image-title-input'; // Clase para identificar
                     titleInput.placeholder = 'Título/Alt (obligatorio)';
                     titleInput.required = true;
 
                     const descTextarea = document.createElement('textarea');
-                    descTextarea.name = `description_${index}`; // Nombre único
-                    descTextarea.className = 'form-control form-control-sm';
+                    descTextarea.className = 'form-control form-control-sm image-desc-input'; // Clase para identificar
                     descTextarea.rows = '2';
                     descTextarea.placeholder = 'Descripción (opcional)';
                     
@@ -319,13 +340,52 @@
                     previewItem.appendChild(titleInput);
                     previewItem.appendChild(descTextarea);
                     previewContainer.appendChild(previewItem);
+                    
+                    // Aseguramos que los inputs tengan sus nombres correctos inicialmente
+                    reorderFilesAndInputs(); 
                 };
                 reader.readAsDataURL(file);
             }
         });
     });
-  });
+    
+    // Función para reordenar la lista y actualizar nombres de inputs
+    function reorderFilesAndInputs() {
+        const items = Array.from(previewContainer.querySelectorAll('.image-preview-item'));
+        
+        // Crear la nueva lista de archivos reordenada
+        const reorderedFiles = [];
+        const dataTransfer = new DataTransfer();
 
+        items.forEach((item, newIndex) => {
+            // Obtener el índice original del archivo
+            const originalIndex = parseInt(item.getAttribute('data-file-index'));
+            
+            // Añadir el archivo original a la nueva lista reordenada
+            reorderedFiles.push(fileList[originalIndex]);
+
+            // Renombrar los inputs de metadatos según la nueva posición (0, 1, 2...)
+            const titleInput = item.querySelector('.image-title-input');
+            const descInput = item.querySelector('.image-desc-input');
+            
+            // Asegurarse de que el índice refleje el nuevo orden
+            titleInput.name = `title_alt_${newIndex}`;
+            descInput.name = `description_${newIndex}`;
+            
+            // Actualizar el índice de datos del elemento (para mantener la referencia)
+            item.setAttribute('data-file-index', newIndex);
+            
+            // Agregar el archivo al nuevo objeto DataTransfer para reasignarlo al input file
+            dataTransfer.items.add(fileList[originalIndex]);
+        });
+
+        // Reemplazar la lista de archivos global y en el input de tipo file
+        fileList = reorderedFiles;
+        imageInput.files = dataTransfer.files;
+        
+        console.log("Archivos y nombres de inputs reordenados.");
+      }
+  });
   
 
   // Función para inicializar la selección múltiple de tags
