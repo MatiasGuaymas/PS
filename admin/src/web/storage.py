@@ -16,6 +16,8 @@ class Storage:
                             secure=False,
                             )
         app.storage = self._client
+        print(app.storage)
+        print(self._client)
         return app
 
     def delete_file(self, object_name):
