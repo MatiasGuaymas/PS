@@ -14,6 +14,7 @@ from src.web.controllers.reviews import reviews_blueprint
 from src.web.controllers.auth import bp as auth_bp
 from src.web.handlers.auth import is_authenticated,is_superAdmin,is_granted
 from .utils.hooks import hook_admin_maintenance
+from .utils.helperImage import getImageUrl
 from .config import get_current_config
 import os
 from dotenv import load_dotenv
@@ -62,6 +63,7 @@ def create_app(env = 'development', static_folder = "../../static"):
     app.jinja_env.globals.update(is_authenticated=is_authenticated)
     app.jinja_env.globals.update(is_superAdmin=is_superAdmin)
     app.jinja_env.globals.update(is_granted=is_granted)
+    app.jinja_env.globals.update(getImageUrl=getImageUrl)
 
     # Commands
     @app.cli.command("reset-db")

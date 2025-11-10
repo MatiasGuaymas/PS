@@ -18,7 +18,6 @@ class Site(db.Model):
     registration = Column(DateTime(timezone=True), server_default=func.now())
     active = Column(bool, default=1)
     deleted = Column(bool, default=0)
-    #images = Column(String, nullable=False)
 
     location = Column(
         Geometry(
@@ -87,4 +86,4 @@ class Site(db.Model):
     def cover_image(self):
         """Retorna la imagen marcada como portada."""
         # Esto usará el backref 'images'
-        return SiteImage.query.filter_by(site_id=self.id, is_cover=True).first()
+        return self.images.filter_by(is_cover=True).first()
