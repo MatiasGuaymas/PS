@@ -386,7 +386,7 @@ def create():
                         file_uuid = str(uuid.uuid4())
                         # Guardar en una subcarpeta con el site_id en MinIO
                         minio_path = f"{new_site.id}/{file_uuid}.{extension}"
-                        
+                        print(current_app.config)
                         res= client.put_object(bucket_name = current_app.config["MINIO_BUCKET"],
                                           object_name=minio_path,
                                           data=file,
