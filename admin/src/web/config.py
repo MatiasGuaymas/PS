@@ -10,16 +10,16 @@ class config:
         "pool_pre_ping": True,
     }
 
+
 class ProductionConfig(config):
     """Production configuration."""
-    MINIO_SERVER = os.getenv("MINIO_SERVER", "")
-    MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "")
-    MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "")
+    MINIO_SERVER = os.getenv("MINIO_SERVER", "minio.proyecto2025.linti.unlp.edu.ar")
+    MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "QdcezP7tN0XuAt6Vlv4M")
+    MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "Rmjc12vculzWGkxbr7VI9gos0fV6QOjHMKIenk2M")
     MINIO_SECURE = True
     MINIO_BUCKET = "grupo21"
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "")
     DEBUG=False
-
 
 
 class DevelopmentConfig(config):

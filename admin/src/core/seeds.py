@@ -13,6 +13,7 @@ from core.models.Site_Tag import HistoricSiteTag
 from core.models.Audit import Audit
 from core.models.Flag import Flag
 from core.models.User import User
+from core.models.Review import Review
 from core.services.user_service import UserService
 
 import bcrypt
@@ -24,7 +25,8 @@ def seed_data():
     r_admin = Role(name='Administrador')
     r_user = Role(name='Usuario')
     r_editor = Role(name='Editor')
-    db.session.add_all([r_admin, r_user, r_editor])
+    r_moderator = Role(name='Moderador')
+    db.session.add_all([r_admin, r_user, r_editor, r_moderator])
     db.session.flush()
 
     # 2) Permissions
@@ -58,13 +60,19 @@ def seed_data():
     # f_update = Permission(name='flag_update')
     # Lo dejo comentado porque el SysAdmin no es un Rol como tal, no le puedo asignar permisos
 
+    # Permisos para reviews
+    r_index = Permission(name='review_index')
+    r_approve = Permission(name='review_approve')
+    r_reject = Permission(name='review_reject')
+    r_destroy = Permission(name='review_destroy')
+
     # Permisos para la exportación
     e_export = Permission(name='exporter_export')
 
     db.session.add_all([
         u_index, u_new, u_update, u_destroy, u_show, u_deactivate,
         s_index, s_new, s_update, s_destroy, s_show, s_export, s_history, s_restore,
-        t_index, t_new, t_update, t_destroy, t_show,
+        t_index, t_new, t_update, t_destroy, t_show, r_index, r_approve, r_reject, r_destroy,
       #  f_index, f_update,
         e_export,
     ])
@@ -88,8 +96,13 @@ def seed_data():
         Role_permission(role_id=r_admin.id, permission_id=t_update.id),
         Role_permission(role_id=r_admin.id, permission_id=t_destroy.id),  
         Role_permission(role_id=r_admin.id, permission_id=t_show.id),    
-        Role_permission(role_id=r_admin.id, permission_id=e_export.id),    
-                                              
+        Role_permission(role_id=r_admin.id, permission_id=e_export.id),  
+
+        # ------Reseñas------
+        Role_permission(role_id=r_admin.id, permission_id=r_index.id),
+        Role_permission(role_id=r_admin.id, permission_id=r_approve.id),
+        Role_permission(role_id=r_admin.id, permission_id=r_reject.id),
+        Role_permission(role_id=r_admin.id, permission_id=r_destroy.id),                                    
     ]
 
     # Role-Permissions para Editores
@@ -97,19 +110,34 @@ def seed_data():
         Role_permission(role_id=r_editor.id, permission_id=s_index.id),
         Role_permission(role_id=r_editor.id, permission_id=s_update.id),
         Role_permission(role_id=r_editor.id, permission_id=s_show.id),
-        Role_permission(role_id=r_admin.id, permission_id=t_index.id),           
-        Role_permission(role_id=r_admin.id, permission_id=t_new.id),
-        Role_permission(role_id=r_admin.id, permission_id=t_update.id),
-        Role_permission(role_id=r_admin.id, permission_id=t_destroy.id),  
-        Role_permission(role_id=r_admin.id, permission_id=t_show.id), 
+        Role_permission(role_id=r_editor.id, permission_id=t_index.id),           
+        Role_permission(role_id=r_editor.id, permission_id=t_new.id),
+        Role_permission(role_id=r_editor.id, permission_id=t_update.id),
+        Role_permission(role_id=r_editor.id, permission_id=t_destroy.id),  
+        Role_permission(role_id=r_editor.id, permission_id=t_show.id), 
+
+         # ------Reseñas------
+        Role_permission(role_id=r_editor.id, permission_id=r_index.id),
+        Role_permission(role_id=r_editor.id, permission_id=r_approve.id),
+        Role_permission(role_id=r_editor.id, permission_id=r_reject.id),
+        Role_permission(role_id=r_editor.id, permission_id=r_destroy.id),
     ]
+
+    # Role-Permissions para Moderadores
+    rp_moderator_permissions = [
+    # ------Reseñas------
+    Role_permission(role_id=r_moderator.id, permission_id=r_index.id),
+    Role_permission(role_id=r_moderator.id, permission_id=r_approve.id),
+    Role_permission(role_id=r_moderator.id, permission_id=r_reject.id),
+    Role_permission(role_id=r_moderator.id, permission_id=r_destroy.id),
+]
 
     # Role-Permissions para Usuarios Públicos
     rp_user_permissions = [
         Role_permission(role_id=r_user.id, permission_id=s_index.id),
     ]
 
-    db.session.add_all(rp_admin_user_permissions + rp_editor_permissions + rp_user_permissions)
+    db.session.add_all(rp_admin_user_permissions + rp_editor_permissions + rp_moderator_permissions + rp_user_permissions)
     db.session.flush()
 
     # 4) Categories
@@ -144,9 +172,10 @@ def seed_data():
     u1 = User(email='admin@example.com', first_name='Admin', last_name='Uno', password=bcrypt.hashpw('adminpass'.encode('utf-8'), bcrypt.gensalt()), active=True, sysAdmin=True, role_id=r_admin.id)
     u2 = User(email='user@example.com', first_name='Usuario', last_name='Dos', password=bcrypt.hashpw('userpass'.encode('utf-8'), bcrypt.gensalt()), active=True, sysAdmin=False, role_id=r_user.id)
     u3 = User(email='editor@example.com', first_name='Invitado', last_name='Tres', password=bcrypt.hashpw('userpass'.encode('utf-8'), bcrypt.gensalt()), active=False, sysAdmin=False, role_id=r_editor.id)
+    u4 = User(email='moderador@example.com', first_name='Moderador', last_name='Cuatro', password=bcrypt.hashpw('moderadorpass'.encode('utf-8'), bcrypt.gensalt()), active=True, sysAdmin=False, role_id=r_moderator.id)
     
     # Agregar los usuarios básicos
-    db.session.add_all([u1, u2, u3])
+    db.session.add_all([u1, u2, u3, u4])
     
     # Datos de usuarios de prueba adicionales
     test_users_data = [
@@ -220,7 +249,27 @@ def seed_data():
     f2 = Flag(name='portal_maintenance_mode', description='Portal en mantenimiento', is_enabled=False, message='Restauración', user_id=u1.id)
     f3 = Flag(name='reviews_enabled', description='Habilitar reseñas de usuarios', is_enabled=True, message='etapa 2', user_id=u1.id)
     db.session.add_all([f1, f2, f3])
+    db.session.flush()
 
+
+    # Obtenemos los 4 primeros sitios directamente de la BD 
+    first_four_sites = db.session.query(Site).limit(4).all()
+
+    site_for_r1 = first_four_sites[0].id if len(first_four_sites) > 0 else 1
+    site_for_r2 = first_four_sites[1].id if len(first_four_sites) > 1 else 2
+    site_for_r3 = first_four_sites[2].id if len(first_four_sites) > 2 else 3
+    site_for_r4 = first_four_sites[3].id if len(first_four_sites) > 3 else 4
+
+    # 12) Reviews de prueba (4 reseñas)
+    r1 = Review(site_id=site_for_r1, user_email='ricardo.jimenez@user.com', rating=5, content='Increíble experiencia histórica. El lugar está muy bien conservado y las explicaciones son muy claras.', status='Pendiente')
+    r2 = Review(site_id=site_for_r2, user_email='juan.perez@user.com', rating=4, content='Muy interesante sitio histórico. La arquitectura es impresionante y aprendí mucho sobre nuestra historia.', status='Aprobada')
+    r3 = Review(site_id=site_for_r3, user_email='beatriz.romero@user.com', rating=3, content='Buen lugar pero necesita mejor señalización. La información está bien pero podría ser más interactiva.', status='Aprobada')
+    r4 = Review(site_id=site_for_r4, user_email='beatriz.romero@user.com', rating=2, content='Buen lugar. La información está bien pero podría ser más interactiva.', status='Pendiente')
+
+    db.session.add_all([r1, r2, r3, r4])
+
+    db.session.flush ()
+    
     db.session.commit()
     print('Datos seed cargados exitosamente')
 
