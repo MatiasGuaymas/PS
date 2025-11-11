@@ -178,12 +178,16 @@ class UserService:
         if user:
             return user
         
+        name_parts = name.split() if name else []
+        first_name = name_parts[0] if name_parts else email.split('@')[0]
+        last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else "Usuario"
+
         default_role = Role.query.filter_by(name="Usuario").first()
 
         new_user = User(
             email=email.lower(),
-            first_name=name,
-            last_name="User",
+            first_name=first_name,
+            last_name=last_name,
             password=None,  # Sin contraseña para OAuth
             active=True,
             sysAdmin=False,
