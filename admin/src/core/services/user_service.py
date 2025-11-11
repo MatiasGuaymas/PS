@@ -4,6 +4,7 @@ from typing import List, Optional
 import bcrypt 
 import os
 from core.models.User import User
+from core.models.Role import Role
 
 class UserService:
     """
@@ -20,6 +21,11 @@ class UserService:
         return db.session.execute(
             db.select(User).filter_by(email=email.lower())
         ).scalar_one_or_none()
+    
+    @staticmethod
+    def find_user_by_email(email):
+        """Busca un usuario por email"""
+        return User.query.filter_by(email=email).first()
     
     def get_all_active_users() -> List[User]:
         """Recupera todos los usuarios que están activos."""
@@ -164,3 +170,29 @@ class UserService:
         """Verifica si un usuario es un administrador del sistema."""
         user = UserService.get_user_by_id(user_id)
         return user is not None and user.sysAdmin
+    
+    def find_or_create_google_user(email, name):
+        
+        user = User.query.filter_by(email=email).first()
+
+        if user:
+            return user
+        
+        default_role = Role.query.filter_by(name="Usuario").first()
+
+        new_user = User(
+            email=email.lower(),
+            first_name=name,
+            last_name="User",
+            password=None,  # Sin contraseña para OAuth
+            active=True,
+            sysAdmin=False,
+            deleted=False,
+            role_id=default_role.id if default_role else None 
+        )
+
+        db.session.add(new_user)
+        db.session.commit()
+
+        return new_user
+        
