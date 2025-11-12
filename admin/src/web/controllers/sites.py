@@ -569,7 +569,7 @@ def edit(site_id):
         # Llama al servicio para procesar nuevas imágenes
         if new_image_data:
             try:
-                images_added = SiteService.process_new_images_transactional(site_id, new_image_data, current_user_id)
+                images_added = SiteService.process_new_images_transactional(site_id, new_image_data)
                 flash(f"{images_added} nuevas imágenes añadidas con éxito.", "success")
             except Exception as e:
                 db.session.rollback() 
