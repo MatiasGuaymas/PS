@@ -386,3 +386,69 @@ class SiteService:
             bucket_name=current_app.config["MINIO_BUCKET"],
             object_name=image_path,
         )
+    
+    def update_existing_images_data(site: Site, existing_images_data: list):
+        """
+        Actualiza el orden, metadatos (título/alt, descripción) y el estado de portada 
+        (is_cover) de las imágenes existentes de un sitio.
+
+        Esta función opera dentro de la sesión de base de datos activa
+        y maneja la lógica de portada (solo una imagen puede ser la portada).
+        
+        Args:
+            site (Site): Objeto del sitio histórico a actualizar.
+            existing_images_data (list): Lista de diccionarios con datos de la imagen:
+                                         [{'id': int, 'order_index': int, 'title_alt': str, 
+                                           'description': str, 'is_cover': bool}, ...]
+        """
+        
+        if not existing_images_data:
+            return
+
+        try:
+            # Preparar la portada
+            new_cover_id = None
+            for data in existing_images_data:
+                if data['is_cover']:
+                    new_cover_id = data['id']
+                    break
+            
+            # Si se encontró una nueva portada, desmarcar todas las portadas actuales
+            # para el sitio ANTES de actualizar la nueva.
+            if new_cover_id is not None:
+                # Utilizamos una actualización masiva 
+                SiteImage.query.filter_by(site_id=site.id, is_cover=True).update(
+                    {'is_cover': False}, 
+                    synchronize_session=False # Es más eficiente si solo actualizamos el estado
+                )
+                db.session.flush() # Forzar la ejecución de la consulta de actualización
+
+            # Iterar y actualizar cada imagen
+            for data in existing_images_data:
+                image_id = data['id']
+                
+                # Obtener la imagen por ID y SITE_ID para asegurar pertenencia
+                image = SiteImage.query.filter_by(id=image_id, site_id=site.id).one_or_none()
+                
+                if image:
+                    # Aplicar actualizaciones de metadatos y orden
+                    image.order_index = data['order_index']
+                    image.title_alt = data['title_alt']
+                    image.description = data['description']
+
+                    # Aplicar el estado de portada:
+                    # Si encontramos una nueva portada, solo la marcamos si su ID coincide.
+                    if new_cover_id is not None:
+                        image.is_cover = (image_id == new_cover_id)
+                    # Si new_cover_id es None (ej: no se seleccionó ninguna radio button, 
+                    # lo cual no debería pasar si hay imágenes), 
+                    # mantenemos el estado de is_cover.
+                    
+                    db.session.add(image) # Marcar para guardar
+                else:
+                    # Esto podría indicar un problema de datos (ID de imagen incorrecto)
+                    logger.warning(f"Imagen ID {image_id} no encontrada o no pertenece al sitio {site.id} durante la actualización.")
+            
+        except Exception as e:
+            logger.error(f"Error en SiteService.update_existing_images_data para sitio {site.id}: {e}")
+            raise 

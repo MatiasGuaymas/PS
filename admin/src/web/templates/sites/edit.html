@@ -265,7 +265,7 @@
             <button type="button" class="btn btn-danger btn-sm w-100 delete-image-btn" 
                     data-image-id="{{ image.id }}" 
                     data-site-id="{{ site.id }}"
-                    {% if image.is_cover and site.images.count() == 1 %}disabled{% endif %}> 
+                    {% if image.is_cover or site.images.count() == 1 %}disabled{% endif %}> 
                 <i class="bi bi-trash"></i> Eliminar
             </button>
           </div>
