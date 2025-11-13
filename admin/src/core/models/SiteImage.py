@@ -28,3 +28,14 @@ class SiteImage(db.Model):
     # --- Timestamps ---
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    def to_dict(self):
+        """Devuelve una representación de diccionario del objeto SiteImage (SERIALIZACIÓN JSON)."""
+        return {
+            'public_url': self.public_url,
+            'file_path': self.file_path,
+            'title_alt': self.title_alt,
+            'description': self.description,
+            'order_index': self.order_index,
+            'is_cover': self.is_cover,
+        }

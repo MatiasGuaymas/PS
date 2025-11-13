@@ -7,6 +7,7 @@ from core import database
 from web.config import config
 from web.controllers.users import user_blueprint
 from web.controllers.roles import roles_blueprint
+from src.web.controllers.api import sitesAPI_blueprint
 from src.web.controllers.sites import sites_blueprint
 from src.web.controllers.tags import tags_blueprint
 from src.web.controllers.flags import feature_flag_blueprint
@@ -34,7 +35,8 @@ def create_app(env = 'development', static_folder = "../../static"):
     session.init_app(app)
     storage.init_app(app)
 
-    CORS(app, resources={r"/*": {"origins": "http://localhost:8080"}}) 
+    #CORS no me hizo falta por ahora
+    #CORS(app, resources={r"/*": {"origins": "http://localhost:8080"}}) 
 
     @app.route('/')
     def home():
@@ -47,6 +49,7 @@ def create_app(env = 'development', static_folder = "../../static"):
     #Blueprints
     app.register_blueprint(user_blueprint)
     app.register_blueprint(roles_blueprint)
+    app.register_blueprint(sitesAPI_blueprint)
     app.register_blueprint(sites_blueprint)
     app.register_blueprint(tags_blueprint)
     app.register_blueprint(feature_flag_blueprint)
