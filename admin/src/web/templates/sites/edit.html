@@ -490,12 +490,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 fetch(deleteUrl, {
                     method: 'POST',
-                    // Importante: Si estás usando Flask-WTF o cualquier protección CSRF,
-                    // debes incluir el token en los headers. Si no, omítelo.
-                    // Ejemplo de CSRF:
-                    // headers: { 
-                    //     'X-CSRFToken': document.querySelector('[name=csrf_token]').value 
-                    // },
+                    
                 })
                 .then(response => {
                     // La respuesta del endpoint debe ser 200 OK

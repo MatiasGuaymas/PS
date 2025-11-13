@@ -156,61 +156,64 @@ tags=request.args.getlist('tags')
             </form>
 
             {% if sites and (pagination and pagination.total > 0 or sites|length > 0) %}
-            <p>{{ (pagination.total if pagination and pagination.total is defined else sites|length) }} resultados
-                encontrados.</p>
-            <div class="table-responsive">
-                <table class="table table-dark table-striped table-hover rounded-3 overflow-hidden">
-                    <thead class="table-dark">
-                        <tr>
-                            <th scope="col">Nombre</th>
-                            <th scope="col">Ciudad</th>
-                            <th scope="col">Provincia</th>
-                            <th scope="col" class="text-center">Estado</th>
-                            <th scope="col" class="text-center">Visible</th>
-                            <th scope="col" class="text-center">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for site in sites %}
-                        <tr>
-                            <td>{{ site.site_name }}</td>
-                            <td>{{ site.city }}</td>
-                            <td>{{ site.province }}</td>
-                            <td class="text-center">
-                                {% if site.state_id == 1 %}
-                                <span class="badge bg-success">Bueno</span>
-                                {% elif site.state_id == 2 %}
-                                <span class="badge bg-danger">Malo</span>
-                                {% elif site.state_id == 3 %}
-                                <span class="badge bg-warning text-dark">Regular</span>
-                                {% else %}
-                                <span class="badge bg-secondary">Sin estado</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-center">
-                                {% if site.active %}
-                                <i class="bi bi-check-circle-fill text-success" style="font-size: 1.2rem;"
-                                    title="Visible"></i>
-                                {% else %}
-                                <i class="bi bi-x-circle-fill text-danger" style="font-size: 1.2rem;"
-                                    title="No visible"></i>
-                                {% endif %}
-                            </td>
-                            <td class="text-center">
+            <p>{{ (pagination.total if pagination and pagination.total is defined else sites|length) }} resultados encontrados.</p>
+            
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                {% for site in sites %}
+                <div class="col">
+                    <div class="card h-100 text-white bg-dark border-secondary shadow">
+                        <img src="{{ getImageUrl(site.cover_image) }}" 
+                            class="card-img-top" 
+                            alt="{{ site.site_name }} portada" 
+                            style="height: 200px; object-fit: cover;">
+                        
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title text-info">{{ site.site_name }}</h5>
+                            <p class="card-text text-muted small mb-3">{{ site.short_desc | default("Sin descripción breve", true) }}</p>
+                            
+                            <ul class="list-group list-group-flush mb-3">
+                                <li class="list-group-item bg-dark d-flex justify-content-between align-items-center p-1 small">
+                                    <span><i class="bi bi-geo-alt-fill"></i> Ubicación:</span>
+                                    <span class="fw-bold">{{ site.city }}, {{ site.province }}</span>
+                                </li>
+                                <li class="list-group-item bg-dark d-flex justify-content-between align-items-center p-1 small">
+                                    <span><i class="bi bi-check2-circle"></i> Visible:</span>
+                                    {% if site.active %}
+                                        <span class="badge bg-success">Sí</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">No</span>
+                                    {% endif %}
+                                </li>
+                                <li class="list-group-item bg-dark d-flex justify-content-between align-items-center p-1 small">
+                                    <span><i class="bi bi-patch-check-fill"></i> Estado:</span>
+                                    {% if site.state_id == 1 %}
+                                        <span class="badge bg-success">Bueno</span>
+                                    {% elif site.state_id == 2 %}
+                                        <span class="badge bg-danger">Malo</span>
+                                    {% elif site.state_id == 3 %}
+                                        <span class="badge bg-warning text-dark">Regular</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Sin estado</span>
+                                    {% endif %}
+                                </li>
+                            </ul>
+                            
+                            <div class="mt-auto d-flex gap-2 pt-2 border-top border-secondary">
                                 <a href="{{ url_for('sites.detail', site_id=site.id) }}"
-                                    class="btn btn-info btn-sm mx-1 bi-eye-fill">Ver</a>
+                                    class="btn btn-info btn-sm flex-grow-1 bi-eye-fill"> Ver</a>
                                 <a href="{{ url_for('sites.edit', site_id=site.id) }}"
-                                    class="btn btn-warning btn-sm mx-1 bi-pencil-fill">Editar</a>
+                                    class="btn btn-warning btn-sm flex-grow-1 bi-pencil-fill"> Editar</a>
                                 <form method="POST" action="{{ url_for('sites.delete', site_id=site.id) }}"
-                                    style="display:inline;">
-                                    <button type="submit" class="btn btn-danger btn-sm mx-1 bi-trash-fill">Eliminar</button>
+                                    style="display:inline;" onsubmit="return confirm('¿Estás seguro de eliminar el sitio {{ site.site_name }}? Esta acción es irreversible.');">
+                                    <button type="submit" class="btn btn-danger btn-sm bi-trash-fill"> Eliminar</button>
                                 </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
+        {% endif %}
 
             <div class="d-flex justify-content-end mt-3">
                 <form method="post" action="{{ url_for('sites.export_csv') }}">
@@ -288,6 +291,8 @@ tags=request.args.getlist('tags')
         {% endif %}
     </div>
 </div>
+
+{% endblock %}
 
 <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 <script>
