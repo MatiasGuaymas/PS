@@ -356,6 +356,7 @@ class SiteService:
             extension = file.filename.rsplit('.', 1)[1].lower()
             file_uuid = str(uuid.uuid4())
             minio_path = f"{site_id}/{file_uuid}.{extension}"
+            print(current_app.config)
             try:
                 SiteService.new_images_transactional(file, minio_path)
             except Exception as e:
