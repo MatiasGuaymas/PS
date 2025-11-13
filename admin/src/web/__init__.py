@@ -35,8 +35,8 @@ def create_app(env = 'development', static_folder = "../../static"):
     session.init_app(app)
     storage.init_app(app)
 
-    #CORS no me hizo falta por ahora
-    #CORS(app, resources={r"/*": {"origins": "http://localhost:8080"}}) 
+    # CORS para permitir requests desde el portal Vue
+    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173", "http://localhost:5174", "http://localhost:8080"]}})
 
     @app.route('/')
     def home():
