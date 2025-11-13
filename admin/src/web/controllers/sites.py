@@ -278,6 +278,13 @@ def create():
             logger.warning(f"Intento de crear sitio con campos faltantes: usuario={current_user_id}, sitio='{site_name}'")
             return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Faltan campos obligatorios")
         
+        # Validacion de nombre unique
+        # Hablamos de softDelete, si tmb reviso por deleted = False, deberia elimanrlo (hard) antes del insert
+        existing_site = Site.query.filter_by(site_name=site_name).first()
+        if existing_site:
+            logger.warning(f"Intento de crear sitio con nombre duplicado: usuario={current_user_id}, sitio='{site_name}'")
+            return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Ya existe un sitio con ese nombre. Debe ser único.")
+
         # Validación de coordenadas
         if not latitude or not longitude:
             logger.warning(f"Intento de crear sitio sin coordenadas: usuario={current_user_id}, sitio='{site_name}'")
@@ -297,7 +304,6 @@ def create():
         files = request.files.getlist("images")
         image_data = [] # Para almacenar info de cada imagen para la BD
         errors = []
-        print(files)
         if len(files) > 10:
             errors.append("Se pueden subir un máximo de 10 imágenes por sitio.")
 

@@ -249,11 +249,11 @@
 
           <div class="mb-2">
               <label class="form-label small mb-0">Título/Alt <span class="text-danger">*</span></label>
-              <input type="text" name="title_alt_existing_{{ image.id }}" class="form-control form-control-sm" value="{{ image.title_alt }}" required>
+              <input type="text" name="title_alt_existing_{{ image.id }}" class="form-control form-control-sm" value="{{ image.title_alt }}" required maxlength="50">
           </div>
           <div class="mb-2">
               <label class="form-label small mb-0">Descripción</label>
-              <textarea name="description_existing_{{ image.id }}" class="form-control form-control-sm" rows="2">{{ image.description or '' }}</textarea>
+              <textarea name="description_existing_{{ image.id }}" class="form-control form-control-sm" rows="2" maxlength="120">{{ image.description or '' }} </textarea>
           </div>
           
           <div class="form-check mb-2">
@@ -365,7 +365,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (imageList) {
         new Sortable(imageList, {
             animation: 150,
-            ghostClass: 'sortable-chosen', // Usar la clase CSS ya definida
+            ghostClass: 'sortable-chosen', // Usa una clase CSS ya definida
+            filter: 'input, textarea,button, .form-check-input', 
+        
+            preventOnFilter: true,
             onEnd: function (evt) {
                 // Al reordenar, SOLO actualizamos el valor de order_index en el input HIDDEN
                 const items = imageList.querySelectorAll('.image-item');
@@ -375,7 +378,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (orderInput) {
                         orderInput.value = newOrder;
                     }
-                    console.log(`Orden de imagen ID ${item.getAttribute('data-image-id')} actualizado LOCALMENTE a ${newOrder}.`);
+                    //console.log(`Orden de imagen ID ${item.getAttribute('data-image-id')} actualizado LOCALMENTE a ${newOrder}.`);
                 });
                 // NO SE HACE FETCH ASÍNCRONO AQUÍ. La actualización se hará al SUBMIT.
             }
@@ -385,7 +388,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Lógica de Previsualización y Metadatos para Subida de Nuevas Imágenes ---
     const newImageInput = document.getElementById('images');
     const newPreviewContainer = document.getElementById('new-image-upload-preview');
-    // Ya no necesitamos 'submitBtn' para la validación inicial del form anidado
     // const submitBtn = document.getElementById('submit-new-images-btn'); 
     
     const MAX_CURRENT_IMAGES = {{ site.images.count() }};
@@ -475,6 +477,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Lógica de Eliminación Asíncrona de Imágenes ---
     document.querySelectorAll('.delete-image-btn').forEach(button => {
         button.addEventListener('click', function() {
+            console.log('Botón de eliminar imagen clickeado.');
             const imageId = this.getAttribute('data-image-id');
             const siteId = this.getAttribute('data-site-id');
             
@@ -485,7 +488,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             if (confirm('¿Estás seguro de eliminar esta imagen? Esta acción es irreversible.')) {
-                // Construye la URL usando la ruta de Flask que proporcionaste
                 const deleteUrl = `/sites/${siteId}/images/${imageId}/delete`;
 
                 fetch(deleteUrl, {
@@ -498,7 +500,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         alert('Imagen eliminada correctamente. Recargando la página para actualizar la lista.');
                         window.location.reload(); 
                     } else {
-                        // Aquí puedes manejar errores específicos del servidor, como 403 (Permiso denegado)
                         alert('Error al eliminar la imagen. (Código de estado: ' + response.status + ')');
                     }
                 })
