@@ -238,7 +238,11 @@
 <div id="image-list-container" class="image-list-container">
       {% for image in site.images | sort(attribute='order_index') %}
       <div class="image-item" data-image-id="{{ image.id }}">
+          <div class="drag-handle text-center p-1 mb-2 rounded-top" style="background-color: #444; cursor: grab;">
+              <i class="bi bi-arrows-move text-white small "></i> Arrastrar
+          </div>
           <img src="{{ getImageUrl(image)}}" alt="{{ image.title_alt }}" class="image-thumbnail mb-2">
+    
 
           {% if image.is_cover %}
           <span class="badge bg-warning mb-2"><i class="bi bi-star-fill"></i> PORTADA</span>
@@ -366,9 +370,10 @@ document.addEventListener('DOMContentLoaded', function() {
         new Sortable(imageList, {
             animation: 150,
             ghostClass: 'sortable-chosen', // Usa una clase CSS ya definida
-            filter: 'input, textarea,button, .form-check-input', 
+            //filter: 'button, .form-check-input,
         
-            preventOnFilter: true,
+            //preventOnFilter: true,
+            handle: '.drag-handle',
             onEnd: function (evt) {
                 // Al reordenar, SOLO actualizamos el valor de order_index en el input HIDDEN
                 const items = imageList.querySelectorAll('.image-item');
@@ -378,9 +383,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (orderInput) {
                         orderInput.value = newOrder;
                     }
-                    //console.log(`Orden de imagen ID ${item.getAttribute('data-image-id')} actualizado LOCALMENTE a ${newOrder}.`);
                 });
-                // NO SE HACE FETCH ASÍNCRONO AQUÍ. La actualización se hará al SUBMIT.
             }
         });
     }
@@ -470,10 +473,11 @@ document.addEventListener('DOMContentLoaded', function() {
             newPreviewContainer.innerHTML = '';
         }
     }
-
-    newImageInput.addEventListener('change', function() {
-        validateAndPreviewNewImages(this.files);
-    });
+    if (newImageInput){
+      newImageInput.addEventListener('change', function() {
+          validateAndPreviewNewImages(this.files);
+      });
+    }
     // --- Lógica de Eliminación Asíncrona de Imágenes ---
     document.querySelectorAll('.delete-image-btn').forEach(button => {
         button.addEventListener('click', function() {

@@ -317,8 +317,8 @@ def create():
             else:
                 # Si es válida, guardar temporalmente los datos para procesar después de crear el sitio
                 # Los títulos y descripciones vienen por sus nombres únicos
-                titulo_alt = request.form.get(f"title_alt_{i}", f"Imagen {i+1} de {site_name}")
-                descripcion = request.form.get(f"description_{i}", "")
+                titulo_alt = request.form.get(f"new_title_alt_{i}", f"Imagen {i+1} de {site_name}")
+                descripcion = request.form.get(f"new_description_{i}", "")
 
                 if not titulo_alt:
                     errors.append(f"El Título/Alt es obligatorio para el archivo '{file.filename}'.")
