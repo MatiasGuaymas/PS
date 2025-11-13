@@ -1,5 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for,session, flash,abort,Response, jsonify
 from core.models.Site import Site
+from core.models.Tag import Tag
+from core.models.Category import Category
+from core.models.State import State
 from core.database import db
 from sqlalchemy.orm import selectinload
 from sqlalchemy import or_, and_
@@ -92,3 +95,49 @@ def list_sites():
             'next_page': pagination.next_num
         }
     })
+
+
+@sitesAPI_blueprint.route("/tags", methods=["GET"])
+def list_tags():
+    """
+    Lista todos los tags disponibles.
+    
+    Returns:
+        JSON con lista de tags ordenados alfabéticamente
+    """
+    tags = db.session.query(Tag).order_by(Tag.name.asc()).all()
+    tags_json = [{'id': tag.id, 'name': tag.name} for tag in tags]
+    
+    return jsonify({'data': tags_json})
+
+
+@sitesAPI_blueprint.route("/provinces", methods=["GET"])
+def list_provinces():
+    """
+    Lista todas las provincias únicas de los sitios activos.
+    
+    Returns:
+        JSON con lista de provincias ordenadas alfabéticamente
+    """
+    provinces = db.session.query(Site.province)\
+        .filter(Site.active == True, Site.deleted == False)\
+        .distinct()\
+        .order_by(Site.province.asc())\
+        .all()
+    
+    provinces_json = [p[0] for p in provinces if p[0]]
+    
+    return jsonify({'data': provinces_json})
+
+@sitesAPI_blueprint.route("/states", methods=["GET"])
+def list_states():
+    """
+    Lista todos los estados de conservación disponibles.
+    
+    Returns:
+        JSON con lista de estados
+    """
+    states = db.session.query(State).order_by(State.id.asc()).all()
+    states_json = [{'id': state.id, 'name': state.name} for state in states]
+    
+    return jsonify({'data': states_json})
