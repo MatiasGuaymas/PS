@@ -20,7 +20,7 @@ class SiteImage(db.Model):
 
     public_url = Column(String(512), nullable=False)
     file_path = Column(String(255), nullable=False, unique=True)
-    title_alt = Column(String(120), nullable=False)
+    title_alt = Column(String(50), nullable=False)
     description = Column(String(255), nullable=True)
     order_index = Column(Integer, nullable=False)
     is_cover = Column(Boolean, default=False, nullable=False)

@@ -2,6 +2,70 @@
 
 {% block title %}Registrar Sitio Histórico | Puff-tóricos{% endblock %}
 
+{% block head %}
+{{ super() }}
+<style>
+/* Estilos necesarios para la selección de tags, copiados de la template de edición */
+.tags-multiselect {
+    background-color: #2d2d2d;
+    border: 1px solid #4b0082;
+    border-radius: 4px;
+    padding: 8px;
+    min-height: 120px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.tag-option {
+    padding: 6px 12px;
+    margin: 2px;
+    background-color: #3d3d3d;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-block;
+    color: #e0e0e0;
+    font-size: 0.9rem;
+}
+
+.tag-option:hover {
+    background-color: #4d4d4d;
+}
+
+.tag-option.selected {
+    background-color: #6a0dad;
+    border: 2px solid #bb86fc;
+    color: #fff;
+}
+
+/* --- ESTILOS PARA LA PREVISUALIZACIÓN DE SUBIDA DE NUEVAS IMÁGENES --- */
+#image-upload-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px; /* Espacio entre las miniaturas */
+    padding-top: 10px;
+}
+
+.image-preview-item {
+    width: 150px; /* Tamaño fijo para la previsualización */
+    flex-shrink: 0;
+    background-color: #3d3d3d;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #555;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.image-preview-item img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-xl">
   <div class="card bg-dark text-light shadow-lg border-0 rounded-4 overflow-hidden mx-auto">
@@ -18,7 +82,7 @@
 
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-        <form method="POST" action="{{ url_for('sites.create') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ url_for('sites.create') }}" enctype="multipart/form-data" id="create-form">
           <div class="row g-3">
             <div class="col-md-6">
               <label for="site_name" class="form-label text-white">Nombre del sitio</label>
@@ -94,11 +158,9 @@
           </div>
           <div class="mb-3">
             <label for="tags" class="form-label text-white">Etiquetas</label>
-            <div id="tags-container" class="tags-multiselect"
-              style="border: 1px solid #4b0082; border-radius: 4px; padding: 8px; min-height: 120px; background-color: #2d2d2d; max-height: 200px; overflow-y: auto; color: white;">
+            <div id="tags-container" class="tags-multiselect"> 
               {% for tag in tags %}
-              <div class="tag-option" data-value="{{ tag.id }}"
-                style="padding: 6px 12px; margin: 2px; background-color: #3d3d3d; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: inline-block;">
+              <div class="tag-option" data-value="{{ tag.id }}">
                 {{ tag.name }}
               </div>
               {% endfor %}
@@ -115,7 +177,7 @@
               <label for="images" class="form-label">Seleccionar archivos (Máx 5MB c/u, JPG/PNG/WEBP)</label>
               <input class="form-control" type="file" id="images" name="images" multiple accept="image/jpeg,image/png,image/webp">
               <small class="form-text text-white">Puedes seleccionar hasta 10 imágenes al crear el sitio.</small>
-              <div id="image-upload-preview" class="mt-3 d-flex flex-wrap gap-3">
+              <div id="image-upload-preview" class="mt-3">
                 </div>
             </div>
           </div>
@@ -144,6 +206,7 @@
   }).addTo(map);
 
   var marker = null;
+  const form = document.getElementById('create-form');
 
   // Función para manejar clics en el mapa
   map.on('click', function (e) {
@@ -184,249 +247,184 @@
     }
   }
 
-  // Botón para ubicación actual
-  document.addEventListener('DOMContentLoaded', function () {
+  document.addEventListener('DOMContentLoaded', function() {
+    // Agregar botón de ubicación actual
     var locationBtn = document.createElement('button');
     locationBtn.type = 'button';
     locationBtn.className = 'btn btn-outline-primary btn-sm mt-2';
     locationBtn.innerHTML = '📍 Usar mi ubicación actual';
     locationBtn.onclick = getCurrentLocation;
-
     document.getElementById('map').parentNode.appendChild(locationBtn);
-
-    // Inicializar selección múltiple de tags
+    
+    // Inicializar selección de tags
     initializeTagSelection();
 
-    // Validación del formulario antes del envío
-    var form = document.querySelector('form');
-    form.addEventListener('submit', function (e) {
-      var latInput = document.getElementById('latitude');
-      var lonInput = document.getElementById('longitude');
+    // --- Lógica de Previsualización y Metadatos para Subida de Nuevas Imágenes ---
+    const newImageInput = document.getElementById('images');
+    const newPreviewContainer = document.getElementById('image-upload-preview'); // ID ajustado
+    
+    const MAX_TOTAL_IMAGES = 10;
+    const MAX_FILE_SIZE_MB = 5;
+    
+    // Array para almacenar los archivos válidos y mantener el orden
+    // En la creación, todos los archivos son "nuevos"
+    let newFilesArray = []; 
 
-      // Verificar si se han seleccionado coordenadas
-      if (!latInput.value || !lonInput.value) {
-        e.preventDefault();
-        document.getElementById('coords-error').style.display = 'block';
-        document.getElementById('map').style.borderColor = '#dc3545';
-        return false;
-      } else {
-        document.getElementById('coords-error').style.display = 'none';
-        document.getElementById('map').style.borderColor = '#ccc';
-      }
-
-      // Verificar que las coordenadas sean válidas
-      try {
-        var lat = parseFloat(latInput.value);
-        var lon = parseFloat(lonInput.value);
-
-        if (isNaN(lat) || isNaN(lon)) {
-          e.preventDefault();
-          alert('Las coordenadas seleccionadas no son válidas.');
-          return false;
-        }
-
-        if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-          e.preventDefault();
-          alert('Las coordenadas seleccionadas están fuera del rango válido.');
-          return false;
-        }
-      } catch (error) {
-        e.preventDefault();
-        alert('Error al validar las coordenadas.');
-        return false;
-      }
-
-      // Validar imágenes
-      const imageInput = document.getElementById('images');
-      const files = imageInput.files;
-      const MAX_IMAGES = 10;
-      const MAX_FILE_SIZE_MB = 5; // MB
-      const ALLOWED_EXTENSIONS = ['jpg', 'png', 'webp'];
-
-      if (files.length > MAX_IMAGES) {
-          e.preventDefault();
-          alert(`Solo puedes subir un máximo de ${MAX_IMAGES} imágenes.`);
-          return false;
-      }
-
-      for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          const fileSizeMB = file.size / (1024 * 1024); // Convertir a MB
-          const fileExtension = file.name.split('.').pop().toLowerCase();
-
-          if (fileSizeMB > MAX_FILE_SIZE_MB) {
-              e.preventDefault();
-              alert(`El archivo ${file.name} excede el tamaño máximo de ${MAX_FILE_SIZE_MB} MB.`);
-              return false;
-          }
-          if (!ALLOWED_EXTENSIONS.includes(fileExtension)) {
-              e.preventDefault();
-              alert(`El archivo ${file.name} tiene un formato no permitido. Solo se permiten JPG, PNG, WEBP.`);
-              return false;
-          }
-      }
-
-    });
-
-    // --- Lógica de previsualización de imágenes ---
-    const imageInput = document.getElementById('images');
-    const previewContainer = document.getElementById('image-upload-preview');
-    let fileList = [];
-    new Sortable(previewContainer, {
-        animation: 150,
-        ghostClass: 'bg-secondary',
-        handle: '.image-preview-item', // Permite arrastrar desde el elemento completo
-        onEnd: function (evt) {
-            // Llamar a la función para reordenar la lista y actualizar los nombres
-            reorderFilesAndInputs();
-        }
-    });
-
-    // Función que maneja la selección de archivos
-    imageInput.addEventListener('change', function() {
-        previewContainer.innerHTML = ''; // Limpiar previsualizaciones anteriores
+    function validateAndPreviewNewImages(files) {
+        newPreviewContainer.innerHTML = '';
+        newFilesArray = []; // Reiniciar la lista de archivos válidos
         
-        const files = this.files;
-        const MAX_IMAGES = 10;
-
-        if (files.length > MAX_IMAGES) {
-            alert(`Solo puedes seleccionar un máximo de ${MAX_IMAGES} imágenes.`);
-            this.value = ''; // Limpiar selección
-            fileList = []; // Limpiar lista
+        const filesToProcess = Array.from(files);
+        
+        if (filesToProcess.length === 0) {
             return;
         }
 
-        // Guardar la lista de archivos en la variable global
-        fileList = Array.from(files);
+        if (filesToProcess.length > MAX_TOTAL_IMAGES) {
+            alert(`Solo puedes subir hasta ${MAX_TOTAL_IMAGES} imágenes.`);
+            newImageInput.value = ''; // Limpiar el input file
+            return;
+        }
 
-        // Generar previsualizaciones
-        fileList.forEach((file, index) => {
+        let validFiles = true;
+
+        filesToProcess.forEach((file, index) => {
+            const fileSizeMB = file.size / (1024 * 1024);
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            const ALLOWED_EXTENSIONS = ['jpg', 'png', 'webp', 'jpeg']; 
+
+            if (fileSizeMB > MAX_FILE_SIZE_MB || !ALLOWED_EXTENSIONS.includes(fileExtension)) {
+                alert(`El archivo ${file.name} es inválido (tamaño > ${MAX_FILE_SIZE_MB}MB o formato no permitido).`);
+                validFiles = false;
+                return; 
+            }
+            
+            // Archivo válido: Añadir al array para mantener la referencia
+            newFilesArray.push(file);
+
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const previewItem = document.createElement('div');
-                    previewItem.className = 'image-preview-item border p-2 rounded';
-                    // Añadir estilo para cursor de arrastre
-                    previewItem.style.cursor = 'grab';
-                    previewItem.style.width = '120px'; 
-                    previewItem.style.height = 'auto';
-                    previewItem.style.backgroundColor = '#3d3d3d';
-                    // Almacenar el índice original del archivo para referencia
-                    previewItem.setAttribute('data-file-index', index); 
+                    previewItem.className = 'image-preview-item'; 
                     
                     const img = document.createElement('img');
                     img.src = e.target.result;
                     img.alt = `Previsualización de ${file.name}`;
-                    img.style.width = '100px';
-                    img.style.height = '100px';
-                    img.style.objectFit = 'cover';
-                    img.style.borderRadius = '4px';
-                    img.className = 'mb-2';
-
-                    // Los nombres de los inputs se establecerán en reorderFilesAndInputs()
-
+                    
+                    const titleLabel = document.createElement('label');
+                    titleLabel.className = 'form-label small mb-0 mt-1 text-white';
+                    titleLabel.textContent = 'Título/Alt *';
+                    
+                    // Título/Alt obligatorio
                     const titleInput = document.createElement('input');
                     titleInput.type = 'text';
-                    titleInput.className = 'form-control form-control-sm mb-1 image-title-input'; // Clase para identificar
+                    titleInput.name = `new_title_alt_${index}`; 
+                    titleInput.className = 'form-control form-control-sm mb-1 te';
                     titleInput.placeholder = 'Título/Alt (obligatorio)';
                     titleInput.required = true;
 
+                    // Descripción
+                    const descLabel = document.createElement('label');
+                    descLabel.className = 'form-label small mb-0 mt-1 text-white' ;
+                    descLabel.textContent = 'Descripción (opcional)';
+
                     const descTextarea = document.createElement('textarea');
-                    descTextarea.className = 'form-control form-control-sm image-desc-input'; // Clase para identificar
+                    descTextarea.name = `new_description_${index}`; 
+                    descTextarea.className = 'form-control form-control-sm';
                     descTextarea.rows = '2';
                     descTextarea.placeholder = 'Descripción (opcional)';
                     
                     previewItem.appendChild(img);
+                    previewItem.appendChild(titleLabel);
                     previewItem.appendChild(titleInput);
+                    previewItem.appendChild(descLabel);
                     previewItem.appendChild(descTextarea);
-                    previewContainer.appendChild(previewItem);
-                    
-                    // Aseguramos que los inputs tengan sus nombres correctos inicialmente
-                    reorderFilesAndInputs(); 
+                    newPreviewContainer.appendChild(previewItem);
                 };
                 reader.readAsDataURL(file);
             }
         });
+        
+        // Si hay archivos inválidos, forzar a limpiar el input y el array
+        if (!validFiles) {
+            newImageInput.value = '';
+            newFilesArray = [];
+            newPreviewContainer.innerHTML = '';
+        }
+    }
+
+    newImageInput.addEventListener('change', function() {
+        validateAndPreviewNewImages(this.files);
     });
     
-    // Función para reordenar la lista y actualizar nombres de inputs
-    function reorderFilesAndInputs() {
-        const items = Array.from(previewContainer.querySelectorAll('.image-preview-item'));
-        
-        // Crear la nueva lista de archivos reordenada
-        const reorderedFiles = [];
-        const dataTransfer = new DataTransfer();
+    // --- Validación Final antes del envío ---
+    form.addEventListener('submit', function(e) {
+        const latInput = document.getElementById('latitude');
+        const lonInput = document.getElementById('longitude');
+        const coordsError = document.getElementById('coords-error');
 
-        items.forEach((item, newIndex) => {
-            // Obtener el índice original del archivo
-            const originalIndex = parseInt(item.getAttribute('data-file-index'));
-            
-            // Añadir el archivo original a la nueva lista reordenada
-            reorderedFiles.push(fileList[originalIndex]);
-
-            // Renombrar los inputs de metadatos según la nueva posición (0, 1, 2...)
-            const titleInput = item.querySelector('.image-title-input');
-            const descInput = item.querySelector('.image-desc-input');
-            
-            // Asegurarse de que el índice refleje el nuevo orden
-            titleInput.name = `title_alt_${newIndex}`;
-            descInput.name = `description_${newIndex}`;
-            
-            // Actualizar el índice de datos del elemento (para mantener la referencia)
-            item.setAttribute('data-file-index', newIndex);
-            
-            // Agregar el archivo al nuevo objeto DataTransfer para reasignarlo al input file
-            dataTransfer.items.add(fileList[originalIndex]);
-        });
-
-        // Reemplazar la lista de archivos global y en el input de tipo file
-        fileList = reorderedFiles;
-        imageInput.files = dataTransfer.files;
-        
-        console.log("Archivos y nombres de inputs reordenados.");
-      }
-  });
-  
-
-  // Función para inicializar la selección múltiple de tags
-  function initializeTagSelection() {
-    const tagOptions = document.querySelectorAll('.tag-option');
-    const hiddenInput = document.getElementById('tags');
-    const selectedTags = new Set();
-
-    tagOptions.forEach(option => {
-      option.addEventListener('click', function () {
-        const value = this.getAttribute('data-value');
-
-        if (selectedTags.has(value)) {
-          // Deseleccionar
-          selectedTags.delete(value);
-          this.style.backgroundColor = '#3d3d3d';
-          this.style.border = 'none';
+        //  Validación de Coordenadas
+        if (!latInput.value || !lonInput.value) {
+            e.preventDefault();
+            coordsError.style.display = 'block';
+            document.getElementById('map').style.borderColor = '#dc3545';
+            alert('Por favor, selecciona una ubicación en el mapa.');
+            return;
         } else {
-          // Seleccionar
-          selectedTags.add(value);
-          this.style.backgroundColor = '#6a0dad';
-          this.style.border = '2px solid #bb86fc';
+            coordsError.style.display = 'none';
         }
-
-        // Actualizar input hidden con los valores seleccionados
-        hiddenInput.value = Array.from(selectedTags).join(',');
-      });
-
-      // Estilo hover
-      option.addEventListener('mouseenter', function () {
-        if (!selectedTags.has(this.getAttribute('data-value'))) {
-          this.style.backgroundColor = '#4d4d4d';
+        
+        // Validación de Título/Alt para imágenes nuevas (si hay archivos seleccionados)
+        if (newFilesArray.length > 0) {
+            const titleInputs = newPreviewContainer.querySelectorAll('input[type="text"][required]');
+            let allTitlesFilled = true;
+            
+            titleInputs.forEach(input => {
+                if (!input.value.trim()) {
+                    allTitlesFilled = false;
+                    input.focus();
+                    input.style.borderColor = '#dc3545';
+                } else {
+                    input.style.borderColor = '';
+                }
+            });
+            
+            if (!allTitlesFilled) {
+                e.preventDefault();
+                alert('Por favor, complete el Título/Alt obligatorio para todas las imágenes.');
+            }
         }
-      });
-
-      option.addEventListener('mouseleave', function () {
-        if (!selectedTags.has(this.getAttribute('data-value'))) {
-          this.style.backgroundColor = '#3d3d3d';
-        }
-      });
+        
+        // Si todo es válido, el formulario se envía
     });
+  });
+
+
+  // Función para inicializar la selección múltiple de tags (Copiada de la template de edición)
+  function initializeTagSelection() {
+      const tagOptions = document.querySelectorAll('.tag-option');
+      const hiddenInput = document.getElementById('tags');
+      const selectedTags = new Set();
+      
+      // En la creación, el valor inicial es vacío, no necesitamos parsing
+      
+      tagOptions.forEach(option => {
+          
+          option.addEventListener('click', function() {
+              const value = this.getAttribute('data-value');
+              
+              if (selectedTags.has(value)) {
+                  selectedTags.delete(value);
+                  this.classList.remove('selected');
+              } else {
+                  selectedTags.add(value);
+                  this.classList.add('selected');
+              }
+              
+              hiddenInput.value = Array.from(selectedTags).join(',');
+          });
+      });
   }
 </script>
 
