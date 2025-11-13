@@ -20,7 +20,7 @@ class SiteImage(db.Model):
 
     public_url = Column(String(512), nullable=False)
     file_path = Column(String(255), nullable=False, unique=True)
-    title_alt = Column(String(120), nullable=False)
+    title_alt = Column(String(50), nullable=False)
     description = Column(String(255), nullable=True)
     order_index = Column(Integer, nullable=False)
     is_cover = Column(Boolean, default=False, nullable=False)
@@ -28,3 +28,14 @@ class SiteImage(db.Model):
     # --- Timestamps ---
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    def to_dict(self):
+        """Devuelve una representación de diccionario del objeto SiteImage (SERIALIZACIÓN JSON)."""
+        return {
+            'public_url': self.public_url,
+            'file_path': self.file_path,
+            'title_alt': self.title_alt,
+            'description': self.description,
+            'order_index': self.order_index,
+            'is_cover': self.is_cover,
+        }

@@ -87,3 +87,41 @@ class Site(db.Model):
         """Retorna la imagen marcada como portada."""
         # Esto usará el backref 'images'
         return self.images.filter_by(is_cover=True).first()
+    
+    
+    
+    def to_dict(self):
+        """
+        Devuelve una representación de diccionario del objeto Site (SERIALIZACIÓN JSON).
+        """
+        # Manejar de forma segura la imagen de portada
+        cover_data = self.cover_image.to_dict() if self.cover_image else None
+        
+        # Manejar de forma segura la fecha de registro (DateTime)
+        registration_str = self.registration.isoformat() if self.registration else None
+        
+        # Manejar de forma segura las relaciones category y state (asumiendo que tienen atributo 'name')
+        category_name = self.category.name if self.category else None
+        state_name = self.state.name if self.state else None # También incluimos el estado
+        
+        # Manejar de forma segura la latitud/longitud (que ya lo hace tu @property)
+        
+        return {
+            'id': self.id,
+            'name': self.site_name,
+            'active': self.active,
+            'cover': cover_data,
+            'short_desc': self.short_desc,
+            'full_desc': self.full_desc,
+            'city': self.city,
+            'province': self.province,
+            'opening_year': self.operning_year, 
+            'registration': registration_str,
+            'latitude': self.latitude,
+            'longitude': self.longitude,
+            
+            # Datos de relaciones
+            'category_name': category_name,
+            'state_name': state_name, 
+            'images': [image.to_dict() for image in self.images.all()]
+        }

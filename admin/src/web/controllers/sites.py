@@ -278,6 +278,13 @@ def create():
             logger.warning(f"Intento de crear sitio con campos faltantes: usuario={current_user_id}, sitio='{site_name}'")
             return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Faltan campos obligatorios")
         
+        # Validacion de nombre unique
+        # Hablamos de softDelete, si tmb reviso por deleted = False, deberia elimanrlo (hard) antes del insert
+        existing_site = Site.query.filter_by(site_name=site_name).first()
+        if existing_site:
+            logger.warning(f"Intento de crear sitio con nombre duplicado: usuario={current_user_id}, sitio='{site_name}'")
+            return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Ya existe un sitio con ese nombre. Debe ser único.")
+
         # Validación de coordenadas
         if not latitude or not longitude:
             logger.warning(f"Intento de crear sitio sin coordenadas: usuario={current_user_id}, sitio='{site_name}'")
@@ -297,7 +304,6 @@ def create():
         files = request.files.getlist("images")
         image_data = [] # Para almacenar info de cada imagen para la BD
         errors = []
-        print(files)
         if len(files) > 10:
             errors.append("Se pueden subir un máximo de 10 imágenes por sitio.")
 
@@ -311,8 +317,8 @@ def create():
             else:
                 # Si es válida, guardar temporalmente los datos para procesar después de crear el sitio
                 # Los títulos y descripciones vienen por sus nombres únicos
-                titulo_alt = request.form.get(f"title_alt_{i}", f"Imagen {i+1} de {site_name}")
-                descripcion = request.form.get(f"description_{i}", "")
+                titulo_alt = request.form.get(f"new_title_alt_{i}", f"Imagen {i+1} de {site_name}")
+                descripcion = request.form.get(f"new_description_{i}", "")
 
                 if not titulo_alt:
                     errors.append(f"El Título/Alt es obligatorio para el archivo '{file.filename}'.")
@@ -527,55 +533,89 @@ def edit(site_id):
                     description=desc,
                     details=details_json
                 )
-        new_files = request.files.getlist("images") 
-        new_image_data = [] 
+        existing_images_data = []
+        
+        # Obtener IDs y orden del formulario
+        existing_image_ids = request.form.getlist("existing_image_ids")
+        cover_image_id = request.form.get("cover_image_id")
+        
+        if existing_image_ids:
+            # Recorrer las imágenes en el orden que vienen del DOM (gracias a SortableJS)
+            for img_id in existing_image_ids:
+                img_id = int(img_id)
+                
+                # Recoger los datos individuales de cada imagen
+                data = {
+                    "id": img_id,
+                    "order_index": int(request.form.get(f"order_index_{img_id}", 0)),
+                    "title_alt": request.form.get(f"title_alt_existing_{img_id}"),
+                    "description": request.form.get(f"description_existing_{img_id}"),
+                    "is_cover": str(img_id) == cover_image_id
+                }
+                existing_images_data.append(data)
+        
+        # Llama al servicio para procesar las actualizaciones
+        try:
+            SiteService.update_existing_images_data(site, existing_images_data)
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Fallo al actualizar metadatos/orden de imágenes del sitio {site.id}: {e}")
+            flash("Error al actualizar metadatos/orden de las imágenes existentes.", "danger")
+            # Podrías redirigir al detalle o al formulario de edición
+            return redirect(url_for("sites.detail", site_id=site_id))
+
         errors = []
         
-        current_images_count = SiteService.get_site_images_count(site_id)
+        new_files = request.files.getlist("images") 
+        new_image_data_list = [] 
+        
+        current_images_count = site.images.count()
         
         # Validación: límite máximo de 10
         if current_images_count + len(new_files) > 10:
             errors.append(f"Límite de 10 imágenes alcanzado. Solo se pueden subir {10 - current_images_count} más.")
         
-        # Lógica de validación de los archivos (choreada de `create`)
+        # Lógica de validación de los archivos
         for i, file in enumerate(new_files):
             if file.filename == '':
                 continue
+                
             is_valid, error_msg = is_valid_image(file)
+            
+            # Los nombres de los campos de metadatos vienen con el índice
+            titulo_alt = request.form.get(f"new_title_alt_{i}")
+            descripcion = request.form.get(f"new_description_{i}", "")
+
+            if not titulo_alt:
+                errors.append(f"El Título/Alt es obligatorio para el archivo '{file.filename}'.")
+            
             if not is_valid:
                 errors.append(f"Error con el archivo '{file.filename}': {error_msg}")
-            else:
-                # Si es válida, guardar temporalmente los datos para procesar después de crear el sitio
-                # Los títulos y descripciones vienen por sus nombres únicos
-                titulo_alt = request.form.get(f"title_alt_{i}", f"Imagen {i+1} de {site.site_name}")
-                descripcion = request.form.get(f"description_{i}", "")
-
-                if not titulo_alt:
-                    errors.append(f"El Título/Alt es obligatorio para el archivo '{file.filename}'.")
-                
-                # Almacenar el archivo y sus metadatos
-                new_image_data.append({
+            
+            if is_valid and titulo_alt:
+                new_image_data_list.append({
                     "file": file,
                     "title_alt": titulo_alt,
                     "description": descripcion
                 })
-
+        
         if errors:
-            logger.warning(f"Errores al editar el sitio {site.id} por usuario {current_user_id}: {'; '.join(errors)}")
+            logger.warning(f"Errores al subir nuevas imágenes para el sitio {site.id}: {'; '.join(errors)}")
             for error in errors:
-                flash(error)
-            return redirect(url_for("sites.detail", site_id=site_id)) # Redirige al detalle en caso de error de imagen en edición
+                flash(error, "warning")
+            db.session.rollback() 
+            return redirect(url_for("sites.edit", site_id=site_id))
 
         # Llama al servicio para procesar nuevas imágenes
-        if new_image_data:
+        if new_image_data_list:
             try:
-                images_added = SiteService.process_new_images_transactional(site_id, new_image_data, current_user_id)
+                images_added = SiteService.process_new_images_transactional(site_id, new_image_data_list)
                 flash(f"{images_added} nuevas imágenes añadidas con éxito.", "success")
             except Exception as e:
                 db.session.rollback() 
                 logger.error(f"Fallo crítico al subir nuevas imágenes durante la edición de sitio {site.id}: {e}")
-                flash("Error crítico al subir las nuevas imágenes.", "error")
-                return redirect(url_for("sites.detail", site_id=site_id))
+                flash("Error crítico al subir las nuevas imágenes.", "danger")
+                return redirect(url_for("sites.edit", site_id=site_id))
 
         db.session.commit() 
         flash("Sitio actualizado con éxito.", "success")

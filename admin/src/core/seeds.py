@@ -15,6 +15,7 @@ from core.models.Flag import Flag
 from core.models.User import User
 from core.models.Review import Review
 from core.services.user_service import UserService
+from core.services.sites_service import SiteService
 
 import bcrypt
 
@@ -361,34 +362,43 @@ def _sitios(CATEGORIES,STATES):
     STATE_BUENO = STATES['Bueno']
     STATE_REGULAR = STATES['Regular']
     STATE_MALO = STATES['Malo']
+
+    # Subo 3 con imagenes y el resto lo dejo con la default
+    SiteService.new_images_transactional('static/img/sites/default.png',"/public/default_image.png")
     # 1. Sitios de la Ciudad Autónoma de Buenos Aires (CABA)
-    sites.append(Site(
+    s1 =Site(
         site_name='Cabildo de Buenos Aires', short_desc='Sede de la Revolución de Mayo',
         full_desc='Edificio colonial que fue la sede del gobierno durante el Virreinato y testigo de la Revolución de Mayo de 1810. Reconstruido en 1940.',
         city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.373111 -34.608333)', srid=4326),
         operning_year=1608, category_id=CATEGORIES['ARQ'], 
         state_id=STATE_REGULAR # Histórico, requiere mantenimiento
-    ))
-    sites.append(Site(
+    )
+    s2 = Site(
         site_name='Casa Rosada', short_desc='Sede del Poder Ejecutivo Nacional',
         full_desc='Mansión gubernamental y lugar de encuentro de la historia política argentina, en Plaza de Mayo. Fue construida sobre el Fuerte de Buenos Aires.',
         city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.371510 -34.608101)', srid=4326),
         operning_year=1898, category_id=CATEGORIES['ARQ'], 
         state_id=STATE_BUENO # Bien mantenido por ser sede de gobierno
-    ))
+    )
+    s3= Site(
+        site_name='Puente de la Mujer', short_desc='Puente peatonal móvil en Puerto Madero',
+        full_desc='Diseñado por Santiago Calatrava, representa una pareja bailando tango. Es un ícono moderno en un barrio histórico-portuario.',
+        city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.363717 -34.603500)', srid=4326),
+        operning_year=2001, category_id=CATEGORIES['INFRA'], 
+        state_id=STATE_BUENO # Moderno
+    )
+    db.session.add_all([s1, s2, s3])
+    db.session.flush()
+    SiteService.process_new_images_transactional(s1.id,[{'file':'static/img/sites/cabildo.jpg','title_alt':'Cabildo de Buenos Aires','description':'Imagen del histórico Cabildo de Buenos Aires'}])
+    SiteService.process_new_images_transactional(s2.id,[{'file':'static/img/sites/casa_rosada.png','title_alt':'Casa Rosada','description':'Imagen de la emblemática Casa Rosada'}])
+    SiteService.process_new_images_transactional(s3.id,[{'file':'static/img/sites/puente_mujer.jpg','title_alt':'Puente de la Mujer','description':'Imagen del moderno Puente de la Mujer en Puerto Madero'}])
+
     sites.append(Site(
         site_name='Museo Histórico Nacional', short_desc='Antigua Quinta de Gregorio Lezama',
         full_desc='Ubicado en la antigua Quinta de Gregorio Lezama, este museo alberga colecciones históricas del país.',
         city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.370500 -34.620000)', srid=4326),
         operning_year=1891, category_id=CATEGORIES['DINO'], 
         state_id=STATE_REGULAR
-    ))
-    sites.append(Site(
-        site_name='Puente de la Mujer', short_desc='Puente peatonal móvil en Puerto Madero',
-        full_desc='Diseñado por Santiago Calatrava, representa una pareja bailando tango. Es un ícono moderno en un barrio histórico-portuario.',
-        city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.363717 -34.603500)', srid=4326),
-        operning_year=2001, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_BUENO # Moderno
     ))
     sites.append(Site(
         site_name='Monumento a los Dos Congresos', short_desc='Memorial en Plaza Congreso',
