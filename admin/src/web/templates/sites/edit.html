@@ -122,7 +122,7 @@
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-<form method="POST" id="edit-form">
+<form method="POST" id="edit-form" enctype="multipart/form-data">
   <div class="row mb-3">
     <div class="col-md-6">
       <label for="site_name" class="form-label">Nombre del sitio</label>
@@ -212,17 +212,12 @@
       Haz clic en las etiquetas para seleccionarlas. Las seleccionadas se verán resaltadas.
     </small>
   </div>
-  <div class="d-flex gap-2 mb-4">
-    <button type="submit" class="btn btn-primary">Guardar cambios del Sitio</button>
-    <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-secondary">Cancelar</a>
-  </div>
-</form>
-<h4 class="mb-4 text-info">Gestión de Imágenes ({{ site.images.count() }} / 10)</h4>
-
-  {% if site.images.count() < 10 %}
-  <div class="p-4 mb-4 border border-info rounded-3">
-    <h5 class="text-white">Subir Nuevas Imágenes</h5>
-    <form action="{{ url_for('sites.add_images', site_id=site.id) }}" method="POST" enctype="multipart/form-data" id="add-images-form">
+  
+  <h4 class="mb-4 text-info">Gestión de Imágenes ({{ site.images.count() }} / 10)</h4>
+    {% if site.images.count() < 10 %}
+    <div class="p-4 mb-4 border border-info rounded-3">
+      <h5 class="text-white">Subir Nuevas Imágenes</h5>
+      
       <div class="mb-3">
         <label for="images" class="form-label">Seleccionar archivos (Máx 5MB c/u, JPG/PNG/WEBP)</label>
         <input class="form-control" type="file" id="images" name="images" multiple accept="image/jpeg,image/png,image/webp">
@@ -231,64 +226,60 @@
         <div id="new-image-upload-preview">
         </div>
       </div>
-      <button type="submit" class="btn btn-success" id="submit-new-images-btn" disabled>Subir Imágen(es)</button>
-    </form>
-  </div>
-  {% else %}
-  <div class="alert alert-warning" role="alert">
-    <i class="bi bi-exclamation-triangle"></i> Has alcanzado el límite de 10 imágenes para este sitio.
-  </div>
+      </div>
+    {% else %}
+    <div class="alert alert-warning" role="alert">
+      <i class="bi bi-exclamation-triangle"></i> Has alcanzado el límite de 10 imágenes para este sitio.
+    </div>
   {% endif %}
   
   <h5 class="text-white mb-3">Imágenes Actuales (Arrastra para reordenar)</h5>
 
 <div id="image-list-container" class="image-list-container">
-    {% for image in site.images | sort(attribute='order_index') %}
-    <div class="image-item" data-image-id="{{ image.id }}">
-        <img src="{{ getImageUrl(image)}}" alt="{{ image.title_alt }}" class="image-thumbnail mb-2">
+      {% for image in site.images | sort(attribute='order_index') %}
+      <div class="image-item" data-image-id="{{ image.id }}">
+          <img src="{{ getImageUrl(image)}}" alt="{{ image.title_alt }}" class="image-thumbnail mb-2">
 
-        {% if image.is_cover %}
-        <span class="badge bg-warning mb-2"><i class="bi bi-star-fill"></i> PORTADA</span>
-        {% endif %}
+          {% if image.is_cover %}
+          <span class="badge bg-warning mb-2"><i class="bi bi-star-fill"></i> PORTADA</span>
+          {% endif %}
 
-        <form action="{{ url_for('sites.update_image_metadata', site_id=site.id, image_id=image.id) }}" method="POST" class="image-metadata-form">
-            <input type="hidden" name="order_index" value="{{ image.order_index }}" class="image-order-input">
+          <input type="hidden" name="existing_image_ids" value="{{ image.id }}" class="image-id-input">
+          <input type="hidden" name="order_index_{{ image.id }}" value="{{ image.order_index }}" class="image-order-input">
 
-            <div class="mb-2">
-                <label class="form-label small mb-0">Título/Alt <span class="text-danger">*</span></label>
-                <input type="text" name="title_alt" class="form-control form-control-sm" value="{{ image.title_alt }}" required>
-            </div>
-            <div class="mb-2">
-                <label class="form-label small mb-0">Descripción</label>
-                <textarea name="description" class="form-control form-control-sm" rows="2">{{ image.description or '' }}</textarea>
-            </div>
-            <button type="submit" class="btn btn-info btn-sm w-100 mb-2">Guardar Metadatos</button>
-        </form>
+          <div class="mb-2">
+              <label class="form-label small mb-0">Título/Alt <span class="text-danger">*</span></label>
+              <input type="text" name="title_alt_existing_{{ image.id }}" class="form-control form-control-sm" value="{{ image.title_alt }}" required>
+          </div>
+          <div class="mb-2">
+              <label class="form-label small mb-0">Descripción</label>
+              <textarea name="description_existing_{{ image.id }}" class="form-control form-control-sm" rows="2">{{ image.description or '' }}</textarea>
+          </div>
+          
+          <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="cover_image_id" id="cover_{{ image.id }}" value="{{ image.id }}" {% if image.is_cover %}checked{% endif %}>
+              <label class="form-check-label" for="cover_{{ image.id }}">Establecer como Portada</label>
+          </div>
 
-        <div class="d-flex gap-2">
-            {% if not image.is_cover %}
-            <form action="{{ url_for('sites.set_cover_image', site_id=site.id, image_id=image.id) }}" method="POST" class="w-50">
-                <button type="submit" class="btn btn-warning btn-sm w-100" title="Marcar como portada">
-                    <i class="bi bi-star"></i> Portada
-                </button>
-            </form>
-
-            <form action="{{ url_for('sites.delete_image', site_id=site.id, image_id=image.id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar esta imagen? Esta acción es irreversible.');" class="w-50">
-                <button type="submit" class="btn btn-danger btn-sm w-100" title="Eliminar imagen">
-                    <i class="bi bi-trash"></i> Eliminar
-                </button>
-            </form>
-            {% else %}
-            <button type="button" class="btn btn-danger btn-sm w-100" disabled title="Debe seleccionar otra portada antes de eliminar esta">
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-danger btn-sm w-100 delete-image-btn" 
+                    data-image-id="{{ image.id }}" 
+                    data-site-id="{{ site.id }}"
+                    {% if image.is_cover or site.images.count() == 1 %}disabled{% endif %}> 
                 <i class="bi bi-trash"></i> Eliminar
             </button>
-            {% endif %}
-        </div>
-    </div>
-    {% endfor %}
-</div>
+          </div>
+      </div>
+      {% endfor %}
+  </div>
 
+  <div class="d-flex gap-2 mb-4 mt-4">
+    <button type="submit" class="btn btn-primary">Guardar todos los cambios</button>
+    <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-secondary">Cancelar</a>
+  </div>
+</form>
 {% endblock %}
+
 
 {% block scripts %}
 
@@ -374,32 +365,19 @@ document.addEventListener('DOMContentLoaded', function() {
     if (imageList) {
         new Sortable(imageList, {
             animation: 150,
-            ghostClass: 'bg-secondary',
+            ghostClass: 'sortable-chosen', // Usar la clase CSS ya definida
             onEnd: function (evt) {
+                // Al reordenar, SOLO actualizamos el valor de order_index en el input HIDDEN
                 const items = imageList.querySelectorAll('.image-item');
                 items.forEach((item, index) => {
-                    const newOrder = index + 1; 
+                    const newOrder = index + 1; // El orden es 1-based
                     const orderInput = item.querySelector('.image-order-input');
-                    orderInput.value = newOrder;
-                    const form = item.querySelector('.image-metadata-form');
-                    const formData = new FormData(form);
-
-                    fetch(form.action, {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Error al actualizar el orden de la imagen.');
-                        }
-                        console.log(`Orden de imagen ID ${item.getAttribute('data-image-id')} actualizado a ${newOrder}.`);
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Error al reordenar la imagen. Recargue la página e inténtelo de nuevo.');
-                        window.location.reload(); 
-                    });
+                    if (orderInput) {
+                        orderInput.value = newOrder;
+                    }
+                    console.log(`Orden de imagen ID ${item.getAttribute('data-image-id')} actualizado LOCALMENTE a ${newOrder}.`);
                 });
+                // NO SE HACE FETCH ASÍNCRONO AQUÍ. La actualización se hará al SUBMIT.
             }
         });
     }
@@ -407,59 +385,69 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Lógica de Previsualización y Metadatos para Subida de Nuevas Imágenes ---
     const newImageInput = document.getElementById('images');
     const newPreviewContainer = document.getElementById('new-image-upload-preview');
-    const submitBtn = document.getElementById('submit-new-images-btn');
+    // Ya no necesitamos 'submitBtn' para la validación inicial del form anidado
+    // const submitBtn = document.getElementById('submit-new-images-btn'); 
+    
     const MAX_CURRENT_IMAGES = {{ site.images.count() }};
     const MAX_TOTAL_IMAGES = 10;
     const MAX_FILE_SIZE_MB = 5;
+    let newFilesArray = []; // Array para almacenar los archivos válidos y mantener el orden
 
     function validateAndPreviewNewImages(files) {
         newPreviewContainer.innerHTML = '';
-        submitBtn.disabled = true;
+        newFilesArray = []; // Reiniciar la lista de archivos válidos
         
+        const filesToProcess = Array.from(files);
+        
+        if (filesToProcess.length === 0) {
+            return;
+        }
+
+        if (MAX_CURRENT_IMAGES + filesToProcess.length > MAX_TOTAL_IMAGES) {
+            alert(`Solo puedes subir hasta ${MAX_TOTAL_IMAGES - MAX_CURRENT_IMAGES} imágenes más.`);
+            newImageInput.value = ''; // Limpiar el input file
+            return;
+        }
+
         let validFiles = true;
 
-        if (files.length === 0) {
-            return;
-        }
-
-        if (MAX_CURRENT_IMAGES + files.length > MAX_TOTAL_IMAGES) {
-            alert(`Solo puedes subir hasta ${MAX_TOTAL_IMAGES - MAX_CURRENT_IMAGES} imágenes más.`);
-            newImageInput.value = '';
-            return;
-        }
-
-        Array.from(files).forEach((file, index) => {
+        filesToProcess.forEach((file, index) => {
             const fileSizeMB = file.size / (1024 * 1024);
             const fileExtension = file.name.split('.').pop().toLowerCase();
             const ALLOWED_EXTENSIONS = ['jpg', 'png', 'webp', 'jpeg']; 
 
             if (fileSizeMB > MAX_FILE_SIZE_MB || !ALLOWED_EXTENSIONS.includes(fileExtension)) {
-                alert(`El archivo ${file.name} es inválido (tamaño > 5MB o formato no permitido).`);
+                alert(`El archivo ${file.name} es inválido (tamaño > ${MAX_FILE_SIZE_MB}MB o formato no permitido).`);
                 validFiles = false;
-                newImageInput.value = '';
+                // No limpiamos el input aquí, solo marcamos como inválido y paramos el loop
                 return; 
             }
+            
+            // Archivo válido: Añadir al array para mantener la referencia
+            newFilesArray.push(file);
 
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const previewItem = document.createElement('div');
-                    // Usamos las clases CSS definidas en <style> para el layout
                     previewItem.className = 'image-preview-item'; 
                     
                     const img = document.createElement('img');
                     img.src = e.target.result;
                     img.alt = `Previsualización de ${file.name}`;
                     
+                    // CAMBIO: Nombres de inputs específicos
                     const titleInput = document.createElement('input');
                     titleInput.type = 'text';
-                    titleInput.name = `title_alt_${index}`; 
+                    // Usar un prefijo + índice como nombre único para el backend
+                    titleInput.name = `new_title_alt_${index}`; 
                     titleInput.className = 'form-control form-control-sm mb-1';
                     titleInput.placeholder = 'Título/Alt (obligatorio)';
                     titleInput.required = true;
 
                     const descTextarea = document.createElement('textarea');
-                    descTextarea.name = `description_${index}`;
+                    // Usar un prefijo + índice como nombre único para el backend
+                    descTextarea.name = `new_description_${index}`; 
                     descTextarea.className = 'form-control form-control-sm';
                     descTextarea.rows = '2';
                     descTextarea.placeholder = 'Descripción (opcional)';
@@ -473,18 +461,58 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Habilitar botón si hay archivos y la validación inicial pasó
-        if (files.length > 0 && validFiles) {
-            submitBtn.disabled = false;
+        // Si hay archivos inválidos, forzar a limpiar el input y el array
+        if (!validFiles) {
+            newImageInput.value = '';
+            newFilesArray = [];
+            newPreviewContainer.innerHTML = '';
         }
     }
 
     newImageInput.addEventListener('change', function() {
         validateAndPreviewNewImages(this.files);
     });
-    
-    // Validación final de metadatos antes del envío del formulario de subida
-    document.getElementById('add-images-form').addEventListener('submit', function(e) {
+    // --- Lógica de Eliminación Asíncrona de Imágenes ---
+    document.querySelectorAll('.delete-image-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const imageId = this.getAttribute('data-image-id');
+            const siteId = this.getAttribute('data-site-id');
+            
+            // Verifica si el botón está deshabilitado por ser la única portada
+            if (this.disabled) {
+                alert('No se puede eliminar la única imagen de portada. Por favor, asigne otra imagen como portada primero.');
+                return;
+            }
+
+            if (confirm('¿Estás seguro de eliminar esta imagen? Esta acción es irreversible.')) {
+                // Construye la URL usando la ruta de Flask que proporcionaste
+                const deleteUrl = `/sites/${siteId}/images/${imageId}/delete`;
+
+                fetch(deleteUrl, {
+                    method: 'POST',
+                    
+                })
+                .then(response => {
+                    // La respuesta del endpoint debe ser 200 OK
+                    if (response.ok) {
+                        alert('Imagen eliminada correctamente. Recargando la página para actualizar la lista.');
+                        window.location.reload(); 
+                    } else {
+                        // Aquí puedes manejar errores específicos del servidor, como 403 (Permiso denegado)
+                        alert('Error al eliminar la imagen. (Código de estado: ' + response.status + ')');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error de conexión o de red al intentar eliminar la imagen.');
+                });
+            }
+        });
+    });    
+
+    // Validación final de metadatos antes del envío del formulario principal
+    document.getElementById('edit-form').addEventListener('submit', function(e) {
+        // Validación de Título/Alt para imágenes nuevas
         const titleInputs = newPreviewContainer.querySelectorAll('input[type="text"][required]');
         let allTitlesFilled = true;
         
@@ -502,6 +530,16 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             alert('Por favor, complete el Título/Alt obligatorio para todas las nuevas imágenes.');
         }
+
+        // Si el formulario es válido, el backend recibirá:
+        // 1. Campos del sitio (site_name, full_desc, etc.)
+        // 2. Campo de latitud/longitud
+        // 3. Campo de tags (separados por coma)
+        // 4. Archivos de nuevas imágenes (en el `request.files.getlist('images')` del backend)
+        // 5. Los IDs de las imágenes existentes (`existing_image_ids`)
+        // 6. El orden y metadatos de las imágenes existentes y nuevas.
+        //    - Orden/Metadatos Existentes: `order_index_{id}`, `title_alt_existing_{id}`, `description_existing_{id}`
+        //    - Metadatos Nuevos: `new_title_alt_{index}`, `new_description_{index}`
     });
 
 });
