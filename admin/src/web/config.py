@@ -13,9 +13,9 @@ class config:
 
 class ProductionConfig(config):
     """Production configuration."""
-    MINIO_SERVER = os.getenv("MINIO_MINIO_SERVER", "minio.proyecto2025.linti.unlp.edu.ar")
-    MINIO_ACCESS_KEY = os.getenv("MINIO_MINIO_ACCESS_KEY", "")
-    MINIO_SECRET_KEY = os.getenv("MINIO_MINIO_SECRET_KEY", "")
+    MINIO_SERVER = os.getenv("MINIO_SERVER", "minio.proyecto2025.linti.unlp.edu.ar")
+    MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "")
+    MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "")
     MINIO_SECURE = False
     MINIO_BUCKET = "grupo21"
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "")
