@@ -17,6 +17,7 @@ class User(db.Model):
     updated_at= Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     sysAdmin = Column(Boolean, default=False)
     deleted = Column(Boolean, default=False)
+    avatar = Column(String, nullable=True)
     
     # RELACIÓN 1: Un Usuario tiene un Rol.
     role_id = Column(Integer, ForeignKey('roles.id'), nullable=True)

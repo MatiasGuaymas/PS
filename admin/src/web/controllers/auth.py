@@ -62,9 +62,10 @@ def callback():
         
         email = user_info.get('email')
         name = user_info.get('name')
+        avatar = user_info.get('picture')
         
         # Buscar o crear usuario en tu base de datos
-        user = UserService.find_or_create_google_user(email, name)
+        user = UserService.find_or_create_google_user(email, name, avatar)
         
         if not user:
             flash(f"No existe una cuenta con el email {email}", "error")

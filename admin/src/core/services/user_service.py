@@ -171,7 +171,7 @@ class UserService:
         user = UserService.get_user_by_id(user_id)
         return user is not None and user.sysAdmin
     
-    def find_or_create_google_user(email, name):
+    def find_or_create_google_user(email, name, avatar):
         
         user = User.query.filter_by(email=email).first()
 
@@ -192,7 +192,8 @@ class UserService:
             active=True,
             sysAdmin=False,
             deleted=False,
-            role_id=default_role.id if default_role else None 
+            role_id=default_role.id if default_role else None,
+            avatar=avatar
         )
 
         db.session.add(new_user)
