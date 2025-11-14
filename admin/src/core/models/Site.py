@@ -87,3 +87,49 @@ class Site(db.Model):
         """Retorna la imagen marcada como portada."""
         # Esto usará el backref 'images'
         return self.images.filter_by(is_cover=True).first()
+    
+    
+    
+    def to_dict(self):
+        """
+        Devuelve una representación de diccionario del objeto Site (SERIALIZACIÓN JSON).
+        """
+        from core.services.sites_service import SiteService
+        
+        # Manejar de forma segura la imagen de portada con URL pre-firmada
+        cover_url = None
+        if self.cover_image:
+            cover_url = SiteService.build_image_url(self.cover_image.file_path)
+        
+        # Manejar de forma segura la fecha de registro (DateTime)
+        registration_str = self.registration.isoformat() if self.registration else None
+        
+        # Manejar de forma segura las relaciones category y state (asumiendo que tienen atributo 'name')
+        category_name = self.category.name if self.category else None
+        state_name = self.state.name if self.state else None # También incluimos el estado
+        
+        # Obtener tags del sitio (máximo 5 para el listado) a través de la tabla intermedia
+        tags_list = [{'id': assoc.tag.id, 'name': assoc.tag.name} for assoc in self.tag_associations.limit(5).all()]
+        
+        # Manejar de forma segura la latitud/longitud (que ya lo hace tu @property)
+        
+        return {
+            'id': self.id,
+            'name': self.site_name,
+            'active': self.active,
+            'cover_image_url': cover_url,  # URL pre-firmada para la portada
+            'short_desc': self.short_desc,
+            'full_desc': self.full_desc,
+            'city': self.city,
+            'province': self.province,
+            'opening_year': self.operning_year, 
+            'registration': registration_str,
+            'latitude': self.latitude,
+            'longitude': self.longitude,
+            
+            # Datos de relaciones
+            'category_name': category_name,
+            'state_name': state_name, 
+            'tags': tags_list,
+            'images': [image.to_dict() for image in self.images.all()]
+        }

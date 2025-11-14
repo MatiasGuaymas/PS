@@ -5,6 +5,9 @@ from core.models.Audit import Audit
 from core.database import db
 from core.utils.search import build_search_query,apply_ordering
 import logging
+import os
+import mimetypes
+from werkzeug.datastructures import FileStorage
 logger = logging.getLogger(__name__)
 class SiteService:
     def get_sites_filtered(
@@ -259,7 +262,68 @@ class SiteService:
             db.session.rollback()
             logger.error(f"Error al establecer imagen ID={image_id} como portada: {e}", exc_info=True)
             return False
-    
+        
+    def create_filestorage_from_path(file_path: str, field_name: str = 'images') -> FileStorage:
+        """
+        Crea un objeto FileStorage a partir de una ruta de archivo local.
+        
+        Args:
+            file_path (str): Ruta completa al archivo en el sistema de archivos (ej. 'static/img/sites/imagen.png').
+            field_name (str): El nombre del campo 'input file' que esperaría el formulario (generalmente 'images').
+            
+        Returns:
+            FileStorage: El objeto FileStorage listo para ser usado en funciones de subida.
+        """
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"El archivo no existe en la ruta: {file_path}")
+
+        # Determinar el Content-Type (MIME type)
+        mime_type, encoding = mimetypes.guess_type(file_path)
+        if mime_type is None:
+            mime_type = 'application/octet-stream' # Tipo genérico si no se puede adivinar
+
+        # Abrir el archivo en modo binario
+        # Usamos 'rb' y dejamos que el puntero del archivo actúe como el stream.
+        # FileStorage gestionará el cierre si se le pasa un descriptor de archivo abierto.
+        file_handle = open(file_path, 'rb')
+        
+        # Obtener el nombre de archivo
+        filename = os.path.basename(file_path)
+
+        # Crear el objeto FileStorage
+        file_storage = FileStorage(
+            stream=file_handle,       # El stream de bytes del archivo
+            filename=filename,        # Nombre del archivo (ej: 'imagen.png')
+            name=field_name,          # Nombre del campo del formulario (ej: 'images')
+            content_type=mime_type    # Tipo MIME (ej: 'image/png')
+        )
+        
+        return file_storage
+    def new_images_transactional(file,minio_path):
+        """
+        Wrapper para manejar la transacción al procesar nuevas imágenes.
+        """
+        from flask import current_app
+        client = current_app.storage
+
+        if isinstance(file,str):
+            file=SiteService.create_filestorage_from_path(file)
+            
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+
+        
+        # Guardar en una subcarpeta con el site_id en MinIO
+        
+        #no hace falta guardar res, esta para deputar errores
+        res= client.put_object(bucket_name = current_app.config["MINIO_BUCKET"],
+                            object_name=minio_path,
+                            data=file,
+                            length=file_size,
+                            content_type=file.content_type)
+        return minio_path
+        
     def process_new_images_transactional(site_id, image_data):
         """
         Procesa un lote de nuevas imágenes: las valida, sube a MinIO y crea registros en BD.
@@ -272,7 +336,6 @@ class SiteService:
             int: Número de imágenes procesadas con éxito.
         """
         from flask import current_app
-        import os
         import uuid
 
         if not image_data:
@@ -286,45 +349,37 @@ class SiteService:
         is_first_image_for_site = (SiteService.get_cover_image(site_id) is None)
         for idx, img_info in enumerate(image_data):
             file = img_info["file"]
+            if isinstance(file,str):
+                file=SiteService.create_filestorage_from_path(file)
             titulo_alt = img_info["title_alt"]
             descripcion = img_info["description"]
-
-            file.seek(0, os.SEEK_END)
-            file_size = file.tell()
-            file.seek(0)
-
             extension = file.filename.rsplit('.', 1)[1].lower()
             file_uuid = str(uuid.uuid4())
-            # Guardar en una subcarpeta con el site_id en MinIO
             minio_path = f"{site_id}/{file_uuid}.{extension}"
+            print(current_app.config)
             try:
-                #no hace falta guardar res, esta para deputar errores
-                res= client.put_object(bucket_name = current_app.config["MINIO_BUCKET"],
-                                    object_name=minio_path,
-                                    data=file,
-                                    length=file_size,
-                                    content_type=file.content_type)
-                public_url = f"/{current_app.config['MINIO_BUCKET']}/{minio_path}"
-                
-                # La primera imagen subida será la portada por defecto
-                is_cover = (idx == 0 and is_first_image_for_site)
-
-                new_image = SiteImage(
-                    site_id=site_id,
-                    public_url=public_url,
-                    file_path=minio_path,
-                    title_alt=titulo_alt,
-                    description=descripcion,
-                    order_index=(idx + next_order), # El orden inicial es secuencial
-                    is_cover=is_cover
-                )
-                db.session.add(new_image)
-                db.session.flush()
-                #TO-? Registrar auditoría
-                images_processed += 1
+                SiteService.new_images_transactional(file, minio_path)
             except Exception as e:
                 logger.error(f"Error al subir imagen para sitio ID={site_id}: {e}", exc_info=True)
-                continue
+                raise e
+            
+            public_url = f"/{current_app.config['MINIO_BUCKET']}/{minio_path}"
+                
+            # La primera imagen subida será la portada por defecto
+            is_cover = (idx == 0 and is_first_image_for_site)
+
+            new_image = SiteImage(
+                site_id=site_id,
+                public_url=public_url,
+                file_path=minio_path,
+                title_alt=titulo_alt,
+                description=descripcion,
+                order_index=(idx + next_order), # El orden inicial es secuencial
+                is_cover=is_cover
+            )
+            db.session.add(new_image)
+            db.session.flush()
+            images_processed += 1
         return images_processed
     
     def delete_image_transactional(site_id, image_id, current_user_id):
@@ -369,13 +424,12 @@ class SiteService:
             # Relanzar la excepción para que la vista pueda dar un mensaje de error
             raise Exception("Ocurrió un error al intentar eliminar la imagen.")
         
-    def build_image_url(site_id: int, image_path: int):
+    def build_image_url(image_path: int):
         from flask import current_app
         """
         Obtiene una imagen específica de un sitio.
         
         Args:
-            site_id (int): ID del sitio.
             image_path: Path de la imagen.
             
         Returns:
@@ -386,3 +440,69 @@ class SiteService:
             bucket_name=current_app.config["MINIO_BUCKET"],
             object_name=image_path,
         )
+    
+    def update_existing_images_data(site: Site, existing_images_data: list):
+        """
+        Actualiza el orden, metadatos (título/alt, descripción) y el estado de portada 
+        (is_cover) de las imágenes existentes de un sitio.
+
+        Esta función opera dentro de la sesión de base de datos activa
+        y maneja la lógica de portada (solo una imagen puede ser la portada).
+        
+        Args:
+            site (Site): Objeto del sitio histórico a actualizar.
+            existing_images_data (list): Lista de diccionarios con datos de la imagen:
+                                         [{'id': int, 'order_index': int, 'title_alt': str, 
+                                           'description': str, 'is_cover': bool}, ...]
+        """
+        
+        if not existing_images_data:
+            return
+
+        try:
+            # Preparar la portada
+            new_cover_id = None
+            for data in existing_images_data:
+                if data['is_cover']:
+                    new_cover_id = data['id']
+                    break
+            
+            # Si se encontró una nueva portada, desmarcar todas las portadas actuales
+            # para el sitio ANTES de actualizar la nueva.
+            if new_cover_id is not None:
+                # Utilizamos una actualización masiva 
+                SiteImage.query.filter_by(site_id=site.id, is_cover=True).update(
+                    {'is_cover': False}, 
+                    synchronize_session=False # Es más eficiente si solo actualizamos el estado
+                )
+                db.session.flush() # Forzar la ejecución de la consulta de actualización
+
+            # Iterar y actualizar cada imagen
+            for data in existing_images_data:
+                image_id = data['id']
+                
+                # Obtener la imagen por ID y SITE_ID para asegurar pertenencia
+                image = SiteImage.query.filter_by(id=image_id, site_id=site.id).one_or_none()
+                
+                if image:
+                    # Aplicar actualizaciones de metadatos y orden
+                    image.order_index = data['order_index']
+                    image.title_alt = data['title_alt']
+                    image.description = data['description']
+
+                    # Aplicar el estado de portada:
+                    # Si encontramos una nueva portada, solo la marcamos si su ID coincide.
+                    if new_cover_id is not None:
+                        image.is_cover = (image_id == new_cover_id)
+                    # Si new_cover_id es None (ej: no se seleccionó ninguna radio button, 
+                    # lo cual no debería pasar si hay imágenes), 
+                    # mantenemos el estado de is_cover.
+                    
+                    db.session.add(image) # Marcar para guardar
+                else:
+                    # Esto podría indicar un problema de datos (ID de imagen incorrecto)
+                    logger.warning(f"Imagen ID {image_id} no encontrada o no pertenece al sitio {site.id} durante la actualización.")
+            
+        except Exception as e:
+            logger.error(f"Error en SiteService.update_existing_images_data para sitio {site.id}: {e}")
+            raise 
