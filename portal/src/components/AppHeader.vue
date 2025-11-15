@@ -126,7 +126,7 @@ const logout = async () => {
                 <i class="bi bi-box-arrow-in-right me-1"></i>
                 Iniciar Sesión
               </RouterLink>
-              <RouterLink to="/registro" class="btn btn-primary">
+              <RouterLink to="/register" class="btn btn-primary">
                 <i class="bi bi-person-plus me-1"></i>
                 Registrarse
               </RouterLink>

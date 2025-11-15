@@ -63,7 +63,8 @@ def authenticate():
                 "id": user.id,
                 "email": user.email,
                 "first_name": user.first_name,
-                "last_name": user.last_name
+                "last_name": user.last_name,
+                "avatar": user.avatar
             }
         }), 200
     else:
@@ -167,7 +168,94 @@ def me():
             "last_name": user.last_name,
             "role": user.role.name if user.role else None,
             "is_admin": user.sysAdmin,
+            "avatar": user.avatar
         }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+
+@bp.post("/register")
+def register():
+    """Registra un nuevo usuario"""
+    try:
+
+        if request.content_type and 'multipart/form-data' in request.content_type:
+            data = request.form
+            avatar_file = request.files.get('avatar')
+        else:
+            data = request.get_json() if request.is_json else request.form
+            avatar_file = None
+        
+        # Validar campos requeridos
+        required_fields = ['first_name', 'last_name', 'email', 'password']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({"error": f"El campo {field} es requerido"}), 400
+        
+        email = data.get('email')
+        password = data.get('password')
+        first_name = data.get('first_name')
+        last_name = data.get('last_name')
+        
+        # Validar longitud de contraseña
+        if len(password) < 8:
+            return jsonify({"error": "La contraseña debe tener al menos 8 caracteres"}), 400
+        
+        # Verificar si el email ya existe
+        existing_user = UserService.get_user_by_email(email)
+        if existing_user:
+            return jsonify({"error": "Este correo electrónico ya está registrado"}), 409
+        
+        vatar_url = None
+        if avatar_file and avatar_file.filename:
+            # Validar extensión
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+            filename = secure_filename(avatar_file.filename)
+            
+            if '.' in filename:
+                extension = filename.rsplit('.', 1)[1].lower()
+                
+                if extension in allowed_extensions:
+                    # Generar nombre único
+                    unique_filename = f"avatar_{int(time.time())}_{filename}"
+                    
+                    # Guardar en carpeta static/avatars
+                    upload_folder = os.path.join(current_app.static_folder, 'avatars')
+                    os.makedirs(upload_folder, exist_ok=True)
+                    
+                    filepath = os.path.join(upload_folder, unique_filename)
+                    avatar_file.save(filepath)
+                    
+                    avatar_url = f"/static/avatars/{unique_filename}"
+        
+
+        UserService.create_user(
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            raw_password=password
+        )
+
+        new_user = UserService.get_user_by_email(email)
+        
+        # Crear sesión automáticamente
+        session["user"] = new_user.email
+        session["user_id"] = new_user.id
+        session["role_name"] = new_user.role.name if new_user.role else "No Role"
+        session["is_admin"] = new_user.sysAdmin
+        session["role_id"] = new_user.role.id if new_user.role else None
+        
+        return jsonify({
+            "ok": True,
+            "message": "Usuario registrado exitosamente",
+            "user": {
+                "id": new_user.id,
+                "email": new_user.email,
+                "first_name": new_user.first_name,
+                "last_name": new_user.last_name
+            }
+        }), 201
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
