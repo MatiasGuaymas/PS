@@ -79,7 +79,6 @@
 
             <div class="mt-3 text-muted small">
               <div>Registro: {{ formattedRegistration }}</div>
-              <div v-if="hasCoords">Coordenadas: {{ result.latitude }}, {{ result.longitude }}</div>
             </div>
 
             <div v-if="hasCoords" class="mt-3">
@@ -181,8 +180,8 @@ export default {
       this.showFull = !this.showFull
     },
     onTagClick(tag) {
-      const name = tag?.name || tag
-      this.$router.push({ path: '/sitios', query: { tag: name } })
+      const id = tag?.id || tag
+      this.$router.push({ path: '/sitios', query: { tags: id } })
     },
     async initMap(attempt = 0) {
       if (!this.result) return
@@ -214,11 +213,11 @@ export default {
 
         if (hasCoords) {
           L.circleMarker([lat, lng], {
-            radius: 8,
+            radius: 9,
             color: '#d00',
             fillColor: '#f03',
             fillOpacity: 0.7
-          }).addTo(this.map).bindPopup(this.result.name || '').openPopup()
+          }).addTo(this.map).bindPopup(this.result.name + ": " + this.result.short_desc || '').openPopup()
         }
 
         setTimeout(() => { try { this.map.invalidateSize() } catch (e) { } }, 200)
