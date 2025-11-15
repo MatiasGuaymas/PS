@@ -1,5 +1,8 @@
 <template>
   <div class="container py-4">
+    <div class="mb-3">
+      <button class="btn btn-sm btn-outline-secondary" @click="goBack">← Volver</button>
+    </div>
     <div v-if="loading" class="text-center py-5">
       <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
     </div>
@@ -100,9 +103,41 @@ export default {
     await this.fetchSite()
   },
   methods: {
+    goBack() {
+      const from = this.$route.query.from
+      if (from) {
+        try {
+          const parsed = new URL(from, window.location.origin)
+          if (parsed.origin === window.location.origin) {
+            const qp = Object.fromEntries(parsed.searchParams.entries())
+            return this.$router.push({ path: parsed.pathname, query: qp })
+          } else {
+            window.location.href = from
+            return
+          }
+        } catch (e) {
+          const [path, qs] = from.split('?')
+          if (qs) {
+            const qp = Object.fromEntries(new URLSearchParams(qs).entries())
+            return this.$router.push({ path, query: qp })
+          }
+          return this.$router.push(from)
+        }
+      }
+
+      if (window.history.length > 1) {
+        this.$router.back()
+        return
+      }
+
+      const fallbackQuery = {}
+      const q = this.$route.query
+      ['tag','q','province','category','state','page','per_page'].forEach(k => { if (q[k]) fallbackQuery[k]=q[k] })
+      this.$router.push({ path: '/sitios', query: fallbackQuery })
+    },
     async fetchSite() {
       if (!this.siteId) {
-        this.error = 'Site ID no provisto'
+        this.error = 'No se especificó la ID del sitio.'
         return
       }
       this.loading = true
@@ -129,43 +164,32 @@ export default {
       this.$router.push({ path: '/sitios', query: { tag: name } })
     },
     async initMap(attempt = 0) {
-      // Espera a que exista el contenedor #map y a que result esté cargado
       if (!this.result) return
       const MAX = 10
       const DELAY = 50
       const el = document.getElementById('map')
       if (!el) {
         if (attempt >= MAX) {
-          console.error('Map container not found after retries')
+          console.error('Error al cargar el mapa.')
           return
         }
         return setTimeout(() => this.initMap(attempt + 1), DELAY)
       }
 
-      if (!window.L) {
-        console.error('Leaflet no está cargado. Incluye el script CDN en index.html')
-        return
-      }
-
-      // Limpia instancia previa si existe
       if (this.map) {
-        try { this.map.remove() } catch (_) { /* ignore */ }
+        try { this.map.remove() } catch (_) { }
         this.map = null
       }
 
-      // Coordenadas (fallback a BA si no hay coords)
       const lat = parseFloat(this.result.latitude)
       const lng = parseFloat(this.result.longitude)
       const hasCoords = !Number.isNaN(lat) && !Number.isNaN(lng)
       const center = hasCoords ? [lat, lng] : [-34.6037, -58.3816]
 
       try {
-        // crear mapa usando el elemento DOM directamente
         this.map = L.map(el, { center, zoom: hasCoords ? 15 : 10, scrollWheelZoom: true })
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors'
-        }).addTo(this.map)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.map)
 
         if (hasCoords) {
           L.circleMarker([lat, lng], {
@@ -176,7 +200,6 @@ export default {
           }).addTo(this.map).bindPopup(this.result.name || '').openPopup()
         }
 
-        // asegurar render correcto dentro de layout responsivo
         setTimeout(() => { try { this.map.invalidateSize() } catch (e) { } }, 200)
       } catch (err) {
         console.error('Error inicializando Leaflet', err)
