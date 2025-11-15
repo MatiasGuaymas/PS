@@ -10,13 +10,14 @@ class User(db.Model):
     id = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String(120), unique=True, nullable=False)
     first_name = Column(String(50), nullable=False)
-    last_name = Column(String(50), nullable=False)
-    password = Column(String, nullable=False)
+    last_name = Column(String(50), nullable=True)
+    password = Column(String, nullable=True)
     active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at= Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     sysAdmin = Column(Boolean, default=False)
     deleted = Column(Boolean, default=False)
+    avatar = Column(String, nullable=True)
     
     # RELACIÓN 1: Un Usuario tiene un Rol.
     role_id = Column(Integer, ForeignKey('roles.id'), nullable=True)

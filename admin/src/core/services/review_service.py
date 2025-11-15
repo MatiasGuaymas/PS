@@ -163,3 +163,26 @@ class ReviewService:
         except Exception as e:
             db.session.rollback()
             return False
+        
+
+    @staticmethod
+    def get_approved_reviews_by_user(user_id: int) -> List[Review]:
+        """
+        Obtiene solo las reseñas APROBADAS de un usuario específico.
+        
+        Args:
+            user_id (int): ID del usuario
+            
+        Returns:
+            List[Review]: Lista de reseñas aprobadas del usuario
+        """
+        from core.models.Review import Review
+        from core.database import db
+        
+        reviews = db.session.execute(
+            db.select(Review)
+            .filter_by(user_id=user_id, status='approved')
+            .order_by(Review.created_at.desc())
+        ).scalars().all()
+        
+        return reviews
