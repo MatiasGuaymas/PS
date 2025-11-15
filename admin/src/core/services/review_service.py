@@ -164,7 +164,6 @@ class ReviewService:
             db.session.rollback()
             return False
         
-    ß
 
     @staticmethod
     def get_approved_reviews_by_user(user_id: int) -> List[Review]:

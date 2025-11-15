@@ -2,6 +2,7 @@ from flask import Blueprint, current_app
 from flask import render_template, request, redirect, url_for, flash, session
 from core.services.user_service import UserService 
 from src.web.handlers.auth import login_required, noLogin_required
+from flask import jsonify
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -97,3 +98,28 @@ def logout():
     flash("Has cerrado sesión correctamente.", "success")
     return redirect(url_for("auth.login"))
     
+
+@bp.get("/me")
+def me():
+    """Endpoint para verificar sesión activa"""
+    if "user_id" not in session:
+        return jsonify({"error": "No authenticated"}), 401
+    
+    try:
+        user = UserService.get_user_by_id(session["user_id"])
+        
+        if not user:
+            session.clear()
+            return jsonify({"error": "User not found"}), 404
+        
+        return jsonify({
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "role": user.role.name if user.role else None,
+            "is_admin": user.sysAdmin,
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

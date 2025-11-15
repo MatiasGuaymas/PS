@@ -1,11 +1,21 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { RouterLink } from 'vue-router'
+import { authStore } from '@/stores/authStore'
 
 const isMenuOpen = ref(false)
 
+const user = computed(() => authStore.user)
+const loading = computed(() => authStore.loading)
+
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
+}
+
+const logout = async () => {
+  await authStore.logout()
+  // Opcionalmente redirigir
+  window.location.href = '/login'
 }
 </script>
 
@@ -13,15 +23,17 @@ const toggleMenu = () => {
   <header class="app-header sticky-top bg-white shadow-sm">
     <nav class="navbar navbar-expand-lg navbar-light">
       <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="/">
+        <!-- Logo -->
+        <RouterLink to="/" class="navbar-brand d-flex align-items-center">
           <img src="@/assets/Logo.jpg" alt="Logo" class="logo-image me-2">
           <span class="fw-bold fs-5">
             <span class="gradient-text-1">Puff</span>
             <span class="gradient-text-2">-</span>
             <span class="gradient-text-3">Tóricos</span>
           </span>
-        </a>
+        </RouterLink>
 
+        <!-- Toggle para mobile -->
         <button 
           class="navbar-toggler border-0" 
           type="button" 
@@ -50,28 +62,82 @@ const toggleMenu = () => {
               </RouterLink>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="/mapa">
+              <RouterLink to="/mapa" class="nav-link">
                 <i class="bi bi-geo-alt me-1"></i>
                 Mapa
-              </a>
+              </RouterLink>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="/sobre-nosotros">
+              <RouterLink to="/sobre-nosotros" class="nav-link">
                 <i class="bi bi-info-circle me-1"></i>
                 Sobre Nosotros
-              </a>
+              </RouterLink>
             </li>
           </ul>
 
+          <!-- Botones de autenticación -->
           <div class="d-flex gap-2 align-items-center">
-            <a href="/login" class="btn btn-outline-primary">
-              <i class="bi bi-box-arrow-in-right me-1"></i>
-              Iniciar Sesión
-            </a>
-            <a href="/registro" class="btn btn-primary">
-              <i class="bi bi-person-plus me-1"></i>
-              Registrarse
-            </a>
+            <!-- Loading state -->
+            <template v-if="loading">
+              <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+              </div>
+            </template>
+
+            <!-- Usuario autenticado -->
+            <template v-else-if="user">
+              <div class="dropdown">
+                <button 
+                  class="btn btn-outline-primary dropdown-toggle d-flex align-items-center gap-2" 
+                  type="button" 
+                  id="userDropdown" 
+                  data-bs-toggle="dropdown" 
+                  aria-expanded="false"
+                >
+                  <i class="bi bi-person-circle"></i>
+                  <span>{{ user.first_name }}</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                  <li>
+                    <div class="dropdown-item-text">
+                      <small class="text-muted">{{ user.email }}</small>
+                    </div>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <RouterLink to="/perfil" class="dropdown-item">
+                      <i class="bi bi-person me-2"></i>
+                      Mi Perfil
+                    </RouterLink>
+                  </li>
+                  <li>
+                    <RouterLink to="/mis-reviews" class="dropdown-item">
+                      <i class="bi bi-star me-2"></i>
+                      Mis Reseñas
+                    </RouterLink>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <button @click="logout" class="dropdown-item text-danger">
+                      <i class="bi bi-box-arrow-right me-2"></i>
+                      Cerrar Sesión
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </template>
+
+            <!-- Usuario no autenticado -->
+            <template v-else>
+              <RouterLink to="/login" class="btn btn-outline-primary">
+                <i class="bi bi-box-arrow-in-right me-1"></i>
+                Iniciar Sesión
+              </RouterLink>
+              <RouterLink to="/registro" class="btn btn-primary">
+                <i class="bi bi-person-plus me-1"></i>
+                Registrarse
+              </RouterLink>
+            </template>
           </div>
         </div>
       </div>

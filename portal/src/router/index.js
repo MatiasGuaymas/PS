@@ -20,6 +20,11 @@ const router = createRouter({
       component: () => import('../views/AccessDeniedView.vue'), 
       props: true 
     },
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('../views/LoginView.vue'),
+    },
   ],
 })
 
