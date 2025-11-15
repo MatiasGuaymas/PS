@@ -6,6 +6,7 @@ from core.models.State import State
 from core.database import db
 from sqlalchemy.orm import selectinload
 from sqlalchemy import or_, and_
+from core.services.sites_service import SiteService
 
 sitesAPI_blueprint = Blueprint("sitesAPI", __name__, url_prefix="/api/sites")
 
@@ -17,11 +18,13 @@ def list_sites():
     Query params:
         - page: número de página (default: 1)
         - per_page: items por página (default: 12)
-        - q: búsqueda por nombre, descripción o ciudad
+        - q: búsqueda por nombre y descripción breve
         - province: filtro por provincia
-        - category: filtro por nombre de categoría
+        - city: filtro por ciudad
+        - tags: filtro por tags (IDs separados por coma)
         - state: filtro por nombre de estado
-        - sort: ordenamiento (name, recent, default: name)
+        - sort: ordenamiento (site_name, registration, rating, default: site_name)
+        - order: dirección (asc, desc, default: asc)
     """
     # Parámetros de paginación
     page = request.args.get('page', 1, type=int)
@@ -30,69 +33,65 @@ def list_sites():
     # Parámetros de búsqueda y filtros
     search_query = request.args.get('q', '').strip()
     province_filter = request.args.get('province', '').strip()
-    category_filter = request.args.get('category', '').strip()
+    city_filter = request.args.get('city', '').strip()
     state_filter = request.args.get('state', '').strip()
-    sort_by = request.args.get('sort', 'name')
     
-    # Query base - solo sitios activos
-    query = db.session.query(Site).options(
-        selectinload(Site.category),
-        selectinload(Site.state)
-    ).filter_by(active=True, deleted=False)
+    # Filtro de tags (string separado por comas)
+    tags_param = request.args.get('tags', '').strip()
+    tags_filter = []
+    if tags_param:
+        try:
+            tags_filter = [int(t) for t in tags_param.split(',') if t.strip().isdigit()]
+        except ValueError:
+            pass
     
-    # Aplicar búsqueda por texto
+    # Parámetros de ordenamiento
+    sort_by = request.args.get('sort', 'site_name')  # site_name, registration, rating
+    order = request.args.get('order', 'asc')  # asc, desc
+    
+    filters = {
+        'active': True,
+        'deleted': False 
+    }
+
     if search_query:
-        query = query.filter(
-            or_(
-                Site.site_name.ilike(f'%{search_query}%'),
-                Site.short_desc.ilike(f'%{search_query}%'),
-                Site.city.ilike(f'%{search_query}%')
-            )
-        )
+        filters['search_text'] = search_query
     
-    # Aplicar filtro de provincia
+    if city_filter:
+        filters['city'] = {'operator': 'ilike', 'value': city_filter}
+    
     if province_filter:
-        query = query.filter(Site.province.ilike(f'%{province_filter}%'))
+        filters['province'] = {'operator': 'ilike', 'value': province_filter}
     
-    # Aplicar filtro de categoría (por nombre)
-    if category_filter:
-        query = query.join(Site.category).filter(
-            Site.category.has(name=category_filter)
-        )
-    
-    # Aplicar filtro de estado (por nombre)
     if state_filter:
-        query = query.join(Site.state).filter(
-            Site.state.has(name=state_filter)
-        )
+        filters['state'] = {'operator': 'eq', 'value': state_filter}
     
-    # Aplicar ordenamiento
-    if sort_by == 'recent':
-        query = query.order_by(Site.id.desc())
-    else:  # 'name' o default
-        query = query.order_by(Site.site_name.asc())
+    if tags_filter:
+        filters['tags'] = tags_filter
     
-    # Ejecutar paginación
-    pagination = query.paginate(
+    pagination = SiteService.get_sites_filtered(
+        filters=filters,
+        order_by=sort_by,
+        sorted_by=order,
+        paginate=True,
         page=page,
-        per_page=per_page,
-        error_out=False
+        per_page=per_page
     )
     
     # Serializar resultados
-    sites_json = [site.to_dict() for site in pagination.items]
+    sites_json = [site.to_dict() for site in pagination['items']]
     
     return jsonify({
         'data': sites_json,
         'pagination': {
-            'page': pagination.page,
-            'per_page': pagination.per_page,
-            'total': pagination.total,
-            'total_pages': pagination.pages,
-            'has_prev': pagination.has_prev,
-            'has_next': pagination.has_next,
-            'prev_page': pagination.prev_num,
-            'next_page': pagination.next_num
+            'page': pagination['current_page'],
+            'per_page': pagination['per_page'],
+            'total': pagination['total'],
+            'total_pages': pagination['pages'],
+            'has_prev': pagination['has_prev'],
+            'has_next': pagination['has_next'],
+            'prev_page': pagination['prev_num'],
+            'next_page': pagination['next_num']
         }
     })
 
@@ -141,3 +140,17 @@ def list_states():
     states_json = [{'id': state.id, 'name': state.name} for state in states]
     
     return jsonify({'data': states_json})
+
+@sitesAPI_blueprint.route("/<int:site_id>", methods=["GET"])
+def siteDetails(site_id):
+    """
+    Detalle sobre un sitio.
+    
+    Returns:
+        JSON con toda la información de un sitio
+    """
+    
+    site = SiteService.get_site_by_id(site_id)
+    json = site.to_dict()
+    
+    return jsonify({'data': json})

@@ -1,6 +1,5 @@
 @import './base.css';
 
-/* El #app ahora ocupa todo el ancho sin restricciones */
 #app {
   width: 100%;
   min-height: 100vh;

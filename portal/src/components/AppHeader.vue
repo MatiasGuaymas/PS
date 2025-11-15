@@ -19,7 +19,7 @@ const logout = async () => {
 </script>
 
 <template>
-  <header class="app-header sticky-top bg-white shadow-sm">
+  <header class="app-header sticky-top shadow bg-body-tertiary rounded">
     <nav class="navbar navbar-expand-lg navbar-light">
       <div class="container">
         <RouterLink to="/" class="navbar-brand d-flex align-items-center">
@@ -141,7 +141,8 @@ const logout = async () => {
 <style scoped>
 .app-header {
   z-index: 1000;
-  border-bottom: 1px solid #e9ecef;
+  background-color: var(--bg-header-footer);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .navbar-brand {
@@ -157,7 +158,7 @@ const logout = async () => {
 }
 
 .navbar-brand:hover i {
-  color: #667eea !important;
+  color: var(--color-primary) !important;
 }
 
 /* Estilos del logo */
@@ -170,28 +171,28 @@ const logout = async () => {
 
 /* Gradiente en el logo */
 .gradient-text-1 {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-2 {
-  background: linear-gradient(135deg, #764ba2 0%, #f093fb 100%);
+  background: var(--gradient-secondary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-3 {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: var(--gradient-accent);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .nav-link {
-  color: #6c757d;
+  color: var(--text-secondary);
   transition: all 0.3s ease;
   padding: 0.5rem 1rem;
   border-radius: 8px;
@@ -200,7 +201,7 @@ const logout = async () => {
 
 .nav-link:hover {
   color: #0d6efd;
-  background-color: #f8f9fa;
+  background-color: var(--bg-body);
 }
 
 .nav-link.active {
@@ -225,30 +226,30 @@ const logout = async () => {
 
 .btn-outline-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-primary {
   font-weight: 500;
   transition: all 0.3s ease;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border: none;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  background: var(--gradient-secondary);
 }
 
 /* Responsive */
 @media (max-width: 991px) {
   .navbar-collapse {
-    background-color: white;
+    background-color: var(--bg-header-footer);
     padding: 1rem;
     margin-top: 1rem;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-lg);
   }
 
   .navbar-nav {
