@@ -6,6 +6,7 @@ from core.models.State import State
 from core.database import db
 from sqlalchemy.orm import selectinload
 from sqlalchemy import or_, and_
+from core.services.sites_service import SiteService
 
 sitesAPI_blueprint = Blueprint("sitesAPI", __name__, url_prefix="/api/sites")
 
@@ -141,3 +142,17 @@ def list_states():
     states_json = [{'id': state.id, 'name': state.name} for state in states]
     
     return jsonify({'data': states_json})
+
+@sitesAPI_blueprint.route("/<int:site_id>", methods=["GET"])
+def siteDetails(site_id):
+    """
+    Detalle sobre un sitio.
+    
+    Returns:
+        JSON con toda la información de un sitio
+    """
+    
+    site = SiteService.get_site_by_id(site_id)
+    json = site.to_dict()
+    
+    return jsonify({'data': json})

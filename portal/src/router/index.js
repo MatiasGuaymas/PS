@@ -20,6 +20,12 @@ const router = createRouter({
       component: () => import('../views/AccessDeniedView.vue'), 
       props: true 
     },
+    {
+      path: '/sitios/:id',
+      name: 'site-details',
+      component: () => import('../views/SiteDetails.vue'),
+      props: true
+    },
   ],
 })
 
