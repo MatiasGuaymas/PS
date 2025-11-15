@@ -1,9 +1,15 @@
 <template>
   <div class="container py-4">
-    <div class="mb-3">
-      <button class="btn btn-sm btn-outline-secondary" @click="goBack">← Volver</button>
-      <button class="btn btn-sm btn-primary" style="margin-left: 10px;" @click="addReview">Agregar reseña</button>
+    <div class="mb-3 d-flex justify-content-between align-items-center">
+      <div>
+        <button class="btn btn-sm btn-outline-secondary" @click="goBack"><i class="bi bi-arrow-left"></i> Volver</button>
+      </div>
+      <div>
+        <button class="btn btn-sm btn-primary me-2" @click="addReview"><i class="bi bi-chat-dots-fill"></i> Agregar reseña</button>
+        <button class="btn btn-sm btn-info me-2" @click="addLiked"><i class="bi bi-heart"></i> Añadir a favoritos</button>
+      </div>
     </div>
+
     <div v-if="loading" class="text-center py-5">
       <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
     </div>
@@ -16,7 +22,8 @@
       <div class="row g-0">
         <div class="col-md-5">
           <img v-if="coverUrl" :src="coverUrl" :alt="result.name" class="img-fluid rounded-start"
-            style="object-fit:cover; width:100%; height:100%;">
+            style="object-fit:cover; width:100%; height:100%; cursor:zoom-in;"
+            @click="openLightbox({ public_url: coverUrl, title_alt: result.name })" />
           <div v-else class="d-flex align-items-center justify-content-center bg-light" style="height:100%;">
             <span class="text-muted">Sin imagen de portada</span>
           </div>
@@ -48,10 +55,14 @@
             <div class="mt-3">
               <h6>Imágenes</h6>
               <div class="d-flex gap-2 overflow-auto py-2">
-                <div v-for="(img, idx) in gallery" :key="idx" class="flex-shrink-0" style="width:120px">
-                  <img :src="img.public_url || img.file_path || img"
-                    :alt="img.title_alt || img.description || result.name" class="img-thumbnail"
-                    style="width:100%; height:80px; object-fit:cover;">
+                <div v-for="(img, idx) in result.images" :key="idx" class="flex-shrink-0" style="width:120px">
+                  <img
+                    :src="img.public_url"
+                    :alt="img.title_alt"
+                    class="img-thumbnail"
+                    style="width:100%; height:80px; object-fit:cover; cursor:zoom-in;"
+                    @click="openLightbox(img)"
+                  />
                 </div>
               </div>
             </div>
@@ -75,6 +86,14 @@
               <h6>Ubicación</h6>
               <div id="map" style="height:300px; width:100%; border-radius:6px; overflow:hidden;"></div>
             </div>
+
+            <div v-if="lightbox.visible" class="lightbox-overlay" @click.self="closeLightbox">
+              <div class="lightbox-content">
+                <img :src="lightbox.img.public_url" :alt="lightbox.img.title_alt" />
+                <div class="lightbox-caption">{{ lightbox.img.title_alt }}</div>
+                <button class="btn btn-sm btn-light lightbox-close" @click="closeLightbox">Cerrar</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -95,6 +114,7 @@ export default {
       error: null,
       showFull: false,
       map: null,
+      lightbox: { visible: false, img: null },
     }
   },
   created() {
@@ -205,6 +225,18 @@ export default {
       } catch (err) {
         console.error('Error inicializando Leaflet', err)
       }
+    },
+    openLightbox(img) {
+      this.lightbox.img = img || {}
+      this.lightbox.visible = true
+    },
+    closeLightbox() {
+      this.lightbox.visible = false
+      this.lightbox.img = null
+    },
+    addLiked() {
+      console.log(this.result.cover_image_url)
+      console.log(this.result.images)
     }
   },
   computed: {
@@ -243,5 +275,48 @@ export default {
 #map {
   border: 1px solid #e9ecef;
   border-radius: 6px;
+}
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.lightbox-content {
+  position: relative;
+  max-width: 1200px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lightbox-content img {
+  max-width: 100%;
+  max-height: calc(90vh - 60px);
+  object-fit: contain;
+  border-radius: 6px;
+  display: block;
+}
+
+.lightbox-caption {
+  color: #fff;
+  margin-top: 8px;
+  text-align: center;
+  word-break: break-word;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10000;
 }
 </style>

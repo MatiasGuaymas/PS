@@ -4,7 +4,7 @@ from sqlalchemy import func, Boolean as bool
 from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry 
 from geoalchemy2.shape import to_shape
-from core.models import SiteImage
+
 class Site(db.Model):
     __tablename__ = 'sites'
 
