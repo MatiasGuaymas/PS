@@ -1,7 +1,10 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import HeroSection from '../components/HeroSection.vue'
 import SitesSection from '../components/SitesSection.vue'
+
+const router = useRouter()
 
 // Estado de autenticación (simulado por ahora)
 const isAuthenticated = ref(false) // Cambiar a true cuando el usuario inicie sesión
@@ -18,11 +21,20 @@ const topRated = ref([])
 const recentlyAdded = ref([])
 const favorites = ref([])
 
-// Función para manejar búsqueda
-const handleSearch = (query) => {
-  console.log('Buscando:', query)
-  // TODO: Redirigir al listado con el query
-  // router.push({ name: 'sites', query: { search: query } })
+const searchQuery = ref('')
+
+// Manejo de búsqueda
+const handleSearch = () => {
+  const trimmedQuery = searchQuery.value.trim()
+  
+  if (trimmedQuery) {
+    router.push({
+      name: 'sites',
+      query: { search: trimmedQuery }
+    })
+  } else {
+    router.push({ name: 'sites' })
+  }
 }
 
 // Función para obtener sitios más visitados
@@ -215,8 +227,24 @@ onMounted(() => {
 
 <template>
   <div class="home-view">
-    <!-- Hero Section -->
-    <HeroSection @search="handleSearch" />
+    <!-- 
+    HeroSection: 
+    
+    Props que envía al hijo:
+    :searchQuery="searchQuery" → Se envía el texto de búsqueda actual para que lo muestre en el input
+    
+    Eventos que escucha del hijo:
+    @search="handleSearch"
+      → Cuando el usuario hace clic en "Buscar" o presiona Enter: Ejecuta la función handleSearch() que redirige a /sites
+    
+    @update:searchQuery="searchQuery = $event"
+      → Cuando el usuario escribe en el input: Actualiza nuestro searchQuery con el nuevo valor ($event)
+    -->
+    <HeroSection 
+      :searchQuery="searchQuery" 
+      @search="handleSearch"
+      @update:searchQuery="searchQuery = $event"
+    />
 
     <div class="container pb-5">
       <!-- Sección: Más Visitados -->
