@@ -19,11 +19,11 @@ const logout = async () => {
 </script>
 
 <template>
-  <header class="app-header sticky-top shadow bg-body-tertiary rounded">
+  <header class="app-header sticky-top bg-white shadow-sm">
     <nav class="navbar navbar-expand-lg navbar-light">
       <div class="container">
         <RouterLink to="/" class="navbar-brand d-flex align-items-center">
-          <img src="@/assets/Logo.jpg" alt="Logo" class="logo-image me-2">
+          <img src="/Logo.jpg" alt="Logo" class="logo-image me-2">
           <span class="fw-bold fs-5">
             <span class="gradient-text-1">Puff</span>
             <span class="gradient-text-2">-</span>
@@ -72,6 +72,7 @@ const logout = async () => {
           </ul>
 
           <div class="d-flex gap-2 align-items-center">
+            <!-- Loading state -->
             <template v-if="loading">
               <div class="spinner-border spinner-border-sm text-primary" role="status">
                 <span class="visually-hidden">Cargando...</span>
@@ -120,7 +121,6 @@ const logout = async () => {
               </div>
             </template>
 
-            <!-- Usuario no autenticado -->
             <template v-else>
               <RouterLink to="/login" class="btn btn-outline-primary">
                 <i class="bi bi-box-arrow-in-right me-1"></i>
@@ -141,8 +141,7 @@ const logout = async () => {
 <style scoped>
 .app-header {
   z-index: 1000;
-  background-color: var(--bg-header-footer);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e9ecef;
 }
 
 .navbar-brand {
@@ -158,7 +157,7 @@ const logout = async () => {
 }
 
 .navbar-brand:hover i {
-  color: var(--color-primary) !important;
+  color: #667eea !important;
 }
 
 /* Estilos del logo */
@@ -171,28 +170,28 @@ const logout = async () => {
 
 /* Gradiente en el logo */
 .gradient-text-1 {
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-2 {
-  background: var(--gradient-secondary);
+  background: linear-gradient(135deg, #764ba2 0%, #f093fb 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-3 {
-  background: var(--gradient-accent);
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .nav-link {
-  color: var(--text-secondary);
+  color: #6c757d;
   transition: all 0.3s ease;
   padding: 0.5rem 1rem;
   border-radius: 8px;
@@ -201,7 +200,7 @@ const logout = async () => {
 
 .nav-link:hover {
   color: #0d6efd;
-  background-color: var(--bg-body);
+  background-color: #f8f9fa;
 }
 
 .nav-link.active {
@@ -226,30 +225,30 @@ const logout = async () => {
 
 .btn-outline-primary:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
 }
 
 .btn-primary {
   font-weight: 500;
   transition: all 0.3s ease;
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-  background: var(--gradient-secondary);
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 }
 
 /* Responsive */
 @media (max-width: 991px) {
   .navbar-collapse {
-    background-color: var(--bg-header-footer);
+    background-color: white;
     padding: 1rem;
     margin-top: 1rem;
     border-radius: 8px;
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
   .navbar-nav {
@@ -266,7 +265,6 @@ const logout = async () => {
   }
 }
 
-/* Animación del menú móvil */
 .navbar-collapse {
   transition: all 0.3s ease-in-out;
 }

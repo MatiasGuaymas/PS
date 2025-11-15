@@ -64,7 +64,7 @@ const loginWithGoogle = () => {
           <div class="card shadow-lg border-0 rounded-4">
             <div class="card-body p-5">
               <div class="text-center mb-4">
-                <img src="@/assets/Logo.jpg" alt="Logo" class="logo-login mb-3">
+                <img src="/Logo.jpg" alt="Logo" class="logo-image me-2">
                 <h1 class="fw-bold mb-2">
                   <span class="gradient-text-1">Puff</span>
                   <span class="gradient-text-2">-</span>
@@ -121,8 +121,6 @@ const loginWithGoogle = () => {
                     ></button>
                   </div>
                 </transition>
-
-                <!-- Botón de login -->
                 <button 
                   type="submit" 
                   class="btn btn-primary btn-lg w-100 py-3 rounded-3 fw-bold mb-3"
@@ -139,7 +137,6 @@ const loginWithGoogle = () => {
                 </button>
               </form>
 
-              <!-- Divider -->
               <div class="position-relative my-4">
                 <hr>
                 <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted">
