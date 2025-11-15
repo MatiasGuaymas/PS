@@ -2,6 +2,7 @@
   <div class="container py-4">
     <div class="mb-3">
       <button class="btn btn-sm btn-outline-secondary" @click="goBack">← Volver</button>
+      <button class="btn btn-sm btn-primary" style="margin-left: 10px;" @click="addReview">Agregar reseña</button>
     </div>
     <div v-if="loading" class="text-center py-5">
       <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
