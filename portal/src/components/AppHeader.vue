@@ -1,26 +1,35 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { RouterLink } from 'vue-router'
+import { authStore } from '@/stores/authStore'
 
 const isMenuOpen = ref(false)
+
+const user = computed(() => authStore.user)
+const loading = computed(() => authStore.loading)
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
 }
+
+const logout = async () => {
+  await authStore.logout()
+  window.location.href = '/login'
+}
 </script>
 
 <template>
-  <header class="app-header sticky-top shadow bg-body-tertiary rounded">
+  <header class="app-header sticky-top bg-white shadow-sm">
     <nav class="navbar navbar-expand-lg navbar-light">
       <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="/">
+        <RouterLink to="/" class="navbar-brand d-flex align-items-center">
           <img src="/Logo.jpg" alt="Logo" class="logo-image me-2">
           <span class="fw-bold fs-5">
             <span class="gradient-text-1">Puff</span>
             <span class="gradient-text-2">-</span>
             <span class="gradient-text-3">Tóricos</span>
           </span>
-        </a>
+        </RouterLink>
 
         <button 
           class="navbar-toggler border-0" 
@@ -35,7 +44,6 @@ const toggleMenu = () => {
           class="collapse navbar-collapse" 
           :class="{ show: isMenuOpen }"
         >
-          <!-- Links de navegación -->
           <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
             <li class="nav-item">
               <RouterLink to="/" class="nav-link fw-semibold">
@@ -50,28 +58,79 @@ const toggleMenu = () => {
               </RouterLink>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="/mapa">
+              <RouterLink to="/mapa" class="nav-link">
                 <i class="bi bi-geo-alt me-1"></i>
                 Mapa
-              </a>
+              </RouterLink>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="/sobre-nosotros">
+              <RouterLink to="/sobre-nosotros" class="nav-link">
                 <i class="bi bi-info-circle me-1"></i>
                 Sobre Nosotros
-              </a>
+              </RouterLink>
             </li>
           </ul>
 
           <div class="d-flex gap-2 align-items-center">
-            <a href="/login" class="btn btn-outline-primary">
-              <i class="bi bi-box-arrow-in-right me-1"></i>
-              Iniciar Sesión
-            </a>
-            <a href="/registro" class="btn btn-primary">
-              <i class="bi bi-person-plus me-1"></i>
-              Registrarse
-            </a>
+            <!-- Loading state -->
+            <template v-if="loading">
+              <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+              </div>
+            </template>
+
+            <template v-else-if="user">
+              <div class="dropdown">
+                <button 
+                  class="btn btn-outline-primary dropdown-toggle d-flex align-items-center gap-2" 
+                  type="button" 
+                  id="userDropdown" 
+                  data-bs-toggle="dropdown" 
+                  aria-expanded="false"
+                >
+                  <i class="bi bi-person-circle"></i>
+                  <span>{{ user.first_name }}</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                  <li>
+                    <div class="dropdown-item-text">
+                      <small class="text-muted">{{ user.email }}</small>
+                    </div>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <RouterLink to="/perfil" class="dropdown-item">
+                      <i class="bi bi-person me-2"></i>
+                      Mi Perfil
+                    </RouterLink>
+                  </li>
+                  <li>
+                    <RouterLink to="/mis-reviews" class="dropdown-item">
+                      <i class="bi bi-star me-2"></i>
+                      Mis Reseñas
+                    </RouterLink>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <button @click="logout" class="dropdown-item text-danger">
+                      <i class="bi bi-box-arrow-right me-2"></i>
+                      Cerrar Sesión
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </template>
+
+            <template v-else>
+              <RouterLink to="/login" class="btn btn-outline-primary">
+                <i class="bi bi-box-arrow-in-right me-1"></i>
+                Iniciar Sesión
+              </RouterLink>
+              <RouterLink to="/registro" class="btn btn-primary">
+                <i class="bi bi-person-plus me-1"></i>
+                Registrarse
+              </RouterLink>
+            </template>
           </div>
         </div>
       </div>
@@ -82,8 +141,7 @@ const toggleMenu = () => {
 <style scoped>
 .app-header {
   z-index: 1000;
-  background-color: var(--bg-header-footer);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e9ecef;
 }
 
 .navbar-brand {
@@ -99,7 +157,7 @@ const toggleMenu = () => {
 }
 
 .navbar-brand:hover i {
-  color: var(--color-primary) !important;
+  color: #667eea !important;
 }
 
 /* Estilos del logo */
@@ -112,28 +170,28 @@ const toggleMenu = () => {
 
 /* Gradiente en el logo */
 .gradient-text-1 {
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-2 {
-  background: var(--gradient-secondary);
+  background: linear-gradient(135deg, #764ba2 0%, #f093fb 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-3 {
-  background: var(--gradient-accent);
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .nav-link {
-  color: var(--text-secondary);
+  color: #6c757d;
   transition: all 0.3s ease;
   padding: 0.5rem 1rem;
   border-radius: 8px;
@@ -142,7 +200,7 @@ const toggleMenu = () => {
 
 .nav-link:hover {
   color: #0d6efd;
-  background-color: var(--bg-body);
+  background-color: #f8f9fa;
 }
 
 .nav-link.active {
@@ -167,30 +225,30 @@ const toggleMenu = () => {
 
 .btn-outline-primary:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
 }
 
 .btn-primary {
   font-weight: 500;
   transition: all 0.3s ease;
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-  background: var(--gradient-secondary);
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 }
 
 /* Responsive */
 @media (max-width: 991px) {
   .navbar-collapse {
-    background-color: var(--bg-header-footer);
+    background-color: white;
     padding: 1rem;
     margin-top: 1rem;
     border-radius: 8px;
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
   .navbar-nav {
@@ -207,7 +265,6 @@ const toggleMenu = () => {
   }
 }
 
-/* Animación del menú móvil */
 .navbar-collapse {
   transition: all 0.3s ease-in-out;
 }

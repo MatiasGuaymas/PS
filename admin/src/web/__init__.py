@@ -21,6 +21,7 @@ import os
 from dotenv import load_dotenv
 from core import seeds
 from src.web.storage import storage
+from authlib.integrations.flask_client import OAuth
 load_dotenv()
 
 session = Session()
@@ -35,8 +36,26 @@ def create_app(env = 'development', static_folder = "../../static"):
     session.init_app(app)
     storage.init_app(app)
 
-    # CORS para permitir requests desde el portal Vue
-    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173", "http://localhost:5174", "http://localhost:8080"]}})
+    CORS(app, supports_credentials=True, origins=[
+        "http://localhost:8080",
+        "http://localhost:5000", 
+        "http://127.0.0.1:5000",
+        "http://localhost:5173", 
+        "http://localhost:5174"
+    ])
+
+    oauth = OAuth(app)
+    oauth.register(
+        name='google',
+        client_id=os.getenv("GOOGLE_CLIENT_ID"),
+        client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+        server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+        client_kwargs={
+            'scope': 'openid email profile'
+        }
+    )
+
+    app.oauth = oauth
 
     @app.route('/')
     def home():

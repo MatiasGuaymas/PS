@@ -5,7 +5,11 @@ from core.models.User import User
 from core.models.Site import Site
 from sqlalchemy.orm import joinedload
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any
+
+
+from sqlalchemy import func, desc, asc
 
 
 class ReviewService:
@@ -18,28 +22,86 @@ class ReviewService:
         """Busca una reseña por su ID primario."""
         return db.session.get(Review, review_id)
 
-    @staticmethod
-    def get_reviews_paginated(page: int = 1, per_page: int = 25) -> dict:
-        """
-        Recupera reseñas paginadas.
-        
-        Args:
-            page: Número de página (default: 1)
-            per_page: Elementos por página (default: 25)
-        
-        Returns:
-            Dict con información de paginación
-        """
-        
-        query = db.session.query(Review)
 
+    @staticmethod
+    def get_reviews_paginated(
+        page: int = 1, 
+        per_page: int = 25,
+        filters: Optional[Dict[str, Any]] = None,
+        order_by: str = 'created_at',
+        sorted_by: str = 'desc'
+    ) -> dict:
+        """
+        Recupera reseñas paginadas con filtros y ordenamiento.
+        """
+
+        filters = filters or {}
+        
+        # 1. Construir la consulta base (Unir con Site)
+        query = db.session.query(Review).join(Site)
+
+        # 2. Aplicar Filtros (Combinables)
+        
+        # Estado (Pendiente/Aprobada/Rechazada)
+        status = filters.get('status')
+        if status and status in ['Pendiente', 'Aprobada', 'Rechazada']:
+            query = query.filter(Review.status == status)
+        
+        # Sitio (site_id)
+        site_id = filters.get('site_id')
+        if site_id is not None:
+            query = query.filter(Review.site_id == site_id)
+            
+        # Calificación (Rango 1-5)
+        min_rating = filters.get('min_rating')
+        max_rating = filters.get('max_rating')
+        if min_rating is not None and 1 <= min_rating <= 5:
+            query = query.filter(Review.rating >= min_rating)
+        if max_rating is not None and 1 <= max_rating <= 5:
+            query = query.filter(Review.rating <= max_rating)
+        
+        # Fecha (Rango desde/hasta)
+        date_from = filters.get('date_from')
+        date_to = filters.get('date_to')
+        if date_from:
+            query = query.filter(Review.created_at >= date_from)
+        if date_to:
+            # Incluir hasta el final del día
+            query = query.filter(Review.created_at < date_to + timedelta(days=1)) 
+
+        # Usuario (email - Búsqueda parcial)
+        user_email = filters.get('user_email')
+        if user_email:
+            query = query.filter(func.lower(Review.user_email).like(f'%{user_email.lower()}%'))
+        # 3. Aplicar Ordenamiento
+        order_column = None
+        if order_by == 'created_at':
+            order_column = Review.created_at
+        elif order_by == 'rating':
+            order_column = Review.rating
+        elif order_by == 'site_name': 
+            order_column = Site.site_name
+        
+        if order_column:
+            direction = asc if sorted_by == 'asc' else desc
+            query = query.order_by(direction(order_column))
+            
         # Paginación
         pagination = query.paginate(
             page=page,
             per_page=per_page,
             error_out=False
         )
-
+        
+        # 4. Preparar filtros para el template (deben ser strings)
+        display_filters = {}
+        for k, v in filters.items():
+             if v is not None:
+                if isinstance(v, datetime):
+                    display_filters[k] = v.strftime('%Y-%m-%d')
+                else:
+                    display_filters[k] = str(v)
+        
         return {
             'reviews': pagination.items,
             'total': pagination.total,
@@ -49,7 +111,12 @@ class ReviewService:
             'has_next': pagination.has_next,
             'prev_num': pagination.prev_num,
             'next_num': pagination.next_num,
-            'page_range': list(range(max(1, page-2), min(pagination.pages+1, page+3)))
+            'page_range': list(range(max(1, page-2), min(pagination.pages+1, page+3))),
+            # Parámetros de ordenamiento
+            'order_by': order_by, 
+            'sorted_by': sorted_by, 
+            # El diccionario de filtros actual (para rellenar el formulario)
+            'current_filters': display_filters
         }
 
     @staticmethod
@@ -163,3 +230,26 @@ class ReviewService:
         except Exception as e:
             db.session.rollback()
             return False
+        
+
+    @staticmethod
+    def get_approved_reviews_by_user(user_id: int) -> List[Review]:
+        """
+        Obtiene solo las reseñas APROBADAS de un usuario específico.
+        
+        Args:
+            user_id (int): ID del usuario
+            
+        Returns:
+            List[Review]: Lista de reseñas aprobadas del usuario
+        """
+        from core.models.Review import Review
+        from core.database import db
+        
+        reviews = db.session.execute(
+            db.select(Review)
+            .filter_by(user_id=user_id, status='approved')
+            .order_by(Review.created_at.desc())
+        ).scalars().all()
+        
+        return reviews
