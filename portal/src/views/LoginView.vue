@@ -18,6 +18,7 @@ const handleLogin = async () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
       },
       credentials: 'include',
       body: new URLSearchParams({
@@ -31,7 +32,16 @@ const handleLogin = async () => {
       
       router.push('/')
     } else {
-      error.value = 'Credenciales inválidas'
+      const status = response.status
+      if (status === 401) {
+        error.value = 'Credenciales inválidas. Verifica tu email y contraseña.'
+      } else if (status === 400) {
+        error.value = 'Por favor, completa todos los campos.'
+      } else if (status === 403) {
+        error.value = 'Tu cuenta está desactivada. Contacta al administrador.'
+      } else {
+        error.value = 'Error al iniciar sesión. Intenta nuevamente.'
+      }
     }
   } catch (err) {
     error.value = 'Error al iniciar sesión'
@@ -42,7 +52,7 @@ const handleLogin = async () => {
 }
 
 const loginWithGoogle = () => {
-  window.location.href = 'http://localhost:5000/auth/login-google'
+  window.location.href = 'http://localhost:5000/auth/login-google?origin=public'
 }
 </script>
 
@@ -95,11 +105,22 @@ const loginWithGoogle = () => {
                   >
                 </div>
 
-                <!-- Mensaje de error -->
-                <div v-if="error" class="alert alert-danger d-flex align-items-center" role="alert">
-                  <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                  {{ error }}
-                </div>
+                <transition name="slide-fade">
+                  <div 
+                    v-if="error" 
+                    class="alert alert-danger alert-dismissible fade show d-flex align-items-center mb-3" 
+                    role="alert"
+                  >
+                    <i class="bi bi-exclamation-triangle-fill me-2 flex-shrink-0"></i>
+                    <div class="flex-grow-1">{{ error }}</div>
+                    <button 
+                      type="button" 
+                      class="btn-close" 
+                      @click="error = ''"
+                      aria-label="Close"
+                    ></button>
+                  </div>
+                </transition>
 
                 <!-- Botón de login -->
                 <button 
@@ -126,7 +147,6 @@ const loginWithGoogle = () => {
                 </span>
               </div>
 
-              <!-- Botón de Google -->
               <button 
                 @click="loginWithGoogle" 
                 class="btn btn-light btn-lg w-100 py-3 rounded-3 fw-bold d-flex align-items-center justify-content-center gap-2 shadow-sm"
@@ -140,7 +160,6 @@ const loginWithGoogle = () => {
                 Continuar con Google
               </button>
 
-              <!-- Link de registro -->
               <p class="text-center mt-4 mb-0">
                 ¿No tienes cuenta? 
                 <RouterLink to="/registro" class="text-primary fw-semibold text-decoration-none">
@@ -148,7 +167,6 @@ const loginWithGoogle = () => {
                 </RouterLink>
               </p>
 
-              <!-- Link de recuperación -->
               <p class="text-center mt-2 mb-0">
                 <a href="#" class="text-muted small text-decoration-none">
                   ¿Olvidaste tu contraseña?
@@ -158,7 +176,6 @@ const loginWithGoogle = () => {
           </div>
         </div>
 
-        <!-- Columna de imagen (opcional) -->
         <div class="col-md-6 d-none d-md-flex justify-content-center align-items-center">
           <div class="illustration-container text-center">
             <i class="bi bi-map display-1 text-primary mb-4"></i>
@@ -296,6 +313,70 @@ const loginWithGoogle = () => {
   .logo-login {
     width: 60px;
     height: 60px;
+  }
+}
+
+.form-control.is-invalid {
+  border-color: #dc3545;
+  animation: shake 0.5s;
+}
+
+.form-control.is-invalid:focus {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+/* Animación de sacudida para inputs inválidos */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+/* ✅ Estilos mejorados para el alert */
+.alert {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2);
+}
+
+.alert-danger {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.alert .btn-close {
+  padding: 0.5rem;
+}
+
+/* ✅ Animación de entrada/salida del alert */
+.slide-fade-enter-active {
+  animation: slideDown 0.3s ease;
+}
+
+.slide-fade-leave-active {
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
   }
 }
 </style>

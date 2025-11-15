@@ -14,7 +14,6 @@ const toggleMenu = () => {
 
 const logout = async () => {
   await authStore.logout()
-  // Opcionalmente redirigir
   window.location.href = '/login'
 }
 </script>
@@ -23,7 +22,6 @@ const logout = async () => {
   <header class="app-header sticky-top bg-white shadow-sm">
     <nav class="navbar navbar-expand-lg navbar-light">
       <div class="container">
-        <!-- Logo -->
         <RouterLink to="/" class="navbar-brand d-flex align-items-center">
           <img src="@/assets/Logo.jpg" alt="Logo" class="logo-image me-2">
           <span class="fw-bold fs-5">
@@ -33,7 +31,6 @@ const logout = async () => {
           </span>
         </RouterLink>
 
-        <!-- Toggle para mobile -->
         <button 
           class="navbar-toggler border-0" 
           type="button" 
@@ -47,7 +44,6 @@ const logout = async () => {
           class="collapse navbar-collapse" 
           :class="{ show: isMenuOpen }"
         >
-          <!-- Links de navegación -->
           <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
             <li class="nav-item">
               <RouterLink to="/" class="nav-link fw-semibold">
@@ -75,16 +71,13 @@ const logout = async () => {
             </li>
           </ul>
 
-          <!-- Botones de autenticación -->
           <div class="d-flex gap-2 align-items-center">
-            <!-- Loading state -->
             <template v-if="loading">
               <div class="spinner-border spinner-border-sm text-primary" role="status">
                 <span class="visually-hidden">Cargando...</span>
               </div>
             </template>
 
-            <!-- Usuario autenticado -->
             <template v-else-if="user">
               <div class="dropdown">
                 <button 

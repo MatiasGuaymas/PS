@@ -11,7 +11,6 @@ export function useAuth() {
     }
 
     onMounted(() => {
-        // Solo verificar si aún no se ha verificado
         if (authStore.user === null && !authStore.loading) {
         authStore.checkAuth()
         }
