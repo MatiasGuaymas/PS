@@ -34,7 +34,7 @@
             <h2 class="card-title mb-1">{{ result.name }}</h2>
             <div class="mb-2 text-muted">
               <small>{{ result.city }}{{ result.city && result.province ? ' / ' : '' }}{{ result.province }}</small>
-              <span v-if="result.state_name" class="badge bg-secondary ms-2">{{ result.state_name }}</span>
+              <span v-if="result.state_name" :class="['chip', stateChipClass, 'ms-2']">{{ result.state_name }}</span>
             </div>
 
             <p class="mb-1"><strong>Categoría:</strong> {{ result.category_name || '—' }}</p>
@@ -239,6 +239,14 @@ export default {
     }
   },
   computed: {
+    stateChipClass() {
+      const s = (this.result?.state_name || '').toLowerCase()
+      if (!s) return 'chip-default'
+      if (s.includes('bueno') || s.includes('excelente') || s.includes('good') || s.includes('buena')) return 'chip-good'
+      if (s.includes('regular') || s.includes('medio') || s.includes('fair')) return 'chip-regular'
+      if (s.includes('malo') || s.includes('deficiente') || s.includes('poor') || s.includes('mala')) return 'chip-bad'
+      return 'chip-default'
+    },
     coverUrl() {
       if (!this.result) return null
       return this.result.cover_image_url || (this.result.images && this.result.images.find(i => i.is_cover)?.public_url) || null
@@ -318,4 +326,16 @@ export default {
   right: 8px;
   z-index: 10000;
 }
+.chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #fff;
+}
+.chip-default { background: #6c757d; } 
+.chip-good    { background: #198754; } 
+.chip-regular { background: #0d6efd; } 
+.chip-bad     { background: #dc3545; } 
 </style>
