@@ -24,11 +24,11 @@ const user = ref(null)
 const loading = ref(true)
 const router = useRouter()
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const BASE_URL = `${window.location.origin}`
 
 const checkSession = async () => {
 try {
-    const res = await fetch(`${API_BASE_URL}/auth/me`, {
+    const res = await fetch(`${BASE_URL}/auth/me`, {
     credentials: 'include'
     })
     if (res.ok) {
@@ -42,11 +42,11 @@ try {
 }
 
 const login = () => {
-window.location.href = `${API_BASE_URL}/auth/login-google`
+window.location.href = `${BASE_URL}/auth/login-google`
 }
 
 const logout = async () => {
-await fetch(`${API_BASE_URL}/auth/logout`, { credentials: 'include' })
+await fetch(`${BASE_URL}/auth/logout`, { credentials: 'include' })
 user.value = null
 router.push('/')
 }

@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const BASE_URL = `${window.location.origin}`
 
 export const authStore = reactive({
     user: null,
@@ -9,7 +9,7 @@ export const authStore = reactive({
     async checkAuth() {
         this.loading = true
         try {
-            const res = await fetch(`${API_BASE_URL}/auth/me`, {
+            const res = await fetch(`${BASE_URL}/auth/me`, {
                 credentials: 'include'
             })
             if (res.ok) {
@@ -27,7 +27,7 @@ export const authStore = reactive({
 
     async logout() {
         try {
-            await fetch(`${API_BASE_URL}/auth/logout`, {
+            await fetch(`${BASE_URL}/auth/logout`, {
                 method: 'GET',
                 credentials: 'include'
             })
