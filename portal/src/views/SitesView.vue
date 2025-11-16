@@ -224,7 +224,7 @@ watch(() => route.query, () => {
                 <label class="form-label">Estado de conservación</label>
                 <select v-model="selectedState" class="form-select">
                   <option value="">Todos</option>
-                  <option v-for="state in states" :key="state.id" :value="state.name">
+                  <option v-for="state in states" :key="state.id" :value="state.id">
                     {{ state.name }}
                   </option>
                 </select>

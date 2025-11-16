@@ -65,7 +65,11 @@ def list_sites():
         filters['province'] = {'operator': 'ilike', 'value': province_filter}
     
     if state_filter:
-        filters['state'] = {'operator': 'eq', 'value': state_filter}
+        try:
+            state_id = int(state_filter)
+            filters['state_id'] = state_id
+        except ValueError:
+            pass
     
     if tags_filter:
         filters['tags'] = tags_filter
