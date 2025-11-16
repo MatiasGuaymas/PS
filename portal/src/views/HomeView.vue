@@ -8,7 +8,7 @@ import SitesSection from '../components/SitesSection.vue'
 const router = useRouter()
 
 // URL base de la API
-const API_BASE_URL = 'http://localhost:5000/api/sites'
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // Estado de autenticación (simulado por ahora)
 const isAuthenticated = ref(false) // Cambiar a true cuando el usuario inicie sesión
@@ -47,7 +47,7 @@ const fetchMostVisited = async () => {
   try {
     loadingMostVisited.value = true
     
-    const response = await axios.get(`${API_BASE_URL}/most-visited`)
+    const response = await axios.get(`${API_BASE_URL}/api/sites/most-visited`)
     mostVisited.value = response.data.data || []
   } catch (error) {
     console.error('Error fetching most visited:', error)
@@ -63,7 +63,7 @@ const fetchTopRated = async () => {
     loadingTopRated.value = true
     
     // Ordenar por rating descendente, limitado a 4
-    const response = await axios.get(`${API_BASE_URL}/`, {
+    const response = await axios.get(`${API_BASE_URL}/api/sites/`, {
       params: {
         sort: 'rating',
         order: 'desc',
@@ -86,7 +86,7 @@ const fetchRecentlyAdded = async () => {
   try {
     loadingRecentlyAdded.value = true
     
-    const response = await axios.get(`${API_BASE_URL}/recently-added`)
+    const response = await axios.get(`${API_BASE_URL}/api/sites/recently-added`)
     recentlyAdded.value = response.data.data || []
   } catch (error) {
     console.error('Error fetching recently added:', error)
@@ -103,7 +103,7 @@ const fetchFavorites = async () => {
   try {
     loadingFavorites.value = true
     
-    const response = await axios.get(`${API_BASE_URL}/favorites`, {
+    const response = await axios.get(`${API_BASE_URL}/api/sites/favorites`, {
       params: {
         user_id: userId.value
       }

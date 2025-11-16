@@ -190,7 +190,7 @@ export default {
       if (!this.siteId) return
       try {
         const base = this.apiBaseUrl || ''
-        const url = `${base.replace(/\/$/, '')}/api/sites/${encodeURIComponent(this.siteId)}/favorite`
+        const url = `${base}/api/sites/${encodeURIComponent(this.siteId)}/favorite`
         const res = await axios.get(url)
         if (res && res.data) {
           if (res.data.favorited !== undefined) {
