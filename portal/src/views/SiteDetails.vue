@@ -1,12 +1,17 @@
 <template>
   <div class="container py-4">
-    <div class="mb-3 d-flex justify-content-between align-items-center">
+    <div class="mb-3 d-flex justify-content-between align-items-center flex-nowrap">
       <div>
         <button class="btn btn-sm btn-outline-secondary" @click="goBack"><i class="bi bi-arrow-left"></i> Volver</button>
       </div>
-      <div>
+      <div class="d-flex align-items-center">
         <button class="btn btn-sm btn-primary me-2" @click="addReview"><i class="bi bi-chat-dots-fill"></i> Agregar reseña</button>
-        <button class="btn btn-sm btn-info me-2" @click="addLiked"><i class="bi bi-heart"></i> Añadir a favoritos</button>
+        <button class="btn btn-sm btn-info me-2" @click="addLiked" :disabled="favLoading">
+          <span v-if="favLoading" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+          <span v-else-if="favorited" class="bi bi-heart-fill me-1"></span>
+          <span v-else class="bi bi-heart me-1"></span>
+          Añadir a favoritos
+        </button>
       </div>
     </div>
 
@@ -114,6 +119,8 @@ export default {
       showFull: false,
       map: null,
       lightbox: { visible: false, img: null },
+      favLoading: false,
+      favorited: false,
     }
   },
   created() {
@@ -121,6 +128,9 @@ export default {
   },
   async mounted() {
     await this.fetchSite()
+ 
+    // obtener el estado inicial del favorito
+    await this.fetchFavoriteStatus()
   },
   methods: {
     goBack() {
@@ -174,6 +184,26 @@ export default {
         console.error(e)
       } finally {
         this.loading = false
+      }
+    },
+    async fetchFavoriteStatus() {
+      if (!this.siteId) return
+      try {
+        const base = this.apiBaseUrl || ''
+        const url = `${base.replace(/\/$/, '')}/api/sites/${encodeURIComponent(this.siteId)}/favorite`
+        const res = await axios.get(url)
+        if (res && res.data) {
+          if (res.data.favorited !== undefined) {
+            this.favorited = !!res.data.favorited
+          } else if (res.data.status) {
+            this.favorited = res.data.status === 'favorited' || res.data.status === 'ok'
+          } else {
+            this.favorited = false
+          }
+        }
+      } catch (e) {
+        if (e.response && e.response.status && e.response.status !== 404) console.error(e)
+        this.favorited = false
       }
     },
     toggleDescription() {
@@ -233,9 +263,36 @@ export default {
       this.lightbox.visible = false
       this.lightbox.img = null
     },
-    addLiked() {
-      console.log(this.result.cover_image_url)
-      console.log(this.result.images)
+    async addLiked() {
+      if (!this.siteId) return
+      this.favLoading = true
+      this.error = null
+      try {
+        const base = this.apiBaseUrl || ''
+        const url = `${base.replace(/\/$/, '')}/api/sites/${encodeURIComponent(this.siteId)}/favorite`
+        const payload = { user_id: 1 } // temporal: user hardcodeado
+        const res = await axios.post(url, payload)
+        if (res && res.data) {
+          const st = res.data.status
+          if (st === 'favorited' || st === 'ok') {
+            this.favorited = true
+          } else if (st === 'unfavorited') {
+            this.favorited = false
+          } else if (res.data.favorited !== undefined) {
+            this.favorited = !!res.data.favorited
+          } else {
+            // fallback: alternar localmente
+            this.favorited = !this.favorited
+          }
+        } else {
+          this.favorited = !this.favorited
+        }
+      } catch (e) {
+        this.error = e.response?.data?.message || e.message || 'Error al marcar favorito'
+        console.error(e)
+      } finally {
+        this.favLoading = false
+      }
     }
   },
   computed: {
