@@ -130,6 +130,7 @@ class Site(db.Model):
             'longitude': self.longitude,
             'category_name': category_name,
             'state_name': state_name, 
+            'views': self.views,
             'tags': tags_list,
             'images': [image.to_dict() for image in self.images.all()]
         }
