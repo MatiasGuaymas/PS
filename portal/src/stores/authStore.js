@@ -18,7 +18,7 @@ export const authStore = reactive({
                 this.user = null
             }
         } catch (err) {
-            console.error('Error al verificar autenticación:', err)
+            console.error('Error al verificar autenticación')
             this.user = null
         } finally {
             this.loading = false
@@ -33,7 +33,7 @@ export const authStore = reactive({
             })
             this.user = null
         } catch (err) {
-            console.error('Error al cerrar sesión:', err)
+            console.error('Error al cerrar sesión')
         }
     },
 

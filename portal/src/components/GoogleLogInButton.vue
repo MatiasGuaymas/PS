@@ -35,7 +35,7 @@ try {
     user.value = await res.json()
     }
 } catch (err) {
-    console.error('Error al verificar sesión:', err)
+    console.error('Error al verificar sesión')
 } finally {
     loading.value = false
 }
