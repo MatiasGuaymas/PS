@@ -149,13 +149,22 @@ def list_states():
 @sitesAPI_blueprint.route("/<int:site_id>", methods=["GET"])
 def siteDetails(site_id):
     """
-    Detalle sobre un sitio.
+    Detalle sobre un sitio. Incrementa el contador de vistas.
     
     Returns:
         JSON con toda la información de un sitio
     """
     
     site = SiteService.get_site_by_id(site_id)
+    
+    # Incrementar el contador de vistas
+    try:
+        site.views += 1
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error incrementando vistas: {e}")
+    
     json = site.to_dict()
     
     return jsonify({'data': json})
@@ -244,3 +253,53 @@ def list_favorites():
             sites_json = []
 
     return jsonify({'data': sites_json, 'user_id': user_id}), 200
+
+
+@sitesAPI_blueprint.route("/most-visited", methods=["GET"])
+def most_visited():
+    """
+    Obtiene los 4 sitios más visitados (activos y no eliminados).
+    
+    Returns:
+        JSON con los 4 sitios más visitados ordenados por views descendente
+    """
+    try:
+        sites = db.session.query(Site)\
+            .filter(Site.active == True, Site.deleted == False)\
+            .order_by(Site.views.desc())\
+            .limit(4)\
+            .all()
+        
+        if not sites:
+            return jsonify({'data': [], 'message': 'No hay sitios disponibles'}), 200
+        
+        sites_json = [site.to_dict() for site in sites]
+        return jsonify({'data': sites_json}), 200
+        
+    except Exception as e:
+        return jsonify({'error': 'Error obteniendo sitios más visitados', 'detail': str(e)}), 500
+
+
+@sitesAPI_blueprint.route("/recently-added", methods=["GET"])
+def recently_added():
+    """
+    Obtiene los 4 sitios agregados más recientemente (activos y no eliminados).
+    
+    Returns:
+        JSON con los 4 sitios más recientes ordenados por registration descendente
+    """
+    try:
+        sites = db.session.query(Site)\
+            .filter(Site.active == True, Site.deleted == False)\
+            .order_by(Site.registration.desc())\
+            .limit(4)\
+            .all()
+        
+        if not sites:
+            return jsonify({'data': [], 'message': 'No hay sitios disponibles'}), 200
+        
+        sites_json = [site.to_dict() for site in sites]
+        return jsonify({'data': sites_json}), 200
+        
+    except Exception as e:
+        return jsonify({'error': 'Error obteniendo sitios recientes', 'detail': str(e)}), 500
