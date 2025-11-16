@@ -4,38 +4,33 @@ import { useRoute, useRouter } from 'vue-router'
 import SiteCard from '../components/SiteCard.vue'
 import Choices from 'choices.js'
 import 'choices.js/public/assets/styles/choices.min.css'
+import { useSites } from '../composables/useSites'
+import { useFilters } from '../composables/useFilters'
 
 const route = useRoute()
 const router = useRouter()
 
-// Estados
-const sites = ref([])
-const loading = ref(true)
+// Composables
+const { sites, loading, totalSites, totalPages, fetchSites } = useSites()
+const { provinces, states, tags, loadAll } = useFilters()
+
+// Estados de filtros
 const searchQuery = ref(route.query.search || '')
 const currentPage = ref(parseInt(route.query.page) || 1)
-const totalPages = ref(1)
-const totalSites = ref(0)
-const perPage = 12
-
-// Filtros
 const selectedCity = ref(route.query.city || '')
 const selectedState = ref(route.query.state || '')
 const selectedProvince = ref(route.query.province || '')
 const selectedTags = ref(route.query.tags ? route.query.tags.split(',') : [])
 const showFavoritesOnly = ref(route.query.favorites === 'true')
-const sortBy = ref(route.query.sort || 'name')
+const sortBy = ref(route.query.sort || 'site_name')
 const sortOrder = ref(route.query.order || 'asc')
 
-// Opciones de filtros (se cargan desde la API)
-const states = ref([])
-const provinces = ref([])
-const tags = ref([])
-
 // UI State
+const perPage = 12
 const filtersExpanded = ref(false)
 let choicesInstance = null
 
-// Computed: Rango de páginas para mostrar
+// Computed: Rango de páginas
 const paginationRange = computed(() => {
   const range = []
   const delta = 2
@@ -49,105 +44,91 @@ const paginationRange = computed(() => {
   return range
 })
 
-// Función para buscar sitios
-const fetchSites = async () => {
-  try {
-    loading.value = true
-    
-    // Construir query params para la API
-    const params = new URLSearchParams({
-      page: currentPage.value,
-      per_page: perPage,
-      sort: sortBy.value
-    })
-    
-    if (searchQuery.value) params.append('q', searchQuery.value)
-    if (selectedProvince.value) params.append('province', selectedProvince.value)
-    if (selectedCity.value) params.append('city', selectedCity.value)
-    if (selectedState.value) params.append('state', selectedState.value)
-    if (selectedTags.value.length > 0) params.append('tags', selectedTags.value.join(','))
-    
-    // Llamar al endpoint del backend con paginación
-    const response = await fetch(`http://localhost:5000/api/sites/?${params}`)
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    
-    const result = await response.json()
-    
-    // Mapeo los datos
-    let sitesData = result.data.map(site => ({
-      id: site.id,
-      site_name: site.name,
-      short_desc: site.short_desc,
-      city: site.city,
-      province: site.province,
-      cover_image: site.cover_image_url || null,
-      average_rating: null,
-      operning_year: site.opening_year,
-      category: { name: site.category_name },
-      state: { name: site.state_name },
-      tags: site.tags || []
-    }))
-    
-    // Filtrar por favoritos si está activo
-    if (showFavoritesOnly.value) {
-      const favorites = JSON.parse(localStorage.getItem('favorites') || '[]')
-      sitesData = sitesData.filter(site => favorites.includes(site.id))
-    }
-    
-    sites.value = sitesData
-    totalSites.value = result.pagination.total
-    totalPages.value = result.pagination.total_pages
-    
-  } catch (error) {
-    console.error('Error fetching sites:', error)
-    sites.value = []
-    totalSites.value = 0
-    totalPages.value = 1
-  } finally {
-    loading.value = false
+// Construir objeto de filtros
+const buildFilters = () => ({
+  page: currentPage.value,
+  perPage,
+  sortBy: sortBy.value,
+  sortOrder: sortOrder.value,
+  searchQuery: searchQuery.value,
+  province: selectedProvince.value,
+  city: selectedCity.value,
+  state: selectedState.value,
+  tags: selectedTags.value,
+  showFavoritesOnly: showFavoritesOnly.value
+})
+
+// Buscar sitios
+const handleSearch = async () => {
+  currentPage.value = 1
+  updateURL()
+  await fetchSites(buildFilters())
+}
+
+// Actualizar URL
+const updateURL = () => {
+  const query = {}
+  if (searchQuery.value) query.search = searchQuery.value
+  if (selectedCity.value) query.city = selectedCity.value
+  if (selectedState.value) query.state = selectedState.value
+  if (selectedProvince.value) query.province = selectedProvince.value
+  if (selectedTags.value.length > 0) query.tags = selectedTags.value.join(',')
+  if (showFavoritesOnly.value) query.favorites = 'true'
+  if (sortBy.value !== 'site_name') query.sort = sortBy.value
+  if (sortOrder.value !== 'asc') query.order = sortOrder.value
+  if (currentPage.value > 1) query.page = currentPage.value
+  
+  router.push({ query })
+}
+
+// Cambiar página
+const goToPage = async (page) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+    updateURL()
+    await fetchSites(buildFilters())
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 }
 
-const loadProvinces = async () => {
-  try {
-    const response = await fetch('http://localhost:5000/api/sites/provinces')
-    if (response.ok) {
-      const result = await response.json()
-      provinces.value = result.data
-    }
-  } catch (error) {
-    console.error('Error loading provinces:', error)
+// Limpiar filtros
+const clearFilters = async () => {
+  searchQuery.value = ''
+  selectedCity.value = ''
+  selectedState.value = ''
+  selectedProvince.value = ''
+  selectedTags.value = []
+  showFavoritesOnly.value = false
+  sortBy.value = 'site_name'
+  sortOrder.value = 'asc'
+  currentPage.value = 1
+  
+  if (choicesInstance) {
+    choicesInstance.removeActiveItems()
   }
+  
+  updateURL()
+  await fetchSites(buildFilters())
 }
 
-const loadStates = async () => {
-  try {
-    const response = await fetch('http://localhost:5000/api/sites/states')
-    if (response.ok) {
-      const result = await response.json()
-      states.value = result.data
-    }
-  } catch (error) {
-    console.error('Error loading states:', error)
-  }
+// Toggle orden
+const toggleSortOrder = () => {
+  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  handleSearch()
 }
 
-const loadTags = async () => {
-  try {
-    const response = await fetch('http://localhost:5000/api/sites/tags')
-    if (response.ok) {
-      const result = await response.json()
-      tags.value = result.data
-    }
-  } catch (error) {
-    console.error('Error loading tags:', error)
-  }
+// Toggle favoritos
+const toggleFavorites = () => {
+  showFavoritesOnly.value = !showFavoritesOnly.value
+  handleSearch()
 }
 
-// Inicializar Choices.js para multiselect de tags
+// Abrir vista de mapa
+const openMapView = () => {
+  alert('TODO')
+}
+
+// Inicializar Choices.js
 const initChoices = async () => {
   await nextTick()
   const tagsElement = document.getElementById('tags-select')
@@ -162,88 +143,20 @@ const initChoices = async () => {
       placeholderValue: 'Seleccionar tags',
     })
     
-    // Listener para actualizar selectedTags
     tagsElement.addEventListener('change', (event) => {
       selectedTags.value = Array.from(event.target.selectedOptions).map(opt => opt.value)
     })
   }
 }
 
-// Función para manejar búsqueda
-const handleSearch = () => {
-  currentPage.value = 1
-  updateURL()
-  fetchSites()
-}
-
-// Actualizar URL con parámetros
-const updateURL = () => {
-  const query = {}
-  if (searchQuery.value) query.search = searchQuery.value
-  if (selectedCity.value) query.city = selectedCity.value
-  if (selectedState.value) query.state = selectedState.value
-  if (selectedProvince.value) query.province = selectedProvince.value
-  if (selectedTags.value.length > 0) query.tags = selectedTags.value.join(',')
-  if (showFavoritesOnly.value) query.favorites = 'true'
-  if (sortBy.value !== 'name') query.sort = sortBy.value
-  if (sortOrder.value !== 'asc') query.order = sortOrder.value
-  if (currentPage.value > 1) query.page = currentPage.value
-  
-  router.push({ query })
-}
-
-// Cambiar página
-const goToPage = (page) => {
-  if (page >= 1 && page <= totalPages.value) {
-    currentPage.value = page
-    updateURL()
-    fetchSites()
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-}
-
-// Limpiar filtros
-const clearFilters = () => {
-  searchQuery.value = ''
-  selectedCity.value = ''
-  selectedState.value = ''
-  selectedProvince.value = ''
-  selectedTags.value = []
-  showFavoritesOnly.value = false
-  sortBy.value = 'name'
-  sortOrder.value = 'asc'
-  currentPage.value = 1
-  
-  // Limpiar el multiselect de Choices.js
-  if (choicesInstance) {
-    choicesInstance.removeActiveItems()
-  }
-  
-  updateURL()
-  fetchSites()
-}
-
-// Toggle orden ascendente/descendente
-const toggleSortOrder = () => {
-  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
-  handleSearch()
-}
-
-// TODO: Abrir vista de mapa
-const openMapView = () => {
-  alert('Funcionalidad de mapa próximamente disponible')
-}
-
 // Cargar al montar
 onMounted(async () => {
-  await loadProvinces()
-  await loadStates()
-  await loadTags()
+  await loadAll()
   await initChoices()
-  fetchSites()
+  await fetchSites(buildFilters())
 })
 
-// Watch para cambios en la ruta (navegación back/forward)
+// Watch para cambios en la ruta
 watch(() => route.query, () => {
   searchQuery.value = route.query.search || ''
   currentPage.value = parseInt(route.query.page) || 1
@@ -252,7 +165,7 @@ watch(() => route.query, () => {
   selectedProvince.value = route.query.province || ''
   selectedTags.value = route.query.tags ? route.query.tags.split(',') : []
   showFavoritesOnly.value = route.query.favorites === 'true'
-  sortBy.value = route.query.sort || 'name'
+  sortBy.value = route.query.sort || 'site_name'
   sortOrder.value = route.query.order || 'asc'
 })
 </script>
@@ -261,10 +174,9 @@ watch(() => route.query, () => {
   <div class="sites-view">
     <div class="container-fluid">
       <div class="row">
-        <!-- Panel de Filtros Lateral (Desktop) / Acordeón (Mobile) -->
+        <!-- Panel de Filtros -->
         <aside class="col-lg-3 filters-sidebar" :class="{ 'expanded': filtersExpanded }">
           <div class="filters-container">
-            <!-- Header de filtros (solo desktop) -->
             <div class="filters-header d-none d-lg-block">
               <h5 class="mb-0">
                 <i class="bi bi-funnel me-2"></i>
@@ -272,23 +184,17 @@ watch(() => route.query, () => {
               </h5>
             </div>
 
-            <!-- Contenido de filtros (colapsable en mobile) -->
             <div class="filters-content" :class="{ 'show': filtersExpanded }">
-              <!-- Búsqueda por texto -->
+              <!-- Búsqueda -->
               <div class="filter-group">
                 <label class="form-label">Buscar</label>
-                <div class="input-group">
-                  <span class="input-group-text">
-                    <i class="bi bi-search"></i>
-                  </span>
-                  <input
-                    v-model="searchQuery"
-                    @keyup.enter="handleSearch"
-                    type="text"
-                    class="form-control"
-                    placeholder="Nombre o descripción..."
-                  >
-                </div>
+                <input
+                  v-model="searchQuery"
+                  @keyup.enter="handleSearch"
+                  type="text"
+                  class="form-control"
+                  placeholder="Nombre o descripción..."
+                >
               </div>
 
               <!-- Ciudad -->
@@ -296,7 +202,6 @@ watch(() => route.query, () => {
                 <label class="form-label">Ciudad</label>
                 <input
                   v-model="selectedCity"
-                  @change="handleSearch"
                   type="text"
                   class="form-control"
                   placeholder="Ej: La Plata"
@@ -306,7 +211,7 @@ watch(() => route.query, () => {
               <!-- Provincia -->
               <div class="filter-group">
                 <label class="form-label">Provincia</label>
-                <select v-model="selectedProvince" @change="handleSearch" class="form-select">
+                <select v-model="selectedProvince" class="form-select">
                   <option value="">Todas</option>
                   <option v-for="province in provinces" :key="province" :value="province">
                     {{ province }}
@@ -314,15 +219,27 @@ watch(() => route.query, () => {
                 </select>
               </div>
 
-              <!-- Estado de conservación -->
+              <!-- Estado -->
               <div class="filter-group">
-                <label class="form-label">Estado</label>
-                <select v-model="selectedState" @change="handleSearch" class="form-select">
+                <label class="form-label">Estado de conservación</label>
+                <select v-model="selectedState" class="form-select">
                   <option value="">Todos</option>
-                  <option v-for="state in states" :key="state.id" :value="state.name">
+                  <option v-for="state in states" :key="state.id" :value="state.id">
                     {{ state.name }}
                   </option>
                 </select>
+              </div>
+
+              <!-- Favoritos -->
+              <div class="filter-group">
+                <button 
+                  @click="toggleFavorites"
+                  class="btn w-100"
+                  :class="showFavoritesOnly ? 'btn-danger' : 'btn-outline-danger'"
+                >
+                  <i class="bi" :class="showFavoritesOnly ? 'bi-heart-fill' : 'bi-heart'"></i>
+                  {{ showFavoritesOnly ? 'Mostrando Favoritos' : 'Mostrar Favoritos' }}
+                </button>
               </div>
 
               <!-- Tags -->
@@ -331,7 +248,6 @@ watch(() => route.query, () => {
                 <select 
                   id="tags-select" 
                   v-model="selectedTags"
-                  @change="handleSearch"
                   multiple
                   class="form-select"
                 >
@@ -341,31 +257,14 @@ watch(() => route.query, () => {
                 </select>
               </div>
 
-              <!-- Favoritos -->
-              <div class="filter-group">
-                <div class="form-check">
-                  <input
-                    v-model="showFavoritesOnly"
-                    @change="handleSearch"
-                    class="form-check-input"
-                    type="checkbox"
-                    id="favoritesCheck"
-                  >
-                  <label class="form-check-label" for="favoritesCheck">
-                    <i class="bi bi-heart-fill text-danger me-1"></i>
-                    Solo favoritos
-                  </label>
-                </div>
-              </div>
-
               <!-- Ordenamiento -->
               <div class="filter-group">
                 <label class="form-label">Ordenar por</label>
                 <div class="input-group">
-                  <select v-model="sortBy" @change="handleSearch" class="form-select">
-                    <option value="name">Nombre</option>
-                    <option value="recent">Fecha de registro</option>
-                    <option value="rating">Mejor rankeados</option>
+                  <select v-model="sortBy" class="form-select">
+                    <option value="site_name">Nombre</option>
+                    <option value="registration">Fecha</option>
+                    <option value="rating">Rating</option>
                   </select>
                   <button 
                     @click="toggleSortOrder"
@@ -378,7 +277,7 @@ watch(() => route.query, () => {
                 </div>
               </div>
 
-              <!-- Botones de acción -->
+              <!-- Acciones -->
               <div class="filter-actions">
                 <button @click="handleSearch" class="btn btn-primary w-100 mb-2">
                   <i class="bi bi-search me-1"></i>
@@ -400,7 +299,6 @@ watch(() => route.query, () => {
         <!-- Contenido Principal -->
         <main class="col-lg-9">
           <div class="content-container">
-            <!-- Header -->
             <div class="content-header">
               <div>
                 <h1 class="h3 mb-1">Explorar Sitios Históricos</h1>
@@ -410,7 +308,6 @@ watch(() => route.query, () => {
                 </p>
               </div>
               
-              <!-- Botón toggle filtros (solo mobile) -->
               <button 
                 class="btn btn-primary d-lg-none"
                 @click="filtersExpanded = !filtersExpanded"
@@ -428,7 +325,7 @@ watch(() => route.query, () => {
               <p class="mt-3 text-muted">Cargando sitios históricos...</p>
             </div>
 
-            <!-- Grid de Sitios -->
+            <!-- Grid -->
             <div v-else-if="sites.length > 0" class="sites-grid">
               <SiteCard v-for="site in sites" :key="site.id" :site="site" />
             </div>
@@ -452,7 +349,6 @@ watch(() => route.query, () => {
                   </a>
                 </li>
                 
-                <!-- Primera página -->
                 <li v-if="currentPage > 3" class="page-item">
                   <a class="page-link" @click.prevent="goToPage(1)">1</a>
                 </li>
@@ -460,7 +356,6 @@ watch(() => route.query, () => {
                   <span class="page-link">...</span>
                 </li>
                 
-                <!-- Páginas cercanas -->
                 <li 
                   v-for="page in paginationRange" 
                   :key="page"
@@ -472,7 +367,6 @@ watch(() => route.query, () => {
                   </a>
                 </li>
                 
-                <!-- Última página -->
                 <li v-if="currentPage < totalPages - 3" class="page-item disabled">
                   <span class="page-link">...</span>
                 </li>
@@ -496,9 +390,10 @@ watch(() => route.query, () => {
 
 <style scoped>
 .sites-view {
-  min-height: 100vh;
+  min-height: calc(100vh - 200px);
   background-color: #f8f9fa;
   padding-top: 1rem;
+  padding-bottom: 2rem;
 }
 
 /* Filtros */
@@ -545,6 +440,10 @@ watch(() => route.query, () => {
   
   .filters-container {
     display: block !important;
+    position: sticky;
+    top: 80px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
   }
   
   .filters-content {
@@ -553,22 +452,22 @@ watch(() => route.query, () => {
 }
 
 .filter-group {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
 }
 
 .filter-group .form-label {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   color: #495057;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
 }
 
 .filter-group .form-control,
 .filter-group .form-select {
   border-radius: 6px;
   border: 1px solid #dee2e6;
-  font-size: 0.95rem;
-  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.625rem;
 }
 
 .filter-group .form-control:focus,
@@ -580,14 +479,52 @@ watch(() => route.query, () => {
 .filter-group .input-group-text {
   background-color: white;
   border-right: none;
+  font-size: 0.875rem;
 }
 
 .filter-group .input-group .form-control {
   border-left: none;
 }
 
+/* Botón de favoritos */
+.filter-group .btn-outline-danger {
+  border-width: 2px;
+  transition: all 0.3s ease;
+}
+
+.filter-group .btn-outline-danger:hover {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.filter-group .btn-danger {
+  transition: all 0.3s ease;
+  animation: heartBeat 0.3s ease-in-out;
+}
+
+.filter-group .btn-danger:hover {
+  transform: scale(1.05);
+}
+
+@keyframes heartBeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.filter-group .btn i {
+  margin-right: 0.5rem;
+  font-size: 1rem;
+}
+
 .filter-actions {
-  margin-top: 1.5rem;
+  margin-top: 1.25rem;
   padding-top: 1rem;
   border-top: 1px solid #dee2e6;
 }
@@ -595,6 +532,7 @@ watch(() => route.query, () => {
 .filter-actions .btn {
   border-radius: 6px;
   font-weight: 500;
+  font-size: 0.875rem;
 }
 
 /* Contenido Principal */
@@ -603,6 +541,7 @@ watch(() => route.query, () => {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   padding: 2rem;
+  min-height: calc(100vh - 200px);
 }
 
 .content-header {
@@ -632,11 +571,13 @@ watch(() => route.query, () => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 /* Paginación */
 .pagination {
   flex-wrap: wrap;
+  margin-bottom: 2rem;
 }
 
 .page-link {
@@ -680,6 +621,7 @@ watch(() => route.query, () => {
   
   .content-container {
     padding: 1rem;
+    min-height: auto;
   }
   
   .content-header {
@@ -697,10 +639,15 @@ watch(() => route.query, () => {
 @media (min-width: 576px) and (max-width: 991.98px) {
   .filters-sidebar {
     padding: 0 1rem;
+    margin-bottom: 1.5rem;
   }
   
   .sites-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .content-container {
+    min-height: auto;
   }
 }
 
@@ -708,13 +655,6 @@ watch(() => route.query, () => {
 @media (min-width: 992px) {
   .sites-view {
     padding-top: 2rem;
-  }
-  
-  .filters-sidebar {
-    position: sticky;
-    top: 80px;
-    max-height: calc(100vh - 100px);
-    overflow-y: auto;
   }
   
   .sites-grid {
@@ -730,20 +670,20 @@ watch(() => route.query, () => {
 }
 
 /* Scrollbar personalizado para el sidebar */
-.filters-sidebar::-webkit-scrollbar {
+.filters-container::-webkit-scrollbar {
   width: 6px;
 }
 
-.filters-sidebar::-webkit-scrollbar-track {
+.filters-container::-webkit-scrollbar-track {
   background: #f1f1f1;
 }
 
-.filters-sidebar::-webkit-scrollbar-thumb {
+.filters-container::-webkit-scrollbar-thumb {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 3px;
 }
 
-.filters-sidebar::-webkit-scrollbar-thumb:hover {
+.filters-container::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
 }
 </style>

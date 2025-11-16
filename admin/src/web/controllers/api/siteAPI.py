@@ -6,6 +6,8 @@ from core.models.State import State
 from core.database import db
 from sqlalchemy.orm import selectinload
 from sqlalchemy import or_, and_
+from core.services.sites_service import SiteService
+from core.models.UserFavorite import UserFavorite
 
 sitesAPI_blueprint = Blueprint("sitesAPI", __name__, url_prefix="/api/sites")
 
@@ -17,11 +19,13 @@ def list_sites():
     Query params:
         - page: número de página (default: 1)
         - per_page: items por página (default: 12)
-        - q: búsqueda por nombre, descripción o ciudad
+        - q: búsqueda por nombre y descripción breve
         - province: filtro por provincia
-        - category: filtro por nombre de categoría
+        - city: filtro por ciudad
+        - tags: filtro por tags (IDs separados por coma)
         - state: filtro por nombre de estado
-        - sort: ordenamiento (name, recent, default: name)
+        - sort: ordenamiento (site_name, registration, rating, default: site_name)
+        - order: dirección (asc, desc, default: asc)
     """
     # Parámetros de paginación
     page = request.args.get('page', 1, type=int)
@@ -30,69 +34,69 @@ def list_sites():
     # Parámetros de búsqueda y filtros
     search_query = request.args.get('q', '').strip()
     province_filter = request.args.get('province', '').strip()
-    category_filter = request.args.get('category', '').strip()
+    city_filter = request.args.get('city', '').strip()
     state_filter = request.args.get('state', '').strip()
-    sort_by = request.args.get('sort', 'name')
     
-    # Query base - solo sitios activos
-    query = db.session.query(Site).options(
-        selectinload(Site.category),
-        selectinload(Site.state)
-    ).filter_by(active=True, deleted=False)
+    # Filtro de tags (string separado por comas)
+    tags_param = request.args.get('tags', '').strip()
+    tags_filter = []
+    if tags_param:
+        try:
+            tags_filter = [int(t) for t in tags_param.split(',') if t.strip().isdigit()]
+        except ValueError:
+            pass
     
-    # Aplicar búsqueda por texto
+    # Parámetros de ordenamiento
+    sort_by = request.args.get('sort', 'site_name')  # site_name, registration, rating
+    order = request.args.get('order', 'asc')  # asc, desc
+    
+    filters = {
+        'active': True,
+        'deleted': False 
+    }
+
     if search_query:
-        query = query.filter(
-            or_(
-                Site.site_name.ilike(f'%{search_query}%'),
-                Site.short_desc.ilike(f'%{search_query}%'),
-                Site.city.ilike(f'%{search_query}%')
-            )
-        )
+        filters['search_text'] = search_query
     
-    # Aplicar filtro de provincia
+    if city_filter:
+        filters['city'] = {'operator': 'ilike', 'value': city_filter}
+    
     if province_filter:
-        query = query.filter(Site.province.ilike(f'%{province_filter}%'))
+        filters['province'] = {'operator': 'ilike', 'value': province_filter}
     
-    # Aplicar filtro de categoría (por nombre)
-    if category_filter:
-        query = query.join(Site.category).filter(
-            Site.category.has(name=category_filter)
-        )
-    
-    # Aplicar filtro de estado (por nombre)
     if state_filter:
-        query = query.join(Site.state).filter(
-            Site.state.has(name=state_filter)
-        )
+        try:
+            state_id = int(state_filter)
+            filters['state_id'] = state_id
+        except ValueError:
+            pass
     
-    # Aplicar ordenamiento
-    if sort_by == 'recent':
-        query = query.order_by(Site.id.desc())
-    else:  # 'name' o default
-        query = query.order_by(Site.site_name.asc())
+    if tags_filter:
+        filters['tags'] = tags_filter
     
-    # Ejecutar paginación
-    pagination = query.paginate(
+    pagination = SiteService.get_sites_filtered(
+        filters=filters,
+        order_by=sort_by,
+        sorted_by=order,
+        paginate=True,
         page=page,
-        per_page=per_page,
-        error_out=False
+        per_page=per_page
     )
     
     # Serializar resultados
-    sites_json = [site.to_dict() for site in pagination.items]
+    sites_json = [site.to_dict() for site in pagination['items']]
     
     return jsonify({
         'data': sites_json,
         'pagination': {
-            'page': pagination.page,
-            'per_page': pagination.per_page,
-            'total': pagination.total,
-            'total_pages': pagination.pages,
-            'has_prev': pagination.has_prev,
-            'has_next': pagination.has_next,
-            'prev_page': pagination.prev_num,
-            'next_page': pagination.next_num
+            'page': pagination['current_page'],
+            'per_page': pagination['per_page'],
+            'total': pagination['total'],
+            'total_pages': pagination['pages'],
+            'has_prev': pagination['has_prev'],
+            'has_next': pagination['has_next'],
+            'prev_page': pagination['prev_num'],
+            'next_page': pagination['next_num']
         }
     })
 
@@ -141,3 +145,161 @@ def list_states():
     states_json = [{'id': state.id, 'name': state.name} for state in states]
     
     return jsonify({'data': states_json})
+
+@sitesAPI_blueprint.route("/<int:site_id>", methods=["GET"])
+def siteDetails(site_id):
+    """
+    Detalle sobre un sitio. Incrementa el contador de vistas.
+    
+    Returns:
+        JSON con toda la información de un sitio
+    """
+    
+    site = SiteService.get_site_by_id(site_id)
+    
+    # Incrementar el contador de vistas
+    try:
+        site.views += 1
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error incrementando vistas: {e}")
+    
+    json = site.to_dict()
+    
+    return jsonify({'data': json})
+
+
+@sitesAPI_blueprint.route("/<int:site_id>/favorite", methods=["POST"])
+def favorite_site(site_id):
+    """
+    Endpoint para marcar/desmarcar favorito (toggle).
+    Body JSON: { "user_id": 1 }
+    """
+    
+    user_id = request.json.get('user_id')
+
+    site = db.session.query(Site).filter(Site.id == site_id, Site.deleted == False).first()
+    if not site:
+        return jsonify({'error': 'Sitio no encontrado'}), 404
+
+    existing = db.session.query(UserFavorite).filter_by(user_id=user_id, site_id=site_id).first()
+    try:
+        if existing:
+            db.session.delete(existing)
+            db.session.commit()
+            return jsonify({'status': 'Eliminado de favoritos', 'site_id': site_id, 'user_id': user_id}), 200
+        else:
+            fav = UserFavorite(user_id=user_id, site_id=site_id)
+            db.session.add(fav)
+            db.session.commit()
+            return jsonify({'status': 'Añadido a favoritos', 'site_id': site_id, 'user_id': user_id}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Error interno', 'detail': str(e)}), 500
+
+
+
+@sitesAPI_blueprint.route("/<int:site_id>/favorite", methods=["GET"])
+def get_favorite(site_id):
+    """
+    Devuelve si el usuario tiene marcado el sitio como favorito
+    Response: { "favorited": true|false, "site_id": ..., "user_id": ... }
+    """
+
+    user_id = request.args.get('user_id')
+
+    site = db.session.query(Site).filter(Site.id == site_id, Site.deleted == False).first()
+    if not site:
+        return jsonify({'error': 'Sitio no encontrado'}), 404
+
+    try:
+        fav = db.session.query(UserFavorite).filter_by(user_id=user_id, site_id=site_id).first()
+        favorited = bool(fav)
+    except Exception as e:
+        favorited = False
+
+    return jsonify({'favorited': favorited, 'site_id': site_id, 'user_id': user_id}), 200
+
+
+@sitesAPI_blueprint.route("/favorites", methods=["GET"])
+def list_favorites():
+    """
+    Devuelve la lista de sitios marcados como favoritos por un usuario.
+    Query params:
+      - user_id
+
+    Response: { data: [ site_to_dict, ... ], user_id: <id> }
+    """
+
+    user_id = request.args.get('user_id', 1)
+
+    try:
+        fav_rows = db.session.query(UserFavorite).filter(UserFavorite.user_id == user_id).order_by(UserFavorite.id.desc()).all()
+        site_ids = [int(f.site_id) for f in fav_rows] if fav_rows else []
+    except Exception as e:
+        site_ids = []
+
+    sites_json = []
+    if site_ids:
+        try:
+            sites = db.session.query(Site).filter(Site.id.in_(site_ids), Site.deleted == False).all()
+            sites_map = {s.id: s for s in sites}
+            for sid in site_ids:
+                s = sites_map.get(sid)
+                if s:
+                    sites_json.append(s.to_dict())
+        except Exception as e:
+            sites_json = []
+
+    return jsonify({'data': sites_json, 'user_id': user_id}), 200
+
+
+@sitesAPI_blueprint.route("/most-visited", methods=["GET"])
+def most_visited():
+    """
+    Obtiene los 4 sitios más visitados (activos y no eliminados).
+    
+    Returns:
+        JSON con los 4 sitios más visitados ordenados por views descendente
+    """
+    try:
+        sites = db.session.query(Site)\
+            .filter(Site.active == True, Site.deleted == False)\
+            .order_by(Site.views.desc())\
+            .limit(4)\
+            .all()
+        
+        if not sites:
+            return jsonify({'data': [], 'message': 'No hay sitios disponibles'}), 200
+        
+        sites_json = [site.to_dict() for site in sites]
+        return jsonify({'data': sites_json}), 200
+        
+    except Exception as e:
+        return jsonify({'error': 'Error obteniendo sitios más visitados', 'detail': str(e)}), 500
+
+
+@sitesAPI_blueprint.route("/recently-added", methods=["GET"])
+def recently_added():
+    """
+    Obtiene los 4 sitios agregados más recientemente (activos y no eliminados).
+    
+    Returns:
+        JSON con los 4 sitios más recientes ordenados por registration descendente
+    """
+    try:
+        sites = db.session.query(Site)\
+            .filter(Site.active == True, Site.deleted == False)\
+            .order_by(Site.registration.desc())\
+            .limit(4)\
+            .all()
+        
+        if not sites:
+            return jsonify({'data': [], 'message': 'No hay sitios disponibles'}), 200
+        
+        sites_json = [site.to_dict() for site in sites]
+        return jsonify({'data': sites_json}), 200
+        
+    except Exception as e:
+        return jsonify({'error': 'Error obteniendo sitios recientes', 'detail': str(e)}), 500

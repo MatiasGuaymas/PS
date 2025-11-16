@@ -1,18 +1,37 @@
 <script setup>
-import { ref } from 'vue'
+import { defineProps, defineEmits } from 'vue'
 
-const searchQuery = ref('')
-const emit = defineEmits(['search'])
+// Recibe el texto de búsqueda desde HomeView
+const props = defineProps({
+  searchQuery: {
+    type: String,
+    default: ''
+  }
+})
 
+// Define los eventos que este componente puede enviar al padre (HomeView)
+const emit = defineEmits(['search', 'update:searchQuery'])
+
+// Cuando el usuario escribe, envía el nuevo valor al padre
+const handleInput = (event) => {
+  emit('update:searchQuery', event.target.value)
+}
+
+// Cuando el usuario hace clic en buscar, notifica al padre
 const handleSearch = () => {
-  if (searchQuery.value.trim()) {
-    emit('search', searchQuery.value)
+  emit('search')
+}
+
+// Si el usuario presiona Enter, ejecuta la búsqueda
+const handleKeyup = (event) => {
+  if (event.key === 'Enter') {
+    handleSearch()
   }
 }
 </script>
 
 <template>
-  <section class=" py-lg-16 py-8">
+  <section class="py-lg-16 py-8 mb-4">
     <div class="container">
       <div class="row align-items-center">
         <div class="col-lg-6 mb-6 mb-lg-0">
@@ -26,13 +45,14 @@ const handleSearch = () => {
               que cuentan la historia y el patrimonio cultural de nuestro país.
             </p>
             
-            <!-- TODO: AGREGAR BUSQUEDA CON LISTADO -->
             <form 
               @submit.prevent="handleSearch" 
               class="search-form d-flex gap-2 mb-4 animate-slide-up"
             >
               <input
-                v-model="searchQuery"
+                :value="searchQuery"
+                @input="handleInput"
+                @keyup="handleKeyup"
                 type="text"
                 class="form-control form-control-lg"
                 placeholder="Buscar sitios históricos..."

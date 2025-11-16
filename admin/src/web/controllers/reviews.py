@@ -6,6 +6,8 @@ from core.services.review_service import ReviewService
 from src.web.handlers.auth import login_required, require_role
 from sqlalchemy.orm import joinedload
 
+from core.models.Site import Site 
+from datetime import datetime,date
 
 reviews_blueprint = Blueprint("reviews", __name__, url_prefix="/reviews")
 
@@ -111,17 +113,110 @@ def index():
         
         return redirect(url_for('reviews.index'))
         
-    elif request.method == "GET":
-        # Obtener parámetros de paginación
+    if request.method == "GET":
+        
+        # 1. Obtener parámetros de la URL
         page = int(request.args.get('page', 1))
+        order_by = request.args.get('order_by', 'created_at') 
+        sorted_by = request.args.get('sorted_by', 'desc') 
+
+        # Filtros (strings/None)
+        current_filters_str = {
+            'status': request.args.get('status'),
+            'site_id': request.args.get('site_id'),
+            'min_rating': request.args.get('min_rating'),
+            'max_rating': request.args.get('max_rating'),
+            'date_from': request.args.get('date_from'),
+            'date_to': request.args.get('date_to'),
+            'user_email': request.args.get('user_email')
+        }
         
-        # Obtener reseñas paginadas
-        reviews_data = ReviewService.get_reviews_paginated(page=page, per_page=25)
+        # 2. Conversión de Tipos de Datos para el servicio (algunos a int/datetime)
+        service_filters = {}
+        valid_filters = True
+        current_date = date.today()
+        dt_from = None
+        dt_to = None
         
+        # Filtros String (solo si tienen valor)
+        if current_filters_str['status']:
+            service_filters['status'] = current_filters_str['status']
+        
+        #Limpiar el email de espacios
+        user_email_clean = current_filters_str['user_email']
+        if user_email_clean:
+            user_email_clean = user_email_clean.strip() # Eliminar espacios en blanco
+            if user_email_clean: # Verifica que no esté vacío después de limpiar
+                service_filters['user_email'] = user_email_clean
+
+        # Conversión a Integer
+        if current_filters_str['site_id'] and current_filters_str['site_id'].isdigit():
+            service_filters['site_id'] = int(current_filters_str['site_id'])
+
+        if current_filters_str['min_rating'] and current_filters_str['min_rating'].isdigit():
+            service_filters['min_rating'] = int(current_filters_str['min_rating'])
+
+        if current_filters_str['max_rating'] and current_filters_str['max_rating'].isdigit():
+            service_filters['max_rating'] = int(current_filters_str['max_rating'])
+        
+        # Conversión a Datetime y VALIDACIONES DE FECHA 
+        try:
+            # --- Validación de FECHA DESDE ---
+            if current_filters_str['date_from']:
+                dt_from = datetime.strptime(current_filters_str['date_from'], '%Y-%m-%d').date()
+                if dt_from > current_date:
+                    flash("La fecha 'Desde' no puede ser futura.", "error")
+                    valid_filters = False
+                else:
+                    service_filters['date_from'] = datetime.combine(dt_from, datetime.min.time())
+            
+            # --- Validación de FECHA HASTA ---
+            if current_filters_str['date_to']:
+                dt_to = datetime.strptime(current_filters_str['date_to'], '%Y-%m-%d').date()
+                if dt_to > current_date:
+                    flash("La fecha 'Hasta' no puede ser futura.", "error")
+                    valid_filters = False
+                else:
+                    # Usamos datetime.max.time() para incluir todo el día 'Hasta'
+                    service_filters['date_to'] = datetime.combine(dt_to, datetime.max.time())
+            
+            # --- Validación de RANGO (Desde > Hasta) ---
+            # Solo chequeamos el rango si ambas fechas fueron válidas en formato y no-futuras.
+            if dt_from and dt_to and dt_from > dt_to:
+                flash("La fecha 'Desde' no puede ser posterior a la fecha 'Hasta'.", "error")
+                valid_filters = False
+
+        except ValueError:
+            # Este es el error de formato que tenías.
+            flash("Formato de fecha inválido. Usando AAAA-MM-DD.", "error")
+            valid_filters = False 
+            
+        # Si hubo cualquier error de validación de fecha, eliminamos las fechas del filtro 
+        # para que la consulta no se ejecute con datos incorrectos o falle.
+        if not valid_filters:
+            service_filters.pop('date_from', None)
+            service_filters.pop('date_to', None)
+
+        # 3. Llamar al servicio
+        reviews_data = ReviewService.get_reviews_paginated(
+            page=page, 
+            per_page=25,
+            filters=service_filters,
+            order_by=order_by,
+            sorted_by=sorted_by
+        )
+        
+        # Obtener lista de sitios para el selector en el formulario
+        sites = db.session.query(Site).order_by(Site.site_name).all()
+
+        # 4. Retornar la vista
         return render_template(
             "reviews/index.html",
             reviews=reviews_data['reviews'],
-            pagination=reviews_data
+            pagination=reviews_data,
+            sites=sites, 
+            # Pasar los filtros *originales* (strings) para rellenar el formulario.
+            current_filters={k: v for k, v in current_filters_str.items() if v}
         )
 
 
@@ -149,3 +244,38 @@ def detail(review_id):
         review=review,
         audits=audits
     )
+
+@reviews_blueprint.route("/user/<int:user_id>/get-reviews", methods=["GET"])
+@login_required
+@require_role(['Administrador', 'Editor', 'Usuario'])
+def get_reviews_by_user(user_id):  # ← Cambiar nombre y agregar parámetro
+    """
+    Obtiene todas las reseñas de un usuario específico.
+    
+    Args:
+        user_id (int): ID del usuario
+        
+    Returns:
+        JSON con lista de reseñas del usuario
+    """
+    try:
+        from core.services.user_service import UserService
+        user = UserService.get_user_by_id(user_id)
+        
+        if not user:
+            return {"error": "Usuario no encontrado"}, 404
+        
+        reviews = ReviewService.get_approved_reviews_by_user(user_id)
+        
+        reviews_data = [review.to_dict() for review in reviews]
+        
+        return {
+            "ok": True,
+            "user_id": user_id,
+            "user_email": user.email,
+            "total_reviews": len(reviews_data),
+            "reviews": reviews_data
+        }, 200
+        
+    except Exception as e:
+        return {"error": str(e)}, 500

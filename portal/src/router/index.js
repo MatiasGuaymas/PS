@@ -20,6 +20,22 @@ const router = createRouter({
       component: () => import('../views/AccessDeniedView.vue'), 
       props: true 
     },
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('../views/LoginView.vue'),
+    },
+    {
+      path: '/sitios/:id',
+      name: 'site-details',
+      component: () => import('../views/SiteDetails.vue'), 
+      props: true 
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('../views/NotFoundView.vue'),
+    },
   ],
 })
 
