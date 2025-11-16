@@ -1,8 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import axios from 'axios'; 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(import.meta.env.VITE_API_URL),
   routes: [
     {
       path: '/',
@@ -65,7 +66,7 @@ export default router
 
 async function checkAccessCondition() {
   try {
-    const response = await axios('http://localhost:5000/api/handler/'); 
+    const response = await axios(`${API_BASE_URL}/api/handler/`); 
     const isBlocked = response.data.status !== "ok"; 
     const message = response.data.message || 'Acceso permitido';
 
