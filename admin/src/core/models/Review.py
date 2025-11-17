@@ -20,3 +20,17 @@ class Review(db.Model):
     # RELACIÓN 1: Una reseña pertenece a un sitio histórico.
     # CLAVE FORÁNEA: Columna que referencia la tabla 'sites'.
     site = relationship("Site", backref="reviews", lazy=True)
+
+    def to_dict(self):
+        """Convierte la reseña a diccionario"""
+        return {
+            "id": self.id,
+            "site_id": self.site_id,
+            "user_email": self.user_email,
+            "rating": self.rating,
+            "content": self.content,
+            "status": self.status,
+            "rejection_reason": self.rejection_reason,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }
+
