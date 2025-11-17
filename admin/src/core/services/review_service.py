@@ -5,7 +5,7 @@ from core.models.User import User
 from core.models.Site import Site
 from sqlalchemy.orm import joinedload
 from typing import List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 
 
@@ -139,6 +139,7 @@ class ReviewService:
 
             # Cambiar estado de la reseña
             review.status = 'Aprobada'
+            review.updated_at = datetime.now(timezone.utc)
 
             # Crear auditoría
             audit = ReviewAudit(
@@ -181,6 +182,7 @@ class ReviewService:
 
             # Cambiar estado de la reseña
             review.status = 'Rechazada'
+            review.updated_at = datetime.now(timezone.utc)
             review.rejection_reason = rejection_reason
 
             # Crear auditoría
