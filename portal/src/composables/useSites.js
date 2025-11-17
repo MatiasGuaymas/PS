@@ -1,7 +1,8 @@
 import { ref } from 'vue'
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE = import.meta.env.VITE_API_URL || 'https://admin-grupo21.proyecto2025.linti.unlp.edu.ar';
+const API_BASE_URL = `${API_BASE}/api/sites`
 
 export function useSites() {
   const sites = ref([])
@@ -18,7 +19,12 @@ export function useSites() {
         page: filters.page || 1,
         per_page: filters.perPage || 12,
         sort: filters.sortBy || 'site_name',
-        order: filters.sortOrder || 'asc'
+        order: filters.sortOrder || 'asc',
+        ...(filters.lat && filters.lng && filters.radius ? {
+          lat: filters.lat,
+          lng: filters.lng,
+          radius: filters.radius, // Asegúrate que el backend maneje el radio en metros
+        } : {})
       }
       
       if (filters.searchQuery) params.q = filters.searchQuery
@@ -28,6 +34,7 @@ export function useSites() {
       if (filters.tags && filters.tags.length > 0) {
         params.tags = filters.tags.join(',')
       }
+      
       
       const response = await axios.get(API_BASE_URL, { params })
       const result = response.data

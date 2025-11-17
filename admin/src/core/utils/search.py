@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 from sqlalchemy import and_, inspect, or_
 from sqlalchemy.orm import Query
-
+from geoalchemy2 import Geography, functions as geofunctions, elements as geoelements
 
 class GenericSearchBuilder:
     """Constructor genérico de queries de búsqueda para cualquier modelo SQLAlchemy"""
@@ -18,17 +18,28 @@ class GenericSearchBuilder:
         self.inspector = inspect(model_class)
         self.columns = {col.name: col for col in self.inspector.columns}
 
-    def build_query(self, filters: Dict[str, Any]) -> Query:
+    def build_query(self, filters: Dict[str, Any], lat: int = None,lng:int = None, radius:int = None) -> Query:
         """
         Construye una query basada en filtros genéricos
 
         Args:
             filters: Diccionario con filtros a aplicar
+            lat: latitud para filtro por distancia (opcional)
+            lng: longitud para filtro por distancia (opcional)
+            radius: radio en km para filtro por distancia (opcional)
 
         Returns:
             Query de SQLAlchemy filtrada
         """
+        # Seguro hay una mejor forma de hacer esto metiendolo como un filtro custom pero no la encuentro ahora
         query = self.model_class.query
+        if lat is not None and lng is not None and radius is not None:
+            center = geoelements.WKTElement(f"POINT({lng} {lat})", srid=4326)
+            query = query.filter(
+                geofunctions.ST_DWithin(
+                    self.model_class.location.cast(Geography), center, radius
+                )
+            )
 
         # Procesar cada filtro
         for filter_name, filter_value in filters.items():
@@ -213,19 +224,23 @@ class GenericSearchBuilder:
 
 
 # Funciones de conveniencia
-def build_search_query(model_class, filters: Dict[str, Any]) -> Query:
+def build_search_query(model_class, filters: Dict[str, Any], lat: int = None,lng:int = None, radius:int = None) -> Query:
     """
     Función de conveniencia para construir queries de búsqueda
 
     Args:
         model_class: Clase del modelo SQLAlchemy
         filters: Diccionario con filtros
+        lat: latitud para filtro por distancia (opcional)
+        lng: longitud para filtro por distancia (opcional)
+        radius: radio en km para filtro por distancia (opcional)
+
 
     Returns:
         Query filtrada
     """
     builder = GenericSearchBuilder(model_class)
-    return builder.build_query(filters)
+    return builder.build_query(filters,lat=lat,lng=lng,radius=radius)
 
 
 def apply_ordering(
