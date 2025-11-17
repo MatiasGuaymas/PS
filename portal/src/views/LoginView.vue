@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authStore } from '@/stores/authStore'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://grupo21.proyecto2025.linti.unlp.edu.ar';
 
 const router = useRouter()
 const email = ref('')

@@ -8,7 +8,7 @@ import SitesSection from '../components/SitesSection.vue'
 const router = useRouter()
 
 // URL base de la API
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://grupo21.proyecto2025.linti.unlp.edu.ar';
 
 // Estado de autenticación (simulado por ahora)
 const isAuthenticated = ref(false) // Cambiar a true cuando el usuario inicie sesión
