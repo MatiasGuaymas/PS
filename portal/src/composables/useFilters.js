@@ -1,12 +1,14 @@
 import { ref } from 'vue'
 import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:5000/api/sites'
+const API_BASE_URL = `${API_BASE_URL}/api/sites`
 
 export function useFilters() {
   const provinces = ref([])
   const states = ref([])
   const tags = ref([])
+
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   const loadProvinces = async () => {
     try {

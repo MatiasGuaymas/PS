@@ -2,8 +2,9 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { authStore } from '@/stores/authStore'
 import HomeView from '../views/HomeView.vue'
 import axios from 'axios'; 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(import.meta.env.VITE_API_URL),
   routes: [
     {
       path: '/',
@@ -40,10 +41,16 @@ const router = createRouter({
       meta: { guestOnly: true }
     },
     {
+      path: '/sitios/:id',
+      name: 'site-details',
+      component: () => import('../views/SiteDetails.vue'), 
+      props: true 
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
-      redirect: '/'  // O crear una vista 404
-    }
+      component: () => import('../views/NotFoundView.vue'), // O crear una vista 404
+    },
   ],
 })
 
@@ -113,7 +120,7 @@ export default router
 
 async function checkAccessCondition() {
   try {
-    const response = await axios('http://localhost:5000/api/handler/'); 
+    const response = await axios(`${API_BASE_URL}/api/handler/`); 
     const isBlocked = response.data.status !== "ok"; 
     const message = response.data.message || 'Acceso permitido';
 

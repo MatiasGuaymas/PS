@@ -1,5 +1,7 @@
 import { reactive } from 'vue'
 
+const BASE_URL = `${window.location.origin}`
+
 export const authStore = reactive({
   user: null,
   loading: true,

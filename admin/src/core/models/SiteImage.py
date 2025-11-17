@@ -3,7 +3,6 @@ from sqlalchemy import Column, Integer, String, DateTime,ForeignKey
 from sqlalchemy import func, Boolean
 from sqlalchemy.orm import relationship
 
-
 class SiteImage(db.Model):
     """Modelo para almacenar metadatos de imágenes asociadas a sitios históricos."""
     __tablename__ = 'site_images'
@@ -31,8 +30,12 @@ class SiteImage(db.Model):
 
     def to_dict(self):
         """Devuelve una representación de diccionario del objeto SiteImage (SERIALIZACIÓN JSON)."""
+
+        from core.services.sites_service import SiteService # No uso import global para no generar una importación circular (da error)
+        public_url = SiteService.build_image_url(self.file_path)
+
         return {
-            'public_url': self.public_url,
+            'public_url': public_url,
             'file_path': self.file_path,
             'title_alt': self.title_alt,
             'description': self.description,

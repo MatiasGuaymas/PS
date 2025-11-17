@@ -7,6 +7,7 @@ from core.database import db
 from sqlalchemy.orm import selectinload
 from sqlalchemy import or_, and_
 from core.services.sites_service import SiteService
+from core.models.UserFavorite import UserFavorite
 
 sitesAPI_blueprint = Blueprint("sitesAPI", __name__, url_prefix="/api/sites")
 
@@ -64,7 +65,11 @@ def list_sites():
         filters['province'] = {'operator': 'ilike', 'value': province_filter}
     
     if state_filter:
-        filters['state'] = {'operator': 'eq', 'value': state_filter}
+        try:
+            state_id = int(state_filter)
+            filters['state_id'] = state_id
+        except ValueError:
+            pass
     
     if tags_filter:
         filters['tags'] = tags_filter
@@ -144,13 +149,157 @@ def list_states():
 @sitesAPI_blueprint.route("/<int:site_id>", methods=["GET"])
 def siteDetails(site_id):
     """
-    Detalle sobre un sitio.
+    Detalle sobre un sitio. Incrementa el contador de vistas.
     
     Returns:
         JSON con toda la información de un sitio
     """
     
     site = SiteService.get_site_by_id(site_id)
+    
+    # Incrementar el contador de vistas
+    try:
+        site.views += 1
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error incrementando vistas: {e}")
+    
     json = site.to_dict()
     
     return jsonify({'data': json})
+
+
+@sitesAPI_blueprint.route("/<int:site_id>/favorite", methods=["POST"])
+def favorite_site(site_id):
+    """
+    Endpoint para marcar/desmarcar favorito (toggle).
+    Body JSON: { "user_id": 1 }
+    """
+    
+    user_id = request.json.get('user_id')
+
+    site = db.session.query(Site).filter(Site.id == site_id, Site.deleted == False).first()
+    if not site:
+        return jsonify({'error': 'Sitio no encontrado'}), 404
+
+    existing = db.session.query(UserFavorite).filter_by(user_id=user_id, site_id=site_id).first()
+    try:
+        if existing:
+            db.session.delete(existing)
+            db.session.commit()
+            return jsonify({'status': 'Eliminado de favoritos', 'site_id': site_id, 'user_id': user_id}), 200
+        else:
+            fav = UserFavorite(user_id=user_id, site_id=site_id)
+            db.session.add(fav)
+            db.session.commit()
+            return jsonify({'status': 'Añadido a favoritos', 'site_id': site_id, 'user_id': user_id}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Error interno', 'detail': str(e)}), 500
+
+
+
+@sitesAPI_blueprint.route("/<int:site_id>/favorite", methods=["GET"])
+def get_favorite(site_id):
+    """
+    Devuelve si el usuario tiene marcado el sitio como favorito
+    Response: { "favorited": true|false, "site_id": ..., "user_id": ... }
+    """
+
+    user_id = request.args.get('user_id')
+
+    site = db.session.query(Site).filter(Site.id == site_id, Site.deleted == False).first()
+    if not site:
+        return jsonify({'error': 'Sitio no encontrado'}), 404
+
+    try:
+        fav = db.session.query(UserFavorite).filter_by(user_id=user_id, site_id=site_id).first()
+        favorited = bool(fav)
+    except Exception as e:
+        favorited = False
+
+    return jsonify({'favorited': favorited, 'site_id': site_id, 'user_id': user_id}), 200
+
+
+@sitesAPI_blueprint.route("/favorites", methods=["GET"])
+def list_favorites():
+    """
+    Devuelve la lista de sitios marcados como favoritos por un usuario.
+    Query params:
+      - user_id
+
+    Response: { data: [ site_to_dict, ... ], user_id: <id> }
+    """
+
+    user_id = request.args.get('user_id', 1)
+
+    try:
+        fav_rows = db.session.query(UserFavorite).filter(UserFavorite.user_id == user_id).order_by(UserFavorite.id.desc()).all()
+        site_ids = [int(f.site_id) for f in fav_rows] if fav_rows else []
+    except Exception as e:
+        site_ids = []
+
+    sites_json = []
+    if site_ids:
+        try:
+            sites = db.session.query(Site).filter(Site.id.in_(site_ids), Site.deleted == False).all()
+            sites_map = {s.id: s for s in sites}
+            for sid in site_ids:
+                s = sites_map.get(sid)
+                if s:
+                    sites_json.append(s.to_dict())
+        except Exception as e:
+            sites_json = []
+
+    return jsonify({'data': sites_json, 'user_id': user_id}), 200
+
+
+@sitesAPI_blueprint.route("/most-visited", methods=["GET"])
+def most_visited():
+    """
+    Obtiene los 4 sitios más visitados (activos y no eliminados).
+    
+    Returns:
+        JSON con los 4 sitios más visitados ordenados por views descendente
+    """
+    try:
+        sites = db.session.query(Site)\
+            .filter(Site.active == True, Site.deleted == False)\
+            .order_by(Site.views.desc())\
+            .limit(4)\
+            .all()
+        
+        if not sites:
+            return jsonify({'data': [], 'message': 'No hay sitios disponibles'}), 200
+        
+        sites_json = [site.to_dict() for site in sites]
+        return jsonify({'data': sites_json}), 200
+        
+    except Exception as e:
+        return jsonify({'error': 'Error obteniendo sitios más visitados', 'detail': str(e)}), 500
+
+
+@sitesAPI_blueprint.route("/recently-added", methods=["GET"])
+def recently_added():
+    """
+    Obtiene los 4 sitios agregados más recientemente (activos y no eliminados).
+    
+    Returns:
+        JSON con los 4 sitios más recientes ordenados por registration descendente
+    """
+    try:
+        sites = db.session.query(Site)\
+            .filter(Site.active == True, Site.deleted == False)\
+            .order_by(Site.registration.desc())\
+            .limit(4)\
+            .all()
+        
+        if not sites:
+            return jsonify({'data': [], 'message': 'No hay sitios disponibles'}), 200
+        
+        sites_json = [site.to_dict() for site in sites]
+        return jsonify({'data': sites_json}), 200
+        
+    except Exception as e:
+        return jsonify({'error': 'Error obteniendo sitios recientes', 'detail': str(e)}), 500

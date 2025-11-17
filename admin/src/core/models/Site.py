@@ -4,7 +4,7 @@ from sqlalchemy import func, Boolean as bool
 from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry 
 from geoalchemy2.shape import to_shape
-from core.models import SiteImage
+
 class Site(db.Model):
     __tablename__ = 'sites'
 
@@ -130,6 +130,7 @@ class Site(db.Model):
             'longitude': self.longitude,
             'category_name': category_name,
             'state_name': state_name, 
+            'views': self.views,
             'tags': tags_list,
             'images': [image.to_dict() for image in self.images.all()]
         }

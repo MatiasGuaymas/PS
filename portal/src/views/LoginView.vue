@@ -3,6 +3,8 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { authStore } from '@/stores/authStore'
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const router = useRouter()
 const email = ref('')
 const password = ref('')
@@ -20,7 +22,7 @@ const handleLogin = async () => {
   error.value = ''
   
   try {
-    const response = await fetch('http://localhost:5000/auth/authenticate', {
+    const response = await fetch(`${API_BASE_URL}/auth/authenticate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -58,7 +60,7 @@ const handleLogin = async () => {
 }
 
 const loginWithGoogle = () => {
-  window.location.href = 'http://localhost:5000/auth/login-google?origin=public'
+  window.location.href = `${API_BASE_URL}/auth/login-google?origin=public`
 }
 </script>
 

@@ -1,6 +1,22 @@
 {% extends "layout.html" %}
 {% from "macros/paginate.html" import paginate %}
 
+{% macro url_con_filtros_reviews(order_by, sorted_by, page) %}
+{{ url_for('reviews.index',
+status=request.args.get('status', ''),
+site_id=request.args.get('site_id', ''),
+min_rating=request.args.get('min_rating', ''),
+max_rating=request.args.get('max_rating', ''),
+date_from=request.args.get('date_from', ''),
+date_to=request.args.get('date_to', ''),
+user_email=request.args.get('user_email', ''),
+order_by=order_by,
+sorted_by=sorted_by,
+page=page
+) }}
+{% endmacro %}
+
+
 {% block title %}Moderación de Reseñas | Puff-tóricos{% endblock %}
 
 {% block content %}
@@ -12,17 +28,139 @@
         </div>
 
         <div class="card-body p-4">
-            <!-- Tabla de reseñas -->
+            
+            {# 2. FORMULARIO DE FILTROS AÑADIDO (MÉTODO GET) #}
+            <form method="GET" action="{{ url_for('reviews.index') }}" class="mb-4">
+                <div class="row g-3 align-items-end">
+                    
+                    {# Filtro de Estado #}
+                    <div class="col-md-3">
+                        <label for="status" class="form-label">Estado</label>
+                        <select name="status" id="status" class="form-select bg-secondary text-light border-dark">
+                            <option value="">Todos</option>
+                            {% set current_status = current_filters.status or '' %}
+                            <option value="Pendiente" {% if current_status == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                            <option value="Aprobada" {% if current_status == 'Aprobada' %}selected{% endif %}>Aprobada</option>
+                            <option value="Rechazada" {% if current_status == 'Rechazada' %}selected{% endif %}>Rechazada</option>
+                        </select>
+                    </div>
+
+                    {# Filtro de Sitio (Necesita la variable 'sites' pasada desde el controlador) #}
+                    <div class="col-md-3">
+                        <label for="site_id" class="form-label">Sitio</label>
+                        <select name="site_id" id="site_id" class="form-select bg-secondary text-light border-dark">
+                            <option value="">Todos los Sitios</option>
+                            {# Asegúrarse de que 'sites' sea pasado en reviews.py #}
+                            {% for site in sites %} 
+                                <option value="{{ site.id }}" {% if current_filters.site_id|string == site.id|string %}selected{% endif %}>{{ site.site_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {# Filtro de Calificación (Rango) #}
+                    <div class="col-md-2">
+                            <label for="max_rating" class="form-label">Calificación Desde</label>
+                        <select name="min_rating" id="min_rating" class="form-select bg-secondary text-light border-dark">
+                            <option value="">Min</option>
+                            {% set min_rating_value = current_filters.min_rating|string %}
+                            {% for i in range(1, 6) %}
+                                <option value="{{ i }}" {% if min_rating_value == i|string %}selected{% endif %}>{{ i }} Estrella{{ 's' if i > 1 else '' }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="max_rating" class="form-label">Calificación Hasta</label>
+                        <select name="max_rating" id="max_rating" class="form-select bg-secondary text-light border-dark">
+                            <option value="">Max</option>
+                            {% set max_rating_value = current_filters.max_rating|string %}
+                            {% for i in range(1, 6) %}
+                                <option value="{{ i }}" {% if max_rating_value == i|string %}selected{% endif %}>{{ i }} Estrella{{ 's' if i > 1 else '' }}</option>
+                            {% endfor %}
+                        </select>
+                        
+                    </div>
+
+                    {# Filtro de Usuario #}
+                    <div class="col-md-2">
+                        <label for="user_email" class="form-label">Usuario (Email)</label>
+                        <input type="text" name="user_email" id="user_email" class="form-control bg-secondary text-light border-dark" value="{{ current_filters.user_email or '' }}" placeholder="Ingrese un email">
+                    </div>
+                    
+                    {# Filtro de Fecha (Rango) #}
+                    <div class="col-md-3">
+                        <label for="date_from" class="form-label">Fecha Desde</label>
+                        <input type="date" name="date_from" id="date_from" class="form-control bg-secondary text-light border-dark" value="{{ current_filters.date_from or '' }}">
+                        <span id="date_from_error" class="text-danger small mt-1 d-block"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="date_to" class="form-label">Fecha Hasta</label>
+                        <input type="date" name="date_to" id="date_to" class="form-control bg-secondary text-light border-dark" value="{{ current_filters.date_to or '' }}">
+                        <span id="date_to_error" class="text-danger small mt-1 d-block"></span>
+                    </div>
+                    
+                    {# Ordenar Por #}
+                    <div class="col-md-3">
+                        <label for="order_by" class="form-label">Ordenar Por</label>
+                        <select name="order_by" id="order_by" class="form-select bg-secondary text-light border-dark">
+                            <option value="created_at" {% if pagination.order_by == 'created_at' %}selected{% endif %}>Fecha</option>
+                            <option value="rating" {% if pagination.order_by == 'rating' %}selected{% endif %}>Calificación</option>
+                            <option value="site_name" {% if pagination.order_by == 'site_name' %}selected{% endif %}>Sitio</option>
+                        </select>
+                    </div>
+
+                    {# Orden #}
+                    <div class="col-md-3">
+                        <label for="sorted_by" class="form-label">Orden</label>
+                        <select name="sorted_by" id="sorted_by" class="form-select bg-secondary text-light border-dark">
+                            <option value="desc" {% if pagination.sorted_by == 'desc' %}selected{% endif %}>Descendente</option>
+                            <option value="asc" {% if pagination.sorted_by == 'asc' %}selected{% endif %}>Ascendente</option>
+                        </select>
+                    </div>
+
+                    {# Botones de Acción #}
+                    <div class="col-md-12 d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-filter me-1"></i> Aplicar Filtros
+                        </button>
+                        <a href="{{ url_for('reviews.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i> Limpiar Filtros
+                        </a>
+                    </div>
+                </div>
+            </form>
+            
             <div class="table-responsive">
                 <table class="table table-dark table-hover">
                     <thead>
                         <tr>
-                            <th scope="col">Sitio</th>
+                            {# 3. ENLACES DE ORDENAMIENTO (usando la macro personalizada) #}
+                            <th scope="col">
+                                <a href="{{ url_con_filtros_reviews('site_name', 'asc' if pagination.order_by == 'site_name' and pagination.sorted_by == 'desc' else 'desc', pagination.current_page) }}" class="text-white text-decoration-none">
+                                    Sitio 
+                                    {% if pagination.order_by == 'site_name' %}
+                                        <i class="fas fa-arrow-{{ 'up' if pagination.sorted_by == 'asc' else 'down' }}"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
                             <th scope="col">Usuario</th>
-                            <th scope="col">Calificación</th>
+                            <th scope="col">
+                                <a href="{{ url_con_filtros_reviews('rating', 'asc' if pagination.order_by == 'rating' and pagination.sorted_by == 'desc' else 'desc', pagination.current_page) }}" class="text-white text-decoration-none">
+                                    Calificación 
+                                    {% if pagination.order_by == 'rating' %}
+                                        <i class="fas fa-arrow-{{ 'up' if pagination.sorted_by == 'asc' else 'down' }}"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
                             <th scope="col">Contenido</th>
                             <th scope="col">Estado</th>
-                            <th scope="col">Fecha</th>
+                            <th scope="col">
+                                <a href="{{ url_con_filtros_reviews('created_at', 'asc' if pagination.order_by == 'created_at' and pagination.sorted_by == 'desc' else 'desc', pagination.current_page) }}" class="text-white text-decoration-none">
+                                    Fecha 
+                                    {% if pagination.order_by == 'created_at' %}
+                                        <i class="fas fa-arrow-{{ 'up' if pagination.sorted_by == 'asc' else 'down' }}"></i>
+                                    {% endif %}
+                                </a>
+                            </th>
                             <th scope="col">Acciones</th>
                         </tr>
                     </thead>
@@ -33,21 +171,15 @@
                             <td>{{ review.user_email }}</td>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    {% for i in range(1, 6) %}
-                                        {% if i <= review.rating %}
-                                            <i class="fas fa-star text-warning me-1"></i>
-                                        {% else %}
-                                            <i class="far fa-star text-warning me-1"></i>
-                                        {% endif %}
+                                    {% for i in range(review.rating) %}
+                                        <i class="fas fa-star text-warning"></i>
                                     {% endfor %}
-                                    <span class="ms-2">{{ review.rating }}/5</span>
+                                    {% for i in range(5 - review.rating) %}
+                                        <i class="far fa-star text-warning"></i>
+                                    {% endfor %}
                                 </div>
                             </td>
-                            <td>
-                                <div class="text-truncate" style="max-width: 200px;" title="{{ review.content }}">
-                                    {{ review.content }}
-                                </div>
-                            </td>
+                            <td>{{ review.content[:50] }}...</td>
                             <td>
                                 {% if review.status == 'Pendiente' %}
                                     <span class="badge bg-warning">Pendiente</span>
@@ -59,7 +191,6 @@
                             </td>
                             <td>{{ review.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
                             <td>
-                                <!-- Solo botón Ver detalle -->
                                 <a href="{{ url_for('reviews.detail', review_id=review.id) }}" 
                                    class="btn btn-sm btn-info" title="Ver detalle">
                                     <i class="fas fa-eye me-1"></i> Ver detalle
@@ -71,13 +202,176 @@
                 </table>
             </div>
 
-            <!-- Paginación -->
             {% if pagination.pages > 1 %}
-                {{ paginate(pagination, 'reviews.index') }}
+                <nav aria-label="Page navigation" class="d-flex justify-content-center">
+                    <ul class="pagination">
+                        
+                        {# Botón Anterior #}
+                        {% if pagination.has_prev %}
+                            <li class="page-item">
+                                <a href="{{ url_con_filtros_reviews(pagination.order_by, pagination.sorted_by, pagination.prev_num) }}"
+                                   class="page-link text-white bg-dark border-secondary"
+                                   style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+                                    <i class="fa-solid fa-arrow-left me-1"></i> Previous
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link text-muted bg-dark border-secondary"
+                                      style="--bs-bg-opacity: .4; --bs-border-opacity: .5;">
+                                    <i class="fa-solid fa-arrow-left me-1"></i> Previous
+                                </span>
+                            </li>
+                        {% endif %}
+
+                        {# Primer página y puntos suspensivos #}
+                        {% if pagination.has_prev and 1 not in pagination.page_range %}
+                            <li class="page-item">
+                                <a href="{{ url_con_filtros_reviews(pagination.order_by, pagination.sorted_by, 1) }}"
+                                   class="page-link text-white bg-dark border-secondary"
+                                   style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+                                    1
+                                </a>
+                            </li>
+                            <li class="page-item disabled">
+                                <span class="page-link bg-dark border-secondary"
+                                      style="--bs-bg-opacity: .5; --bs-border-opacity: .5;">
+                                    ...
+                                </span>
+                            </li>
+                        {% endif %}
+
+                        {# Números de página #}
+                        {% for page in pagination.page_range %}
+                            <li class="page-item {% if pagination.current_page == page %}active{% endif %}">
+                                <a href="{{ url_con_filtros_reviews(pagination.order_by, pagination.sorted_by, page) }}"
+                                   class="page-link {% if pagination.current_page != page %}text-white bg-dark border-secondary{% endif %}"
+                                   style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+                                    {{ page }}
+                                </a>
+                            </li>
+                        {% endfor %}
+
+                        {# Puntos suspensivos y última página #}
+                        {% if pagination.has_next and pagination.pages not in pagination.page_range %}
+                            <li class="page-item disabled">
+                                <span class="page-link bg-dark border-secondary"
+                                      style="--bs-bg-opacity: .5; --bs-border-opacity: .5;">
+                                    ...
+                                </span>
+                            </li>
+                            <li class="page-item">
+                                <a href="{{ url_con_filtros_reviews(pagination.order_by, pagination.sorted_by, pagination.pages) }}"
+                                   class="page-link text-white bg-dark border-secondary"
+                                   style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+                                    {{ pagination.pages }}
+                                </a>
+                            </li>
+                        {% endif %}
+
+                        {# Botón Siguiente #}
+                        {% if pagination.has_next %}
+                            <li class="page-item">
+                                <a href="{{ url_con_filtros_reviews(pagination.order_by, pagination.sorted_by, pagination.next_num) }}"
+                                   class="page-link text-white bg-dark border-secondary"
+                                   style="--bs-bg-opacity: .7; --bs-border-opacity: .5;">
+                                    Next <i class="fa-solid fa-arrow-right ms-1"></i>
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link bg-dark border-secondary"
+                                      style="--bs-bg-opacity: .4; --bs-border-opacity: .5;">
+                                    Next <i class="fa-solid fa-arrow-right ms-1"></i>
+                                </span>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
             {% endif %}
+            
         </div>
     </div>
 </div>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Obtener la fecha de hoy en formato YYYY-MM-DD
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        // Los meses son 0-indexados, sumamos 1
+        const mm = String(today.getMonth() + 1).padStart(2, '0'); 
+        const dd = String(today.getDate()).padStart(2, '0');
+        const todayDateString = `${yyyy}-${mm}-${dd}`;
 
+        // Obtener los campos de fecha del formulario
+        const dateFrom = document.getElementById('date_from');
+        const dateTo = document.getElementById('date_to');
+
+        // Aplicar la restricción 'max' a ambos campos
+        if (dateFrom) {
+            dateFrom.setAttribute('max', todayDateString);
+        }
+        if (dateTo) {
+            dateTo.setAttribute('max', todayDateString);
+        }
+        
+        // Opcional: Validar que "Desde" no sea mayor que "Hasta" antes de enviar
+        const form = document.querySelector('form[action="{{ url_for("reviews.index") }}"]');
+        if (form) {
+             form.addEventListener('submit', function(e) {
+                 const fromVal = dateFrom ? dateFrom.value : '';
+                 const toVal = dateTo ? dateTo.value : '';
+
+                 if (fromVal && toVal && new Date(fromVal) > new Date(toVal)) {
+                     e.preventDefault();
+                     alert("La fecha 'Desde' no puede ser posterior a la fecha 'Hasta'.");
+                 }
+             });
+        }
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- PREPARACIÓN DE FECHAS HOY ---
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const todayDateString = `${yyyy}-${mm}-${dd}`;
+        const hoy = todayDateString;
+
+        const dateFrom = document.getElementById('date_from');
+        const dateTo = document.getElementById('date_to');
+
+        if (dateFrom) { dateFrom.setAttribute('max', todayDateString); }
+        if (dateTo) { dateTo.setAttribute('max', todayDateString); }
+        
+        // El selector del formulario es correcto: form[action="{{ url_for("reviews.index") }}"]
+        const form = document.querySelector('form[action="{{ url_for("reviews.index") }}"]');
+        
+        if (form) {
+             form.addEventListener('submit', function(e) {
+                 const fromVal = dateFrom ? dateFrom.value : '';
+                 const toVal = dateTo ? dateTo.value : '';
+
+                 // 1. Validar Rango (Desde > Hasta)
+                 if (fromVal && toVal && new Date(fromVal) > new Date(toVal)) {
+                     e.preventDefault(); 
+                     alert("La fecha 'Desde' no puede ser posterior a la fecha 'Hasta'.");
+                     return; // Detiene la ejecución
+                 }
+                 
+                 // 2. Validar Fechas Futuras
+                 if ((fromVal && fromVal > hoy) || (toVal && toVal > hoy)) {
+                     e.preventDefault(); 
+                     alert("No se pueden seleccionar fechas futuras.");
+                     return; 
+                 }
+                 
+                 // Si llega hasta acá, no hay errores y el formulario se envía.
+             });
+        }
+    });
+</script>
 {% endblock %}
