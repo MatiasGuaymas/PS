@@ -267,10 +267,10 @@ watch(() => route.query, () => {
                   </label>
                   <button 
                     @click="showMap = !showMap"
-                    class="btn btn-sm"
+                    class="btn btn-sm bi-map"
                     :class="showMap ? 'btn-outline-secondary' : 'btn-outline-info'"
                   >
-                    {{ showMap ? 'Ocultar Mapa' : 'Mostrar Mapa' }}
+                    {{ showMap ? ' Ocultar Mapa' : ' Mostrar Mapa' }}
                   </button>
                 </div>
 
@@ -406,10 +406,11 @@ watch(() => route.query, () => {
                   <i class="bi bi-x-circle me-1"></i>
                   Limpiar
                 </button>
-                <button @click="openMapView" class="btn btn-outline-info w-100">
+              <!-- TODO: Te lo dejo comentado mati por si queres hacer lo de los marcadores -->
+                <!-- <button @click="openMapView" class="btn btn-outline-info w-100">
                   <i class="bi bi-map me-1"></i>
                   Abrir Mapa
-                </button>
+                </button> -->
               </div>
             </div>
           </div>
