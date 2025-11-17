@@ -83,7 +83,6 @@ export const ensurePortalAvailability = async (forceRefresh = false) => {
         return maintenanceState.isActive // Retorna el estado de mantenimiento
       })
       .catch((error) => {
-        console.error('🔴 Error al obtener el estado de mantenimiento:', error.message)
         // En caso de error de red, asumimos mantenimiento para evitar el acceso no controlado
         maintenanceState.isActive = true 
         maintenanceState.message = error.message 
