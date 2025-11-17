@@ -38,8 +38,8 @@ class ReviewService:
         filters = filters or {}
         
         # 1. Construir la consulta base (Unir con Site)
-        query = db.session.query(Review).join(Site)
-
+        # Añado el filtro de borrado lógico al Site
+        query = db.session.query(Review).join(Site).filter(Site.deleted == False)
         # 2. Aplicar Filtros (Combinables)
         
         # Estado (Pendiente/Aprobada/Rechazada)

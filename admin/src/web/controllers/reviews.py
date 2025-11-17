@@ -293,10 +293,11 @@ def api_get_public_reviews():
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 10, type=int)
 
-        query = Review.query.filter_by(status="Aprobada")
+        # filtro por 'Aprobada' y por 'deleted == False'
+        query = Review.query.filter_by(status="Aprobada").join(Site).filter(Site.deleted == False)
 
         if site_id:
-            query = query.filter_by(site_id=site_id)
+            query = query.filter(Review.site_id == site_id)
 
         pagination = query.order_by(Review.created_at.desc()).paginate(
             page=page, per_page=per_page, error_out=False
