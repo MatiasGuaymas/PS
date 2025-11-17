@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { authStore } from '@/stores/authStore'
 
@@ -8,6 +8,12 @@ const email = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
+
+onMounted(() => {
+  if (authStore.isAuthenticated) {
+    router.push('/')
+  }
+})
 
 const handleLogin = async () => {
   loading.value = true

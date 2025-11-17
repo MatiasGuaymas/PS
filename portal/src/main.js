@@ -7,12 +7,12 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
-import { authStore } from './stores/authStore' 
+import authPlugin from './plugins/auth'
 
 const app = createApp(App)
 
+app.use(authPlugin)
 app.use(router)
 
-authStore.checkAuth()
 
 app.mount('#app')

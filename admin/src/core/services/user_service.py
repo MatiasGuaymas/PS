@@ -238,19 +238,21 @@ class UserService:
                             content_type=file.content_type)
         return minio_path
     
-    def build_image_url(image_path: int):
+    def build_image_url(image_path: str):
         from flask import current_app
+        from datetime import timedelta
         """
-        Obtiene una imagen específica de un sitio.
+        Genera una URL presignada para acceder a la imagen en MinIO.
         
         Args:
-            image_path: Path de la imagen.
+            image_path: Path de la imagen en MinIO.
             
         Returns:
-            SiteImage | None: La imagen solicitada o None si no se encuentra.
+            str: URL presignada para acceder a la imagen.
         """
         client = current_app.storage
-        return client.get_object(
+        # Generar URL presignada válida por 7 días
+        return client.presigned_get_object(
             bucket_name=current_app.config["MINIO_BUCKET"],
             object_name=image_path,
         )

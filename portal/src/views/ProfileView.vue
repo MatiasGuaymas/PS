@@ -113,253 +113,121 @@ onMounted(() => {
     <div class="container py-5">
       <!-- Encabezado -->
       <div class="row mb-4">
-        <div class="col">
-          <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-              <li class="breadcrumb-item">
-                <RouterLink to="/">Inicio</RouterLink>
-              </li>
-              <li class="breadcrumb-item active" aria-current="page">
-                Mi Perfil
-              </li>
-            </ol>
-          </nav>
+        <div class="col text-center">
           <h1 class="fw-bold mb-2">
             <i class="bi bi-person-circle me-2 text-primary"></i>
             Mi Perfil
           </h1>
-          <p class="text-muted">Gestiona tu información personal</p>
+          <p class="text-muted">Información de tu cuenta</p>
         </div>
       </div>
 
-      <div class="row">
-        <!-- Columna izquierda: Avatar y estadísticas -->
-        <div class="col-lg-4 mb-4">
-          <div class="card shadow-sm border-0 rounded-4">
-            <div class="card-body text-center p-4">
-                <div class="avatar-container mb-3">
-                    <!-- Si tiene imagen de avatar -->
-                    <div 
-                        v-if="userAvatar" 
-                        class="avatar-circle avatar-image"
-                        :style="{ backgroundImage: `url(${userAvatar})` }"
-                    ></div>
-                </div>  
+      <!-- Card centrada con información del usuario -->
+      <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+          <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-body text-center p-5">
+              
+              <!-- Avatar -->
+              <div class="avatar-container mb-4">
+                <div 
+                  v-if="userAvatar" 
+                  class="avatar-circle avatar-image"
+                  :style="{ backgroundImage: `url(${userAvatar})` }"
+                ></div>
+                <div v-else class="avatar-circle">
+                  <i class="bi bi-person-fill"></i>
+                </div>
+              </div>
 
               <!-- Nombre completo -->
-              <h3 class="fw-bold mb-1">
+              <h2 class="fw-bold mb-2">
                 {{ user?.first_name }} {{ user?.last_name }}
-              </h3>
-              <p class="text-muted mb-3">
-                <i class="bi bi-envelope me-1"></i>
+              </h2>
+
+              <!-- Email -->
+              <p class="text-muted mb-4">
+                <i class="bi bi-envelope-fill me-2"></i>
                 {{ user?.email }}
               </p>
 
               <!-- Rol/Badge -->
-              <div class="mb-3">
-                <span v-if="user?.is_admin" class="badge bg-danger rounded-pill px-3 py-2">
+              <div class="mb-4">
+                <span v-if="user?.is_admin" class="badge bg-danger rounded-pill px-4 py-2 fs-6">
                   <i class="bi bi-shield-fill-check me-1"></i>
                   Administrador
                 </span>
-                <span v-else-if="user?.role" class="badge bg-primary rounded-pill px-3 py-2">
+                <span v-else-if="user?.role" class="badge bg-primary rounded-pill px-4 py-2 fs-6">
                   <i class="bi bi-person-badge me-1"></i>
                   {{ user.role }}
                 </span>
-                <span v-else class="badge bg-secondary rounded-pill px-3 py-2">
+                <span v-else class="badge bg-secondary rounded-pill px-4 py-2 fs-6">
                   <i class="bi bi-person me-1"></i>
                   Usuario
                 </span>
               </div>
 
+              <!-- Divisor -->
+              <hr class="my-4">
+
               <!-- Estadísticas -->
-              <div class="stats-grid mt-4">
-                <div class="stat-item">
-                  <div class="stat-icon">
-                    <i class="bi bi-star-fill text-warning"></i>
+              <div class="stats-section mb-4">
+                <h5 class="fw-bold mb-3 text-start">
+                  <i class="bi bi-graph-up me-2 text-primary"></i>
+                  Estadísticas
+                </h5>
+                <div class="stats-grid">
+                  <div class="stat-item">
+                    <div class="stat-icon">
+                      <i class="bi bi-star-fill text-warning"></i>
+                    </div>
+                    <div class="stat-content">
+                      <div class="stat-value">0</div>
+                      <div class="stat-label">Reseñas</div>
+                    </div>
                   </div>
-                  <div class="stat-label">Reseñas</div>
-                  <div class="stat-value">0</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-icon">
-                    <i class="bi bi-heart-fill text-danger"></i>
+                  <div class="stat-item">
+                    <div class="stat-icon">
+                      <i class="bi bi-heart-fill text-danger"></i>
+                    </div>
+                    <div class="stat-content">
+                      <div class="stat-value">0</div>
+                      <div class="stat-label">Favoritos</div>
+                    </div>
                   </div>
-                  <div class="stat-label">Favoritos</div>
-                  <div class="stat-value">0</div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Columna derecha: Información del perfil -->
-        <div class="col-lg-8">
-          <div class="card shadow-sm border-0 rounded-4">
-            <div class="card-body p-4">
-              <!-- Header del card -->
-              <div class="d-flex justify-content-between align-items-center mb-4">
-                <h4 class="fw-bold mb-0">
-                  <i class="bi bi-person-lines-fill me-2 text-primary"></i>
-                  Información Personal
-                </h4>
-                <button 
-                  v-if="!editing" 
-                  @click="enableEdit" 
-                  class="btn btn-outline-primary"
-                >
-                  <i class="bi bi-pencil me-1"></i>
-                  Editar
-                </button>
               </div>
 
-              <!-- Mensaje de feedback -->
-              <transition name="slide-fade">
-                <div 
-                  v-if="message.text" 
-                  :class="['alert', `alert-${message.type}`, 'alert-dismissible', 'fade', 'show', 'd-flex', 'align-items-center', 'mb-4']"
-                  role="alert"
-                >
-                  <div class="flex-grow-1">{{ message.text }}</div>
-                  <button 
-                    type="button" 
-                    class="btn-close" 
-                    @click="message = { text: '', type: '' }"
-                    aria-label="Close"
-                  ></button>
-                </div>
-              </transition>
-
-              <!-- Formulario -->
-              <form @submit.prevent="saveChanges">
-                <div class="row g-3">
-                  <!-- Nombre -->
-                  <div class="col-md-6">
-                    <label for="first_name" class="form-label fw-semibold">
-                      <i class="bi bi-person me-1"></i>
-                      Nombre
-                    </label>
-                    <input 
-                      type="text" 
-                      class="form-control form-control-lg" 
-                      id="first_name"
-                      v-model="formData.first_name"
-                      :disabled="!editing"
-                      required
-                    >
-                  </div>
-
-                  <!-- Apellido -->
-                  <div class="col-md-6">
-                    <label for="last_name" class="form-label fw-semibold">
-                      <i class="bi bi-person me-1"></i>
-                      Apellido
-                    </label>
-                    <input 
-                      type="text" 
-                      class="form-control form-control-lg" 
-                      id="last_name"
-                      v-model="formData.last_name"
-                      :disabled="!editing"
-                      required
-                    >
-                  </div>
-
-                  <!-- Email -->
-                  <div class="col-12">
-                    <label for="email" class="form-label fw-semibold">
-                      <i class="bi bi-envelope me-1"></i>
-                      Correo Electrónico
-                    </label>
-                    <input 
-                      type="email" 
-                      class="form-control form-control-lg" 
-                      id="email"
-                      v-model="formData.email"
-                      disabled
-                    >
-                    <small class="text-muted">
-                      <i class="bi bi-info-circle me-1"></i>
-                      El email no se puede modificar
-                    </small>
-                  </div>
-
-                  <!-- Botones de acción -->
-                  <div v-if="editing" class="col-12 d-flex gap-2 mt-4">
-                    <button 
-                      type="submit" 
-                      class="btn btn-primary btn-lg flex-grow-1"
-                      :disabled="loading"
-                    >
-                      <span v-if="loading">
-                        <span class="spinner-border spinner-border-sm me-2"></span>
-                        Guardando...
-                      </span>
-                      <span v-else>
-                        <i class="bi bi-check-lg me-2"></i>
-                        Guardar Cambios
-                      </span>
-                    </button>
-                    <button 
-                      type="button" 
-                      @click="cancelEdit" 
-                      class="btn btn-outline-secondary btn-lg"
-                      :disabled="loading"
-                    >
-                      <i class="bi bi-x-lg me-1"></i>
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          <!-- Card de seguridad -->
-          <div class="card shadow-sm border-0 rounded-4 mt-4">
-            <div class="card-body p-4">
-              <h4 class="fw-bold mb-3">
-                <i class="bi bi-shield-lock me-2 text-primary"></i>
-                Seguridad
-              </h4>
-              <div class="d-grid gap-2">
-                <button class="btn btn-outline-warning btn-lg text-start">
-                  <i class="bi bi-key me-2"></i>
-                  Cambiar Contraseña
-                  <i class="bi bi-chevron-right float-end"></i>
-                </button>
-                <button class="btn btn-outline-danger btn-lg text-start">
-                  <i class="bi bi-trash me-2"></i>
-                  Eliminar Cuenta
-                  <i class="bi bi-chevron-right float-end"></i>
-                </button>
-              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 </template>
 
 <style scoped>
 .profile-view {
   min-height: calc(100vh - 200px);
   background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+  padding: 2rem 0;
 }
 
-.breadcrumb {
-  background: transparent;
-  padding: 0;
-  margin-bottom: 1rem;
+/* Card principal */
+.card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  animation: fadeInUp 0.5s ease;
 }
 
-.breadcrumb-item a {
-  color: #667eea;
-  text-decoration: none;
-}
-
-.breadcrumb-item a:hover {
-  text-decoration: underline;
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Avatar */
@@ -369,140 +237,254 @@ onMounted(() => {
 }
 
 .avatar-circle {
-  width: 120px;
-  height: 120px;
+  width: 150px;
+  height: 150px;
   border-radius: 50%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 3rem;
+  font-size: 4rem;
   color: white;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
   margin: 0 auto;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.avatar-circle:hover {
+  transform: scale(1.05);
+  box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+}
+
+.avatar-image {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* Estadísticas */
+.stats-section {
+  text-align: left;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 .stat-item {
-  padding: 1rem;
-  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #fff3cd 0%, #fff8e1 100%);
   border-radius: 12px;
-  transition: transform 0.3s ease;
+  border: 2px solid #ffc107;
+  transition: all 0.3s ease;
 }
 
 .stat-item:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(255, 193, 7, 0.3);
+  border-color: #ff9800;
 }
 
 .stat-icon {
-  font-size: 1.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-content {
+  flex: 1;
+  text-align: left;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #212529;
+  line-height: 1;
+  margin-bottom: 0.25rem;
 }
 
 .stat-label {
   font-size: 0.875rem;
   color: #6c757d;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Grid de información */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.info-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.info-icon {
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info-content {
+  flex: 1;
+  text-align: left;
+}
+
+.info-label {
+  font-size: 0.875rem;
+  color: #6c757d;
+  font-weight: 500;
   margin-bottom: 0.25rem;
 }
 
-.stat-value {
-  font-size: 1.5rem;
+.info-value {
+  font-size: 1.125rem;
   font-weight: bold;
   color: #212529;
 }
 
-/* Cards */
-.card {
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
-}
-
-/* Formulario */
-.form-control:disabled {
-  background-color: #f8f9fa;
-  cursor: not-allowed;
-}
-
-.form-control-lg {
-  border-radius: 8px;
-  border: 2px solid #e9ecef;
-  transition: border-color 0.3s ease;
-}
-
-.form-control-lg:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+/* Badges */
+.badge {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* Botones */
 .btn {
-  border-radius: 8px;
-  font-weight: 500;
+  border-radius: 12px;
+  font-weight: 600;
   transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.btn-primary {
+.btn-outline-primary {
+  border: 2px solid #667eea;
+  color: #667eea;
+}
+
+.btn-outline-primary:hover:not(:disabled) {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border: none;
-}
-
-.btn-primary:hover {
+  border-color: #667eea;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
 }
 
-/* Animaciones */
-.slide-fade-enter-active {
-  animation: slideDown 0.3s ease;
+.btn-outline-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.slide-fade-leave-active {
-  animation: slideUp 0.3s ease;
+/* Divisor */
+hr {
+  border: none;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #e9ecef, transparent);
 }
 
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Título */
+h1 {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
+h2 {
+  color: #212529;
+  font-weight: 700;
 }
 
 /* Responsive */
-@media (max-width: 991px) {
+@media (max-width: 768px) {
+  .avatar-circle {
+    width: 120px;
+    height: 120px;
+    font-size: 3rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .card-body {
+    padding: 2rem !important;
+  }
+
+  h1 {
+    font-size: 1.75rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  .btn-lg {
+    padding: 0.75rem 2rem !important;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .profile-view {
+    padding: 1rem 0;
+  }
+
   .avatar-circle {
     width: 100px;
     height: 100px;
     font-size: 2.5rem;
   }
 
-  .stats-grid {
-    grid-template-columns: 1fr;
+  .stat-item {
+    padding: 1rem;
+  }
+
+  .stat-icon {
+    font-size: 2rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .info-item {
+    padding: 1rem;
+  }
+
+  .info-icon {
+    font-size: 1.5rem;
   }
 }
 </style>
