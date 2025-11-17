@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { authStore } from '@/stores/authStore'
 import HomeView from '../views/HomeView.vue'
 import axios from 'axios'; 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
@@ -25,6 +26,19 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('../views/LoginView.vue'),
+      meta: { guestOnly: true }
+    },
+    {
+      path: '/perfil',
+      name: 'perfil',
+      component: () => import('../views/ProfileView.vue'),
+      meta: { requiresAuth: true } 
+    },
+    {
+      path: '/registro',
+      name: 'registro',
+      component: () => import('../views/RegisterView.vue'),
+      meta: { guestOnly: true }
     },
     {
       path: '/sitios/:id',
@@ -35,31 +49,71 @@ const router = createRouter({
     {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
-      component: () => import('../views/NotFoundView.vue'),
+      component: () => import('../views/NotFoundView.vue'), // O crear una vista 404
     },
   ],
 })
 
+// router.beforeEach(async (to, from, next) => {
+//   // Se me ocurre para bloquear reseñas: Solo aplicar la verificación a rutas específicas (si tienen meta.requiresCheck)
+//   // if (!to.meta.requiresCheck) {
+//   //   return next(); // Si no necesita verificación, continúa
+//   // }
+  
+//   const result = await checkAccessCondition();
+  
+  
+//   if (result.blocked) {
+//     if (to.name !== 'access-denied') {
+//       console.log("Navegación bloqueada. Redirigiendo a página de denegación.");
+//       const encodedMessage = encodeURIComponent(result.message);
+//       return next({ name: 'access-denied', params: { message: encodedMessage } });
+//     } else {
+//       return next(); 
+//     }
+//   } 
+//   return next(); 
+// });
+
 router.beforeEach(async (to, from, next) => {
-  // Se me ocurre para bloquear reseñas: Solo aplicar la verificación a rutas específicas (si tienen meta.requiresCheck)
-  // if (!to.meta.requiresCheck) {
-  //   return next(); // Si no necesita verificación, continúa
-  // }
+  console.log(`🧭 Navegando a: ${to.path}`)
   
-  const result = await checkAccessCondition();
+  if (authStore.loading) {
+    console.log('⏳ Esperando verificación de autenticación...')
   
-  
-  if (result.blocked) {
-    if (to.name !== 'access-denied') {
-      console.log("Navegación bloqueada. Redirigiendo a página de denegación.");
-      const encodedMessage = encodeURIComponent(result.message);
-      return next({ name: 'access-denied', params: { message: encodedMessage } });
-    } else {
-      return next(); 
+    let attempts = 0
+    while (authStore.loading && attempts < 50) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      attempts++
     }
-  } 
-  return next(); 
-});
+  }
+
+  const isAuthenticated = authStore.isAuthenticated
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const guestOnly = to.matched.some(record => record.meta.guestOnly)
+
+  // console.log(`🔐 isAuthenticated: ${isAuthenticated}`)
+  // console.log(`🛡️ requiresAuth: ${requiresAuth}`)
+  // console.log(`👤 guestOnly: ${guestOnly}`)
+
+  // ✅ Si la ruta requiere autenticación y no está autenticado
+  if (requiresAuth && !isAuthenticated) {
+    console.log('❌ Acceso denegado, redirigiendo a /login')
+    next('/login')
+    return
+  }
+
+  // ✅ Si la ruta es solo para invitados y está autenticado
+  if (guestOnly && isAuthenticated) {
+    // console.log('✅ Usuario ya autenticado, redirigiendo a /')
+    next('/')
+    return
+  }
+
+  // ✅ Permitir navegación
+  // console.log('✅ Navegación permitida')
+  next()
+})
 
 export default router
 

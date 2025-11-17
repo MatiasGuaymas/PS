@@ -1,85 +1,114 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { RouterLink } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { RouterLink, useRouter } from 'vue-router'
 import { authStore } from '@/stores/authStore'
 
+const router = useRouter()
 const isMenuOpen = ref(false)
 
 const user = computed(() => authStore.user)
 const loading = computed(() => authStore.loading)
+const isAuthenticated = computed(() => authStore.isAuthenticated)
+
+// ✅ Computed para avatar
+const userAvatar = computed(() => {
+  if (user.value?.avatar) {
+    return user.value.avatar
+  }
+  return null
+})
+
+const userInitials = computed(() => {
+  if (!user.value) return '?'
+  const firstName = user.value.first_name || ''
+  const lastName = user.value.last_name || ''
+  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || '?'
+})
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
 }
 
-const logout = async () => {
-  await authStore.logout()
-  window.location.href = '/login'
+const handleLogout = async () => {
+  console.log('🚪 Iniciando logout desde AppHeader...')
+  
+  // ✅ Llamar al logout del authStore
+  const success = await authStore.logout()
+  
+  console.log('Logout success:', success)
+  console.log('User después de logout:', authStore.user)
+  console.log('isAuthenticated después de logout:', authStore.isAuthenticated)
+  
+  // ✅ Verificar que las cookies se borraron
+  console.log('Cookies después de logout:', document.cookie)
+  
+  // ✅ Forzar recarga completa de la página
+  console.log('🔄 Redirigiendo a /login...')
+  
+  // Usar window.location.href para recargar completamente
+  setTimeout(() => {
+    window.location.href = '/login'
+  }, 500)
 }
+
+// ✅ Observar cambios en autenticación
+watch(isAuthenticated, (newValue) => {
+  console.log('🔄 Estado de autenticación cambió:', newValue)
+})
+
+onMounted(() => {
+  console.log('🎯 AppHeader montado, usuario:', user.value)
+})
 </script>
 
 <template>
-  <header class="app-header sticky-top bg-white shadow-sm">
+  <header class="app-header sticky-top shadow bg-body-tertiary rounded">
     <nav class="navbar navbar-expand-lg navbar-light">
       <div class="container">
-        <RouterLink to="/" class="navbar-brand d-flex align-items-center">
+        <RouterLink to="/" class="navbar-brand fw-bold d-flex align-items-center gap-2">
           <img src="/Logo.jpg" alt="Logo" class="logo-image me-2">
-          <span class="fw-bold fs-5">
+          <span>
             <span class="gradient-text-1">Puff</span>
             <span class="gradient-text-2">-</span>
             <span class="gradient-text-3">Tóricos</span>
           </span>
         </RouterLink>
 
-        <button 
-          class="navbar-toggler border-0" 
-          type="button" 
+        <button
+          class="navbar-toggler"
+          type="button"
           @click="toggleMenu"
-          :aria-expanded="isMenuOpen"
+          aria-label="Toggle navigation"
         >
           <span class="navbar-toggler-icon"></span>
         </button>
 
-        <div 
-          class="collapse navbar-collapse" 
-          :class="{ show: isMenuOpen }"
-        >
-          <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+        <div :class="['collapse', 'navbar-collapse', { show: isMenuOpen }]">
+          <ul class="navbar-nav ms-auto mb-2 mb-lg-0 gap-2">
             <li class="nav-item">
-              <RouterLink to="/" class="nav-link fw-semibold">
-                <i class="bi bi-house-door me-1"></i>
+              <RouterLink to="/" class="nav-link" active-class="active">
+                <i class="bi bi-house me-1"></i>
                 Inicio
               </RouterLink>
             </li>
             <li class="nav-item">
-              <RouterLink to="/sitios" class="nav-link">
-                <i class="bi bi-map me-1"></i>
-                Explorar Sitios
-              </RouterLink>
-            </li>
-            <li class="nav-item">
-              <RouterLink to="/mapa" class="nav-link">
+              <RouterLink to="/sitios" class="nav-link" active-class="active">
                 <i class="bi bi-geo-alt me-1"></i>
-                Mapa
-              </RouterLink>
-            </li>
-            <li class="nav-item">
-              <RouterLink to="/sobre-nosotros" class="nav-link">
-                <i class="bi bi-info-circle me-1"></i>
-                Sobre Nosotros
+                Sitios
               </RouterLink>
             </li>
           </ul>
 
-          <div class="d-flex gap-2 align-items-center">
-            <!-- Loading state -->
+          <div class="d-flex gap-2 align-items-center ms-lg-3">
+            <!-- ✅ Spinner mientras carga -->
             <template v-if="loading">
               <div class="spinner-border spinner-border-sm text-primary" role="status">
                 <span class="visually-hidden">Cargando...</span>
               </div>
             </template>
 
-            <template v-else-if="user">
+            <!-- ✅ Usuario autenticado -->
+            <template v-else-if="isAuthenticated && user">
               <div class="dropdown">
                 <button 
                   class="btn btn-outline-primary dropdown-toggle d-flex align-items-center gap-2" 
@@ -88,31 +117,26 @@ const logout = async () => {
                   data-bs-toggle="dropdown" 
                   aria-expanded="false"
                 >
-                  <i class="bi bi-person-circle"></i>
+                  <!-- Avatar o icono -->
+                  <div 
+                    v-if="userAvatar" 
+                    class="avatar-small"
+                    :style="{ backgroundImage: `url(${userAvatar})` }"
+                  ></div>
+                  <i v-else class="bi bi-person-circle"></i>
                   <span>{{ user.first_name }}</span>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                  <li>
-                    <div class="dropdown-item-text">
-                      <small class="text-muted">{{ user.email }}</small>
-                    </div>
-                  </li>
-                  <li><hr class="dropdown-divider"></li>
+                
+                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown">
                   <li>
                     <RouterLink to="/perfil" class="dropdown-item">
                       <i class="bi bi-person me-2"></i>
                       Mi Perfil
                     </RouterLink>
                   </li>
-                  <li>
-                    <RouterLink to="/mis-reviews" class="dropdown-item">
-                      <i class="bi bi-star me-2"></i>
-                      Mis Reseñas
-                    </RouterLink>
-                  </li>
                   <li><hr class="dropdown-divider"></li>
                   <li>
-                    <button @click="logout" class="dropdown-item text-danger">
+                    <button @click="handleLogout" class="dropdown-item text-danger">
                       <i class="bi bi-box-arrow-right me-2"></i>
                       Cerrar Sesión
                     </button>
@@ -121,6 +145,7 @@ const logout = async () => {
               </div>
             </template>
 
+            <!-- ✅ Usuario no autenticado -->
             <template v-else>
               <RouterLink to="/login" class="btn btn-outline-primary">
                 <i class="bi bi-box-arrow-in-right me-1"></i>

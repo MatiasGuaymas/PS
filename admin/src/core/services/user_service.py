@@ -5,6 +5,7 @@ import bcrypt
 import os
 from core.models.User import User
 from core.models.Role import Role
+from werkzeug.datastructures import FileStorage
 
 class UserService:
     """
@@ -56,7 +57,7 @@ class UserService:
             hashed_password.encode('utf-8')
         )
 
-    def create_user(email: str, first_name: str, last_name: str, raw_password: str, sysAdmin: bool = False, role_id: Optional[int] = None) -> User:
+    def create_user(email: str, first_name: str, last_name: str, raw_password: str, sysAdmin: bool = False, role_id: Optional[int] = None, avatar: FileStorage = None) -> User:
         """
         Crea un nuevo usuario con la contraseña hasheada con Bcrypt.
         """
@@ -71,10 +72,15 @@ class UserService:
             last_name=last_name,
             password=hashed_password_str, # Guardamos el hash como cadena
             sysAdmin=sysAdmin,
-            role_id=role_id
+            role_id=role_id,
+            avatar=None
         )
         try:
             db.session.add(new_user)
+            db.session.flush()  # Obtener el ID del nuevo usuario
+            if avatar:
+                avatar_path = UserService.new_avatar_transactional(avatar, new_user.id)
+                new_user.avatar = UserService.build_image_url(avatar_path)
             db.session.commit()
             return new_user
         except IntegrityError:
@@ -201,3 +207,52 @@ class UserService:
 
         return new_user
         
+    
+    def new_avatar_transactional(file, user_id):
+        """
+        Wrapper para manejar la transacción al procesar nuevas imágenes.
+        """
+        from flask import current_app
+        client = current_app.storage
+
+        user = UserService.get_user_by_id(user_id)  # Asegura que el usuario exista
+
+        if not user:
+            return None 
+            
+            
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+
+        
+        # Guardar en una subcarpeta con el site_id en MinIO
+        
+        minio_path = f"taravas/user_{user_id}/{file.filename}"
+
+        #no hace falta guardar res, esta para deputar errores
+        res= client.put_object(bucket_name = current_app.config["MINIO_BUCKET"],
+                            object_name=minio_path,
+                            data=file,
+                            length=file_size,
+                            content_type=file.content_type)
+        return minio_path
+    
+    def build_image_url(image_path: str):
+        from flask import current_app
+        from datetime import timedelta
+        """
+        Genera una URL presignada para acceder a la imagen en MinIO.
+        
+        Args:
+            image_path: Path de la imagen en MinIO.
+            
+        Returns:
+            str: URL presignada para acceder a la imagen.
+        """
+        client = current_app.storage
+        # Generar URL presignada válida por 7 días
+        return client.presigned_get_object(
+            bucket_name=current_app.config["MINIO_BUCKET"],
+            object_name=image_path,
+        )
