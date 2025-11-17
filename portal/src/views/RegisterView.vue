@@ -504,7 +504,7 @@ const registerWithGoogle = () => {
               ¡Únete a nosotros!
             </h2>
             <p class="text-muted px-4">
-              Descubre y comparte los mejores lugares turísticos de La Plata
+              Descubre y comparte los mejores lugares turísticos de Argentina
             </p>
             <div class="features mt-4">
               <div class="feature-item">

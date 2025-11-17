@@ -23,7 +23,7 @@ export function useSites() {
         ...(filters.lat && filters.lng && filters.radius ? {
           lat: filters.lat,
           lng: filters.lng,
-          radius: filters.radius, // Asegúrate que el backend maneje el radio en metros
+          radius: filters.radius,
         } : {})
       }
       

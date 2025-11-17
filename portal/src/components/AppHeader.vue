@@ -39,11 +39,9 @@ const handleLogout = async () => {
   console.log('   - user:', authStore.user)
   console.log('   - isAuthenticated:', authStore.isAuthenticated)
   
-  // ✅ Usar window.location para forzar recarga COMPLETA
   console.log('🔄 Forzando recarga completa con window.location.href...')
   console.log('=' .repeat(80))
-  
-  // Esperar un poco para que el backend procese
+
   setTimeout(() => {
     window.location.href = '/login'
   }, 500)

@@ -188,7 +188,7 @@ const loginWithGoogle = () => {
               ¡Bienvenido de nuevo!
             </h2>
             <p class="text-muted px-4">
-              Explora los mejores sitios turísticos de La Plata
+              Explora los mejores sitios turísticos de Argentina
             </p>
           </div>
         </div>
