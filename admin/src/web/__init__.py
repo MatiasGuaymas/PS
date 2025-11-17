@@ -7,6 +7,7 @@ from core import database
 from web.config import config
 from web.controllers.users import user_blueprint
 from web.controllers.roles import roles_blueprint
+from src.web.controllers.api import sitesAPI_blueprint, handler_blueprint
 from src.web.controllers.sites import sites_blueprint
 from src.web.controllers.tags import tags_blueprint
 from src.web.controllers.flags import feature_flag_blueprint
@@ -14,11 +15,13 @@ from src.web.controllers.reviews import reviews_blueprint
 from src.web.controllers.auth import bp as auth_bp
 from src.web.handlers.auth import is_authenticated,is_superAdmin,is_granted
 from .utils.hooks import hook_admin_maintenance
+from .utils.helperImage import getImageUrl
 from .config import get_current_config
 import os
 from dotenv import load_dotenv
 from core import seeds
 from src.web.storage import storage
+from authlib.integrations.flask_client import OAuth
 load_dotenv()
 
 session = Session()
@@ -33,7 +36,29 @@ def create_app(env = 'development', static_folder = "../../static"):
     session.init_app(app)
     storage.init_app(app)
 
-    CORS(app, resources={r"/*": {"origins": "http://localhost:8080"}}) 
+    CORS(app, supports_credentials=True, origins=[
+        "http://localhost:8080",
+        "http://localhost:5000", 
+        "http://127.0.0.1:5000",
+        "http://localhost:5173", 
+        "http://localhost:5174",
+        "http://127.0.0.1:5173"
+    ],
+    allow_headers=["Content-Type", "Accept"],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+
+    oauth = OAuth(app)
+    oauth.register(
+        name='google',
+        client_id=os.getenv("GOOGLE_CLIENT_ID"),
+        client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+        server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+        client_kwargs={
+            'scope': 'openid email profile'
+        }
+    )
+
+    app.oauth = oauth
 
     @app.route('/')
     def home():
@@ -52,6 +77,10 @@ def create_app(env = 'development', static_folder = "../../static"):
     app.register_blueprint(reviews_blueprint)
     app.register_blueprint(auth_bp)
 
+    #API
+    app.register_blueprint(sitesAPI_blueprint)
+    app.register_blueprint(handler_blueprint)
+
     #Manejo de errores
     app.register_error_handler(404, error.not_found)
     app.register_error_handler(401, error.unauthorized)
@@ -62,6 +91,7 @@ def create_app(env = 'development', static_folder = "../../static"):
     app.jinja_env.globals.update(is_authenticated=is_authenticated)
     app.jinja_env.globals.update(is_superAdmin=is_superAdmin)
     app.jinja_env.globals.update(is_granted=is_granted)
+    app.jinja_env.globals.update(getImageUrl=getImageUrl)
 
     # Commands
     @app.cli.command("reset-db")

@@ -13,6 +13,15 @@ from datetime import date
 import json
 import logging
 
+import uuid
+import os
+from werkzeug import *
+from flask import current_app
+from core.models.SiteImage import SiteImage 
+
+from web.storage import storage
+ALLOWED_EXTENSIONS = {'jpg', 'png', 'webp'}
+MAX_FILE_SIZE = 5 * 1024 * 1024
 logger = logging.getLogger(__name__)
 
 
@@ -49,6 +58,30 @@ def get_coords_from_point(point):
         except:
             return None, None
     return None, None
+
+def allowed_file(filename):
+    """Verifica si la extensión del archivo está permitida."""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def is_valid_image(file):
+    """Valida la extensión y el tamaño del archivo."""
+    if not file:
+        return False, "No se ha proporcionado un archivo."
+    
+    filename = file.filename
+    if not allowed_file(filename):
+        return False, f"Formato de archivo no permitido. Solo se permiten: {', '.join(ALLOWED_EXTENSIONS)}"
+    
+    # Validar tamaño máximo
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0) # Vuelve al inicio del archivo
+    
+    if file_size > MAX_FILE_SIZE:
+        return False, f"El archivo excede el tamaño máximo permitido de {MAX_FILE_SIZE / (1024 * 1024)} MB."
+        
+    return True, ""
 
 @sites_blueprint.route("/", methods=["GET", "POST"])
 @login_required
@@ -145,17 +178,14 @@ def detail(site_id):
     # Filtro para mostrar no borrados
     filters['not_deleted'] = True
 
-    # Filtro por usuario (asumiendo que 'user_id' es una columna en Audit)
     user_id = request.args.get('user_id', type=int)
     if user_id is not None:
         filters['user_id'] = user_id
 
-    # Filtro por tipo de acción (asumiendo que 'action_type' es una columna en Audit)
     action_type = request.args.get('action_type', type=str)
     if action_type:
         filters['action_type'] = action_type
         
-    # Filtro por rango de fechas (usando los filtros especiales 'date_from' y 'date_to')
     date_from = request.args.get('date_from', type=str) # Formato YYYY-MM-DD
     if date_from:
         filters['date_from'] = date_from
@@ -248,6 +278,13 @@ def create():
             logger.warning(f"Intento de crear sitio con campos faltantes: usuario={current_user_id}, sitio='{site_name}'")
             return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Faltan campos obligatorios")
         
+        # Validacion de nombre unique
+        # Hablamos de softDelete, si tmb reviso por deleted = False, deberia elimanrlo (hard) antes del insert
+        existing_site = Site.query.filter_by(site_name=site_name).first()
+        if existing_site:
+            logger.warning(f"Intento de crear sitio con nombre duplicado: usuario={current_user_id}, sitio='{site_name}'")
+            return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Ya existe un sitio con ese nombre. Debe ser único.")
+
         # Validación de coordenadas
         if not latitude or not longitude:
             logger.warning(f"Intento de crear sitio sin coordenadas: usuario={current_user_id}, sitio='{site_name}'")
@@ -263,6 +300,42 @@ def create():
         except (ValueError, TypeError) as e:
             logger.warning(f"Error convirtiendo coordenadas: usuario={current_user_id}, sitio='{site_name}', lat={latitude}, lon={longitude}, error={e}")
             return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Las coordenadas seleccionadas no son válidas")
+        
+        files = request.files.getlist("images")
+        image_data = [] # Para almacenar info de cada imagen para la BD
+        errors = []
+        if len(files) > 10:
+            errors.append("Se pueden subir un máximo de 10 imágenes por sitio.")
+
+        for i, file in enumerate(files):
+            if file.filename == '': # Si no se seleccionó un archivo en ese input
+                continue
+
+            is_valid, error_msg = is_valid_image(file)
+            if not is_valid:
+                errors.append(f"Error con el archivo '{file.filename}': {error_msg}")
+            else:
+                # Si es válida, guardar temporalmente los datos para procesar después de crear el sitio
+                # Los títulos y descripciones vienen por sus nombres únicos
+                titulo_alt = request.form.get(f"new_title_alt_{i}", f"Imagen {i+1} de {site_name}")
+                descripcion = request.form.get(f"new_description_{i}", "")
+
+                if not titulo_alt:
+                    errors.append(f"El Título/Alt es obligatorio para el archivo '{file.filename}'.")
+                
+                # Almacenar el archivo y sus metadatos
+                image_data.append({
+                    "file": file,
+                    "title_alt": titulo_alt,
+                    "description": descripcion
+                })
+        
+        # Si hay errores, volver a renderizar el formulario con los datos y errores
+        if errors:
+            logger.warning(f"Errores en la creación del sitio para usuario {current_user_id}: {'; '.join(errors)}")
+            # Los valores de request.form se mantendrán si se renderiza el template
+            tags = Tag.query.order_by(Tag.name.asc()).all()
+            return render_template("sites/create.html", tags=tags, error="<br>".join(errors))
 
         location = create_point_from_coords(latitude, longitude)
         new_site = Site(
@@ -287,7 +360,6 @@ def create():
             action_type='CREATE',
             description= f"Se creó un nuevo sitio {new_site.site_name}"
         )
-        db.session.commit()
         
         # LOG: Éxito
         logger.info(f"Sitio creado exitosamente: ID={new_site.id}, nombre='{new_site.site_name}', ciudad='{city}', provincia='{province}', usuario={current_user_id}")
@@ -302,7 +374,20 @@ def create():
             db.session.commit()
             logger.info(f"Tags asignados al sitio {new_site.id}: {[tag.name for tag in tags]}")
         
-        return redirect(url_for("sites.index"))
+        if image_data:
+            try:
+                SiteService.process_new_images_transactional(new_site.id, image_data)
+            except Exception as e:
+                # Si falla la subida de MinIO/BD, es un error grave para la transacción
+                db.session.rollback() 
+                logger.error(f"Fallo crítico al subir imágenes para nuevo sitio {new_site.id}: {e}")
+                return render_template("sites/create.html", tags=tags, error="Error crítico al subir las imágenes. El sitio no fue creado.")
+                
+        db.session.commit()
+        flash(f"Sitio '{new_site.site_name}' creado exitosamente.", "success")
+        logger.info(f"Sitio y {len(image_data)} imágenes creados exitosamente para el sitio ID={new_site.id}")
+        return redirect(url_for("sites.detail", site_id=new_site.id))
+        
     tags = Tag.query.order_by(Tag.name.asc()).all()
     return render_template("sites/create.html", tags=tags)
 
@@ -337,8 +422,6 @@ def edit(site_id):
         #Valores viejos 
         original_state_id = site.state_id
         original_tag_ids = set(assoc.tag_id for assoc in site.tag_associations)
-        
-        # --- 2. APLICAR CAMBIOS DE PROPIEDADES GENERALES ---
         
         # Guardar valores antiguos para registro de Edición general
         general_changes = {}
@@ -398,8 +481,7 @@ def edit(site_id):
                 from core.models.Site_Tag import HistoricSiteTag
                 association = HistoricSiteTag(site_id=site.id, tag_id=tag.id)
                 db.session.add(association)
-        
-        db.session.commit()
+
         # --- REGISTRO DE AUDITORÍA ---
         ####################################################################################################
         # A. Registro de CAMBIO DE ESTADO
@@ -451,7 +533,90 @@ def edit(site_id):
                     description=desc,
                     details=details_json
                 )
+        existing_images_data = []
         
+        # Obtener IDs y orden del formulario
+        existing_image_ids = request.form.getlist("existing_image_ids")
+        cover_image_id = request.form.get("cover_image_id")
+        
+        if existing_image_ids:
+            # Recorrer las imágenes en el orden que vienen del DOM (gracias a SortableJS)
+            for img_id in existing_image_ids:
+                img_id = int(img_id)
+                
+                # Recoger los datos individuales de cada imagen
+                data = {
+                    "id": img_id,
+                    "order_index": int(request.form.get(f"order_index_{img_id}", 0)),
+                    "title_alt": request.form.get(f"title_alt_existing_{img_id}"),
+                    "description": request.form.get(f"description_existing_{img_id}"),
+                    "is_cover": str(img_id) == cover_image_id
+                }
+                existing_images_data.append(data)
+        
+        # Llama al servicio para procesar las actualizaciones
+        try:
+            SiteService.update_existing_images_data(site, existing_images_data)
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Fallo al actualizar metadatos/orden de imágenes del sitio {site.id}: {e}")
+            flash("Error al actualizar metadatos/orden de las imágenes existentes.", "danger")
+            # Podrías redirigir al detalle o al formulario de edición
+            return redirect(url_for("sites.detail", site_id=site_id))
+
+        errors = []
+        
+        new_files = request.files.getlist("images") 
+        new_image_data_list = [] 
+        
+        current_images_count = site.images.count()
+        
+        # Validación: límite máximo de 10
+        if current_images_count + len(new_files) > 10:
+            errors.append(f"Límite de 10 imágenes alcanzado. Solo se pueden subir {10 - current_images_count} más.")
+        
+        # Lógica de validación de los archivos
+        for i, file in enumerate(new_files):
+            if file.filename == '':
+                continue
+                
+            is_valid, error_msg = is_valid_image(file)
+            
+            # Los nombres de los campos de metadatos vienen con el índice
+            titulo_alt = request.form.get(f"new_title_alt_{i}")
+            descripcion = request.form.get(f"new_description_{i}", "")
+
+            if not titulo_alt:
+                errors.append(f"El Título/Alt es obligatorio para el archivo '{file.filename}'.")
+            
+            if not is_valid:
+                errors.append(f"Error con el archivo '{file.filename}': {error_msg}")
+            
+            if is_valid and titulo_alt:
+                new_image_data_list.append({
+                    "file": file,
+                    "title_alt": titulo_alt,
+                    "description": descripcion
+                })
+        
+        if errors:
+            logger.warning(f"Errores al subir nuevas imágenes para el sitio {site.id}: {'; '.join(errors)}")
+            for error in errors:
+                flash(error, "warning")
+            db.session.rollback() 
+            return redirect(url_for("sites.edit", site_id=site_id))
+
+        # Llama al servicio para procesar nuevas imágenes
+        if new_image_data_list:
+            try:
+                images_added = SiteService.process_new_images_transactional(site_id, new_image_data_list)
+                flash(f"{images_added} nuevas imágenes añadidas con éxito.", "success")
+            except Exception as e:
+                db.session.rollback() 
+                logger.error(f"Fallo crítico al subir nuevas imágenes durante la edición de sitio {site.id}: {e}")
+                flash("Error crítico al subir las nuevas imágenes.", "danger")
+                return redirect(url_for("sites.edit", site_id=site_id))
+
         db.session.commit() 
         flash("Sitio actualizado con éxito.", "success")
 
@@ -723,3 +888,229 @@ def export_csv():
         mimetype="text/csv; charset=utf-8",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+@sites_blueprint.route("/<int:site_id>/images/add", methods=["POST"])
+@login_required
+@require_role(['Administrador', 'Editor'])
+def add_images(site_id):
+    """
+    Permite subir múltiples imágenes para un sitio.
+    
+    Valida: límite (10), formato (JPG, PNG, WEBP), tamaño (5MB).
+    Guarda en MinIO y crea registro en SiteImage.
+    """
+    site = Site.query.get_or_404(site_id)
+    files = request.files.getlist("images") # Espera un input type="file" con multiple
+    
+    current_images_count = SiteService.get_site_images_count(site_id)
+    
+    if not files:
+        flash("Debe seleccionar al menos un archivo.", "error")
+        return redirect(url_for("sites.detail", site_id=site_id))
+
+    # Validación de límite de 10 imágenes
+    if current_images_count + len(files) > 10:
+        flash(f"Límite de 10 imágenes alcanzado. Solo se pueden subir {10 - current_images_count} imágenes más.", "error")
+        return redirect(url_for("sites.detail", site_id=site_id))
+
+    for i, file in enumerate(files):
+        is_valid, error_msg = is_valid_image(file)
+        if not is_valid:
+            flash(f"Error con el archivo {file.filename}: {error_msg}", "error")
+            continue
+            
+        titulo_alt = request.form.get(f"title_alt_{i}", f"Imagen {i+1} de {site.site_name}")
+        descripcion = request.form.get(f"description_{i}")
+        
+        if not titulo_alt:
+            flash(f"El Título/Alt es obligatorio para el archivo {file.filename}.", "error")
+            continue
+            
+        # Renombrar archivo (evitar colisiones)
+        extension = file.filename.rsplit('.', 1)[1].lower()
+        # Generar un nombre único: site_id/uuid.ext
+        file_uuid = str(uuid.uuid4())
+        new_filename = f"{site_id}/{file_uuid}.{extension}"
+        client= current_app.storage
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+        try:
+            # Subir a MinIO
+            res= client.put_object(bucket_name = current_app.config["MINIO_BUCKET"],
+                                          object_name=new_filename,
+                                          data=file,
+                                          length=file_size,
+                                          content_type=file.content_type)
+            public_url = f"/{current_app.config['MINIO_BUCKET']}/{new_filename}"
+            # Determinar el orden y si es portada 
+            # El orden será el siguiente número disponible
+            next_order = SiteService.get_next_image_order(site_id)
+            
+            # Si es la primera imagen y no hay portada, se marca como portada
+            is_cover = (SiteService.get_cover_image(site_id) is None)
+            
+            # Registrar en la Base de Datos
+            new_image = SiteImage(
+                site_id=site_id,
+                public_url=public_url,
+                title_alt=titulo_alt,
+                description=descripcion,
+                order_index=next_order,
+                is_cover=is_cover,
+                file_path=new_filename # Guardar la ruta interna de MinIO para facilitar la eliminación
+            )
+            db.session.add(new_image)
+            db.session.flush() # Para obtener el ID
+
+            SiteService._register_audit_log(
+                user_id=session.get("user_id"),
+                site_id=site_id,
+                action_type='UPDATE',
+                description=f"Se añadió la imagen '{new_image.title_alt}' (ID: {new_image.id})."
+            )
+            db.session.commit()
+            
+            flash(f"Imagen '{titulo_alt}' subida con éxito.", "success")
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error al subir imagen a MinIO para sitio {site_id}: {e}")
+            flash(f"Error grave al subir la imagen {file.filename}.", "error")
+
+    return redirect(url_for("sites.detail", site_id=site_id))
+
+@sites_blueprint.route("/<int:site_id>/images/<int:image_id>/set_cover", methods=["POST"])
+@login_required
+@require_role(['Administrador', 'Editor'])
+def set_cover_image(site_id, image_id):
+    """
+    Marca una imagen específica como portada del sitio.
+    Desmarca cualquier otra imagen que haya sido portada previamente.
+    """
+    site = Site.query.get_or_404(site_id)
+    image_to_set = SiteImage.query.filter_by(id=image_id, site_id=site_id).first_or_404()
+    
+    # 1. Desmarcar la portada actual, si existe y es diferente
+    current_cover = site.cover_image
+    if current_cover and current_cover.id != image_id:
+        current_cover.is_cover = False
+        
+    # 2. Marcar la nueva imagen como portada
+    image_to_set.is_cover = True
+    
+    SiteService._register_audit_log(
+        user_id=session.get("user_id"),
+        site_id=site_id,
+        action_type='UPDATE',
+        description=f"Se marcó la imagen '{image_to_set.title_alt}' (ID: {image_id}) como portada."
+    )
+    db.session.commit()
+    flash("Imagen marcada como portada con éxito.", "success")
+    
+    return redirect(url_for("sites.detail", site_id=site_id))
+
+@sites_blueprint.route("/<int:site_id>/images/<int:image_id>/delete", methods=["POST"])
+@login_required
+@require_role(['Administrador', 'Editor'])
+def delete_image(site_id, image_id):
+    """
+    Elimina una imagen del sitio.
+    
+    Impide la eliminación si es la portada (requiere cambiar la portada antes).
+    Elimina el archivo de MinIO y el registro de la BD.
+    """
+    site = Site.query.get_or_404(site_id)
+    image_to_delete = db.session.query(SiteImage).filter_by(id=image_id, site_id=site_id).first_or_404()
+    
+    # Validación: Impedir eliminar si es la portada
+    if image_to_delete.is_cover:
+        flash("No se puede eliminar la imagen de portada. Por favor, marque otra imagen como portada primero.", "error")
+        return redirect(url_for("sites.detail", site_id=site_id))
+        
+    image_title = image_to_delete.title_alt
+    image_filepath = image_to_delete.file_path
+
+    try:
+        # 1. Eliminar de MinIO (usando la ruta interna guardada)
+        storage.delete_file(image_filepath)
+        
+        # 2. Eliminar de la Base de Datos
+        db.session.delete(image_to_delete)
+        
+        # 3. Registrar auditoría
+        SiteService._register_audit_log(
+            user_id=session.get("user_id"),
+            site_id=site_id,
+            action_type='UPDATE',
+            description=f"Se eliminó la imagen '{image_title}' (ID: {image_id})."
+        )
+        db.session.commit()
+        
+        flash(f"Imagen '{image_title}' eliminada con éxito.", "success")
+        
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error al eliminar imagen de MinIO/BD para sitio {site_id}, imagen {image_id}: {e}")
+        flash("Ocurrió un error al intentar eliminar la imagen.", "error")
+
+    return redirect(url_for("sites.detail", site_id=site_id))
+
+@sites_blueprint.route("/<int:site_id>/images/<int:image_id>/update", methods=["POST"])
+@login_required
+@require_role(['Administrador', 'Editor'])
+def update_image_metadata(site_id, image_id):
+    """
+    Actualiza el título/alt, descripción corta y el orden de una imagen.
+    """
+    site = Site.query.get_or_404(site_id)
+    image = SiteImage.query.filter_by(id=image_id, site_id=site_id).first_or_404()
+    
+    new_title_alt = request.form.get("title_alt")
+    new_description = request.form.get("description")
+    new_order = request.form.get("order_index", type=int)
+    
+    changes = {}
+
+    # Validación de Título/Alt (obligatorio)
+    if not new_title_alt:
+        flash("El Título/Alt es obligatorio.", "error")
+        return redirect(url_for("sites.detail", site_id=site_id))
+    
+    # 1. Actualizar Título/Alt y Descripción
+    if image.title_alt != new_title_alt:
+        changes['title_alt'] = {"old": image.title_alt, "new": new_title_alt}
+        image.title_alt = new_title_alt
+        
+    if image.description != new_description:
+        changes['description'] = {"old": image.description, "new": new_description}
+        image.description = new_description
+
+    # 2. Actualizar Orden (requiere lógica de reordenamiento en SiteService para mover las demás)
+    if new_order is not None and image.order_index != new_order:
+        try:
+            # Implementar SiteService.reorder_image(site_id, image_id, new_order)
+            # que se encargue de mover el resto de imágenes.
+            SiteService.reorder_image(site_id, image_id, new_order)
+            changes['order_index'] = {"old": image.order_index, "new": new_order}
+            
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error al reordenar la imagen {image_id} del sitio {site_id}: {e}")
+            flash("Error al actualizar el orden de la imagen.", "error")
+            return redirect(url_for("sites.detail", site_id=site_id))
+    
+    if changes:
+        SiteService._register_audit_log(
+            user_id=session.get("user_id"),
+            site_id=site_id,
+            action_type='UPDATE',
+            description=f"Se actualizaron metadatos y/o orden para la imagen '{image.title_alt}' (ID: {image_id}).",
+            details=json.dumps(changes, default=str)
+        )
+        db.session.commit()
+        flash("Metadatos de imagen actualizados con éxito.", "success")
+    else:
+        flash("No se detectaron cambios.", "info")
+        
+    return redirect(url_for("sites.detail", site_id=site_id))

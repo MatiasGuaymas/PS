@@ -4,6 +4,8 @@ from typing import List, Optional
 import bcrypt 
 import os
 from core.models.User import User
+from core.models.Role import Role
+from werkzeug.datastructures import FileStorage
 
 class UserService:
     """
@@ -20,6 +22,11 @@ class UserService:
         return db.session.execute(
             db.select(User).filter_by(email=email.lower())
         ).scalar_one_or_none()
+    
+    @staticmethod
+    def find_user_by_email(email):
+        """Busca un usuario por email"""
+        return User.query.filter_by(email=email).first()
     
     def get_all_active_users() -> List[User]:
         """Recupera todos los usuarios que están activos."""
@@ -50,7 +57,7 @@ class UserService:
             hashed_password.encode('utf-8')
         )
 
-    def create_user(email: str, first_name: str, last_name: str, raw_password: str, sysAdmin: bool = False, role_id: Optional[int] = None) -> User:
+    def create_user(email: str, first_name: str, last_name: str, raw_password: str, sysAdmin: bool = False, role_id: Optional[int] = None, avatar: FileStorage = None) -> User:
         """
         Crea un nuevo usuario con la contraseña hasheada con Bcrypt.
         """
@@ -65,10 +72,15 @@ class UserService:
             last_name=last_name,
             password=hashed_password_str, # Guardamos el hash como cadena
             sysAdmin=sysAdmin,
-            role_id=role_id
+            role_id=role_id,
+            avatar=None
         )
         try:
             db.session.add(new_user)
+            db.session.flush()  # Obtener el ID del nuevo usuario
+            if avatar:
+                avatar_path = UserService.new_avatar_transactional(avatar, new_user.id)
+                new_user.avatar = UserService.build_image_url(avatar_path)
             db.session.commit()
             return new_user
         except IntegrityError:
@@ -164,3 +176,83 @@ class UserService:
         """Verifica si un usuario es un administrador del sistema."""
         user = UserService.get_user_by_id(user_id)
         return user is not None and user.sysAdmin
+    
+    def find_or_create_google_user(email, name, avatar):
+        
+        user = User.query.filter_by(email=email).first()
+
+        if user:
+            return user
+        
+        name_parts = name.split() if name else []
+        first_name = name_parts[0] if name_parts else email.split('@')[0]
+        last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else "Usuario"
+
+        default_role = Role.query.filter_by(name="Usuario").first()
+
+        new_user = User(
+            email=email.lower(),
+            first_name=first_name,
+            last_name=last_name,
+            password=None,  # Sin contraseña para OAuth
+            active=True,
+            sysAdmin=False,
+            deleted=False,
+            role_id=default_role.id if default_role else None,
+            avatar=avatar
+        )
+
+        db.session.add(new_user)
+        db.session.commit()
+
+        return new_user
+        
+    
+    def new_avatar_transactional(file, user_id):
+        """
+        Wrapper para manejar la transacción al procesar nuevas imágenes.
+        """
+        from flask import current_app
+        client = current_app.storage
+
+        user = UserService.get_user_by_id(user_id)  # Asegura que el usuario exista
+
+        if not user:
+            return None 
+            
+            
+        file.seek(0, os.SEEK_END)
+        file_size = file.tell()
+        file.seek(0)
+
+        
+        # Guardar en una subcarpeta con el site_id en MinIO
+        
+        minio_path = f"taravas/user_{user_id}/{file.filename}"
+
+        #no hace falta guardar res, esta para deputar errores
+        res= client.put_object(bucket_name = current_app.config["MINIO_BUCKET"],
+                            object_name=minio_path,
+                            data=file,
+                            length=file_size,
+                            content_type=file.content_type)
+        return minio_path
+    
+    def build_image_url(image_path: str):
+        from flask import current_app
+        from datetime import timedelta
+        """
+        Genera una URL presignada para acceder a la imagen en MinIO.
+        
+        Args:
+            image_path: Path de la imagen en MinIO.
+            
+        Returns:
+            str: URL presignada para acceder a la imagen.
+        """
+        client = current_app.storage
+        # Generar URL presignada válida por 7 días
+        return client.presigned_get_object(
+            bucket_name=current_app.config["MINIO_BUCKET"],
+            object_name=image_path,
+        )

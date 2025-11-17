@@ -1,25 +1,32 @@
 import os
+from datetime import timedelta
 
 class config:
     TESTING = False
     SECRET_KEY = 'secret_key'
     SESSION_TYPE = 'filesystem'
+
+    JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", SECRET_KEY)
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=1)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
+    JWT_ALGORITHM = "HS256"
+
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_size": 10,
         "pool_recycle": 60,
         "pool_pre_ping": True,
     }
 
+
 class ProductionConfig(config):
     """Production configuration."""
-    MINIO_SERVER = os.getenv("MINIO_SERVER", "")
+    MINIO_SERVER = os.getenv("MINIO_SERVER", "minio.proyecto2025.linti.unlp.edu.ar")
     MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "")
     MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "")
     MINIO_SECURE = True
     MINIO_BUCKET = "grupo21"
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "")
     DEBUG=False
-
 
 
 class DevelopmentConfig(config):

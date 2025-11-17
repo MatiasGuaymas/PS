@@ -5,7 +5,6 @@
 {% block head %}
 {{ super() }}
 <style>
-  /* Estilos para el selector de tags */
 .tags-multiselect {
     background-color: #2d2d2d;
     border: 1px solid #4b0082;
@@ -41,6 +40,79 @@
 #map, .map {
   z-index: 1000;
 }
+
+/* --- ESTILOS RESPONSIVE PARA LA GALERÍA DE IMÁGENES ACTUALES --- */
+.image-list-container {
+    display: flex;
+    flex-wrap: wrap; 
+    gap: 15px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.image-item {
+    width: 100%;
+    max-width: 300px;
+    flex-grow: 1;
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 10px;
+    background-color: #2d2d2d;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    cursor: grab;
+}
+
+@media (min-width: 768px) {
+    .image-item {
+      width: calc(50% - 15px); 
+      flex-grow: 0;
+    }
+}
+
+@media (min-width: 1200px) {
+    .image-item {
+      width: calc(33.333% - 15px);
+    }
+}
+  
+.image-item.sortable-chosen {
+    border: 2px dashed #bb86fc;
+    opacity: 0.8; 
+}
+
+.image-thumbnail {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+/* --- ESTILOS PARA LA PREVISUALIZACIÓN DE SUBIDA DE NUEVAS IMÁGENES --- */
+#new-image-upload-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px; /* Espacio entre las miniaturas */
+    padding-top: 10px;
+}
+
+.image-preview-item {
+    width: 150px; /* Tamaño fijo para la previsualización */
+    flex-shrink: 0;
+    background-color: #3d3d3d;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #555;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.image-preview-item img {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
 </style>
 
 {% endblock %}
@@ -48,10 +120,9 @@
 {% block content %}
 <h2>Editar Sitio Histórico</h2>
 
-
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-<form method="POST" id="edit-form">
+<form method="POST" id="edit-form" enctype="multipart/form-data">
   <div class="row mb-3">
     <div class="col-md-6">
       <label for="site_name" class="form-label">Nombre del sitio</label>
@@ -141,81 +212,125 @@
       Haz clic en las etiquetas para seleccionarlas. Las seleccionadas se verán resaltadas.
     </small>
   </div>
-  <div class="d-flex gap-2">
-    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+  
+  <h4 class="mb-4 text-info">Gestión de Imágenes ({{ site.images.count() }} / 10)</h4>
+    {% if site.images.count() < 10 %}
+    <div class="p-4 mb-4 border border-info rounded-3">
+      <h5 class="text-white">Subir Nuevas Imágenes</h5>
+      
+      <div class="mb-3">
+        <label for="images" class="form-label">Seleccionar archivos (Máx 5MB c/u, JPG/PNG/WEBP)</label>
+        <input class="form-control" type="file" id="images" name="images" multiple accept="image/jpeg,image/png,image/webp">
+        <small class="form-text text-white">Puedes seleccionar hasta {{ 10 - site.images.count() }} imágenes.</small>
+        
+        <div id="new-image-upload-preview">
+        </div>
+      </div>
+      </div>
+    {% else %}
+    <div class="alert alert-warning" role="alert">
+      <i class="bi bi-exclamation-triangle"></i> Has alcanzado el límite de 10 imágenes para este sitio.
+    </div>
+  {% endif %}
+  
+  <h5 class="text-white mb-3">Imágenes Actuales (Arrastra para reordenar)</h5>
+
+<div id="image-list-container" class="image-list-container">
+      {% for image in site.images | sort(attribute='order_index') %}
+      <div class="image-item" data-image-id="{{ image.id }}">
+          <div class="drag-handle text-center p-1 mb-2 rounded-top" style="background-color: #444; cursor: grab;">
+              <i class="bi bi-arrows-move text-white small "></i> Arrastrar
+          </div>
+          <img src="{{ getImageUrl(image)}}" alt="{{ image.title_alt }}" class="image-thumbnail mb-2">
+    
+
+          {% if image.is_cover %}
+          <span class="badge bg-warning mb-2"><i class="bi bi-star-fill"></i> PORTADA</span>
+          {% endif %}
+
+          <input type="hidden" name="existing_image_ids" value="{{ image.id }}" class="image-id-input">
+          <input type="hidden" name="order_index_{{ image.id }}" value="{{ image.order_index }}" class="image-order-input">
+
+          <div class="mb-2">
+              <label class="form-label small mb-0">Título/Alt <span class="text-danger">*</span></label>
+              <input type="text" name="title_alt_existing_{{ image.id }}" class="form-control form-control-sm" value="{{ image.title_alt }}" required maxlength="50">
+          </div>
+          <div class="mb-2">
+              <label class="form-label small mb-0">Descripción</label>
+              <textarea name="description_existing_{{ image.id }}" class="form-control form-control-sm" rows="2" maxlength="120">{{ image.description or '' }} </textarea>
+          </div>
+          
+          <div class="form-check mb-2">
+              <input class="form-check-input" type="radio" name="cover_image_id" id="cover_{{ image.id }}" value="{{ image.id }}" {% if image.is_cover %}checked{% endif %}>
+              <label class="form-check-label" for="cover_{{ image.id }}">Establecer como Portada</label>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-danger btn-sm w-100 delete-image-btn" 
+                    data-image-id="{{ image.id }}" 
+                    data-site-id="{{ site.id }}"
+                    {% if image.is_cover or site.images.count() == 1 %}disabled{% endif %}> 
+                <i class="bi bi-trash"></i> Eliminar
+            </button>
+          </div>
+      </div>
+      {% endfor %}
+  </div>
+
+  <div class="d-flex gap-2 mb-4 mt-4">
+    <button type="submit" class="btn btn-primary">Guardar todos los cambios</button>
     <a href="{{ url_for('sites.detail', site_id=site.id) }}" class="btn btn-secondary">Cancelar</a>
   </div>
 </form>
-
 {% endblock %}
+
 
 {% block scripts %}
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
 <script>
-// Inicializar mapa
-var map = L.map('map').setView([-34.6037, -58.3816], 10); // Buenos Aires por defecto
-
-// Agregar capa de tiles
+// --- CÓDIGO LEAFLET Y MAPA (Sin cambios importantes) ---
+var map = L.map('map').setView([-34.6037, -58.3816], 10);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
 }).addTo(map);
-
 var marker = null;
-
-// Función para manejar clics en el mapa
 map.on('click', function(e) {
     var lat = e.latlng.lat;
     var lon = e.latlng.lng;
-    
-    // Actualizar campos ocultos
     document.getElementById('latitude').value = lat;
     document.getElementById('longitude').value = lon;
-    
-    // Actualizar display
     document.getElementById('lat-display').textContent = lat.toFixed(6);
     document.getElementById('lon-display').textContent = lon.toFixed(6);
-    
-    // Agregar/actualizar marcador
     if (marker) {
         map.removeLayer(marker);
     }
     marker = L.marker([lat, lon]).addTo(map);
 });
-
-// Función para centrar en ubicación actual
 function getCurrentLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
             var lat = position.coords.latitude;
             var lon = position.coords.longitude;
-            
             map.setView([lat, lon], 15);
-            
-            // Simular clic en la ubicación actual
             map.fire('click', {latlng: L.latLng(lat, lon)});
         });
     }
 }
-
-// Botón para ubicación actual
 document.addEventListener('DOMContentLoaded', function() {
     var locationBtn = document.createElement('button');
     locationBtn.type = 'button';
     locationBtn.className = 'btn btn-outline-primary btn-sm mt-2';
     locationBtn.innerHTML = '📍 Usar mi ubicación actual';
     locationBtn.onclick = getCurrentLocation;
-    
     document.getElementById('map').parentNode.appendChild(locationBtn);
-    
-    // Cargar ubicación existente si existe
     var coordsEl = document.getElementById('site-coords');
     if (coordsEl) {
         var coords = JSON.parse(coordsEl.textContent);
         var existingLat = coords.lat;
         var existingLon = coords.lon;
-        
         if (existingLat && existingLon) {
         map.setView([existingLat, existingLon], 15);
         marker = L.marker([existingLat, existingLon]).addTo(map);
@@ -225,16 +340,13 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('longitude').value = existingLon;
         }
     }
-    
-    // Inicializar selección múltiple de tags
     initializeTagSelection();
     
-    // Asegurar sincronización antes de enviar
+    // Sincronización de coordenadas al enviar el formulario principal
     var form = document.getElementById('edit-form');
     form.addEventListener('submit', function() {
         var latInput = document.getElementById('latitude');
         var lonInput = document.getElementById('longitude');
-        // Si existe marcador, tomar sus coords
         if (marker) {
             var pos = marker.getLatLng();
             if (pos) {
@@ -242,7 +354,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 lonInput.value = pos.lng;
             }
         }
-        // Si siguen vacíos pero hay display numérico, tomar del display
         if ((!latInput.value || !lonInput.value)) {
             var latText = document.getElementById('lat-display').textContent;
             var lonText = document.getElementById('lon-display').textContent;
@@ -252,15 +363,199 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    // --- Lógica de Reordenamiento de Imágenes con SortableJS ---
+    const imageList = document.getElementById('image-list-container');
+    if (imageList) {
+        new Sortable(imageList, {
+            animation: 150,
+            ghostClass: 'sortable-chosen', // Usa una clase CSS ya definida
+            //filter: 'button, .form-check-input,
+        
+            //preventOnFilter: true,
+            handle: '.drag-handle',
+            onEnd: function (evt) {
+                // Al reordenar, SOLO actualizamos el valor de order_index en el input HIDDEN
+                const items = imageList.querySelectorAll('.image-item');
+                items.forEach((item, index) => {
+                    const newOrder = index + 1; // El orden es 1-based
+                    const orderInput = item.querySelector('.image-order-input');
+                    if (orderInput) {
+                        orderInput.value = newOrder;
+                    }
+                });
+            }
+        });
+    }
+
+    // --- Lógica de Previsualización y Metadatos para Subida de Nuevas Imágenes ---
+    const newImageInput = document.getElementById('images');
+    const newPreviewContainer = document.getElementById('new-image-upload-preview');
+    // const submitBtn = document.getElementById('submit-new-images-btn'); 
+    
+    const MAX_CURRENT_IMAGES = {{ site.images.count() }};
+    const MAX_TOTAL_IMAGES = 10;
+    const MAX_FILE_SIZE_MB = 5;
+    let newFilesArray = []; // Array para almacenar los archivos válidos y mantener el orden
+
+    function validateAndPreviewNewImages(files) {
+        newPreviewContainer.innerHTML = '';
+        newFilesArray = []; // Reiniciar la lista de archivos válidos
+        
+        const filesToProcess = Array.from(files);
+        
+        if (filesToProcess.length === 0) {
+            return;
+        }
+
+        if (MAX_CURRENT_IMAGES + filesToProcess.length > MAX_TOTAL_IMAGES) {
+            alert(`Solo puedes subir hasta ${MAX_TOTAL_IMAGES - MAX_CURRENT_IMAGES} imágenes más.`);
+            newImageInput.value = ''; // Limpiar el input file
+            return;
+        }
+
+        let validFiles = true;
+
+        filesToProcess.forEach((file, index) => {
+            const fileSizeMB = file.size / (1024 * 1024);
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            const ALLOWED_EXTENSIONS = ['jpg', 'png', 'webp', 'jpeg']; 
+
+            if (fileSizeMB > MAX_FILE_SIZE_MB || !ALLOWED_EXTENSIONS.includes(fileExtension)) {
+                alert(`El archivo ${file.name} es inválido (tamaño > ${MAX_FILE_SIZE_MB}MB o formato no permitido).`);
+                validFiles = false;
+                // No limpiamos el input aquí, solo marcamos como inválido y paramos el loop
+                return; 
+            }
+            
+            // Archivo válido: Añadir al array para mantener la referencia
+            newFilesArray.push(file);
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'image-preview-item'; 
+                    
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = `Previsualización de ${file.name}`;
+                    
+                    // CAMBIO: Nombres de inputs específicos
+                    const titleInput = document.createElement('input');
+                    titleInput.type = 'text';
+                    // Usar un prefijo + índice como nombre único para el backend
+                    titleInput.name = `new_title_alt_${index}`; 
+                    titleInput.className = 'form-control form-control-sm mb-1';
+                    titleInput.placeholder = 'Título/Alt (obligatorio)';
+                    titleInput.required = true;
+
+                    const descTextarea = document.createElement('textarea');
+                    // Usar un prefijo + índice como nombre único para el backend
+                    descTextarea.name = `new_description_${index}`; 
+                    descTextarea.className = 'form-control form-control-sm';
+                    descTextarea.rows = '2';
+                    descTextarea.placeholder = 'Descripción (opcional)';
+                    
+                    previewItem.appendChild(img);
+                    previewItem.appendChild(titleInput);
+                    previewItem.appendChild(descTextarea);
+                    newPreviewContainer.appendChild(previewItem);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Si hay archivos inválidos, forzar a limpiar el input y el array
+        if (!validFiles) {
+            newImageInput.value = '';
+            newFilesArray = [];
+            newPreviewContainer.innerHTML = '';
+        }
+    }
+    if (newImageInput){
+      newImageInput.addEventListener('change', function() {
+          validateAndPreviewNewImages(this.files);
+      });
+    }
+    // --- Lógica de Eliminación Asíncrona de Imágenes ---
+    document.querySelectorAll('.delete-image-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            console.log('Botón de eliminar imagen clickeado.');
+            const imageId = this.getAttribute('data-image-id');
+            const siteId = this.getAttribute('data-site-id');
+            
+            // Verifica si el botón está deshabilitado por ser la única portada
+            if (this.disabled) {
+                alert('No se puede eliminar la única imagen de portada. Por favor, asigne otra imagen como portada primero.');
+                return;
+            }
+
+            if (confirm('¿Estás seguro de eliminar esta imagen? Esta acción es irreversible.')) {
+                const deleteUrl = `/sites/${siteId}/images/${imageId}/delete`;
+
+                fetch(deleteUrl, {
+                    method: 'POST',
+                    
+                })
+                .then(response => {
+                    // La respuesta del endpoint debe ser 200 OK
+                    if (response.ok) {
+                        alert('Imagen eliminada correctamente. Recargando la página para actualizar la lista.');
+                        window.location.reload(); 
+                    } else {
+                        alert('Error al eliminar la imagen. (Código de estado: ' + response.status + ')');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error de conexión o de red al intentar eliminar la imagen.');
+                });
+            }
+        });
+    });    
+
+    // Validación final de metadatos antes del envío del formulario principal
+    document.getElementById('edit-form').addEventListener('submit', function(e) {
+        // Validación de Título/Alt para imágenes nuevas
+        const titleInputs = newPreviewContainer.querySelectorAll('input[type="text"][required]');
+        let allTitlesFilled = true;
+        
+        titleInputs.forEach(input => {
+            if (!input.value.trim()) {
+                allTitlesFilled = false;
+                input.focus();
+                input.style.borderColor = '#dc3545';
+            } else {
+                 input.style.borderColor = '';
+            }
+        });
+        
+        if (!allTitlesFilled) {
+            e.preventDefault();
+            alert('Por favor, complete el Título/Alt obligatorio para todas las nuevas imágenes.');
+        }
+
+        // Si el formulario es válido, el backend recibirá:
+        // 1. Campos del sitio (site_name, full_desc, etc.)
+        // 2. Campo de latitud/longitud
+        // 3. Campo de tags (separados por coma)
+        // 4. Archivos de nuevas imágenes (en el `request.files.getlist('images')` del backend)
+        // 5. Los IDs de las imágenes existentes (`existing_image_ids`)
+        // 6. El orden y metadatos de las imágenes existentes y nuevas.
+        //    - Orden/Metadatos Existentes: `order_index_{id}`, `title_alt_existing_{id}`, `description_existing_{id}`
+        //    - Metadatos Nuevos: `new_title_alt_{index}`, `new_description_{index}`
+    });
+
 });
 
-// Función para inicializar la selección múltiple de tags
+
+// Función para inicializar la selección múltiple de tags (Sin cambios)
 function initializeTagSelection() {
     const tagOptions = document.querySelectorAll('.tag-option');
     const hiddenInput = document.getElementById('tags');
     const selectedTags = new Set();
     
-    // Cargar tags ya seleccionados
     const initialValue = hiddenInput.value;
     if (initialValue) {
         initialValue.split(',').forEach(value => {
@@ -271,36 +566,22 @@ function initializeTagSelection() {
     }
     
     tagOptions.forEach(option => {
+        if (selectedTags.has(option.getAttribute('data-value'))) {
+             option.classList.add('selected');
+        }
+        
         option.addEventListener('click', function() {
             const value = this.getAttribute('data-value');
             
             if (selectedTags.has(value)) {
-                // Deseleccionar
                 selectedTags.delete(value);
-                this.style.backgroundColor = '#3d3d3d';
-                this.style.border = 'none';
+                this.classList.remove('selected');
             } else {
-                // Seleccionar
                 selectedTags.add(value);
-                this.style.backgroundColor = '#6a0dad';
-                this.style.border = '2px solid #bb86fc';
+                this.classList.add('selected');
             }
             
-            // Actualizar input hidden con los valores seleccionados
             hiddenInput.value = Array.from(selectedTags).join(',');
-        });
-        
-        // Estilo hover
-        option.addEventListener('mouseenter', function() {
-            if (!selectedTags.has(this.getAttribute('data-value'))) {
-                this.style.backgroundColor = '#4d4d4d';
-            }
-        });
-        
-        option.addEventListener('mouseleave', function() {
-            if (!selectedTags.has(this.getAttribute('data-value'))) {
-                this.style.backgroundColor = '#3d3d3d';
-            }
         });
     });
 }
