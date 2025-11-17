@@ -10,7 +10,6 @@ const user = computed(() => authStore.user)
 const loading = computed(() => authStore.loading)
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 
-// ✅ Computed para avatar
 const userAvatar = computed(() => {
   if (user.value?.avatar) {
     return user.value.avatar
@@ -30,28 +29,26 @@ const toggleMenu = () => {
 }
 
 const handleLogout = async () => {
-  console.log('🚪 Iniciando logout desde AppHeader...')
+  console.log('=' .repeat(80))
+  console.log('🚪 AppHeader - Iniciando logout...')
   
-  // ✅ Llamar al logout del authStore
   const success = await authStore.logout()
   
-  console.log('Logout success:', success)
-  console.log('User después de logout:', authStore.user)
-  console.log('isAuthenticated después de logout:', authStore.isAuthenticated)
+  console.log('📊 Resultado del logout:')
+  console.log('   - success:', success)
+  console.log('   - user:', authStore.user)
+  console.log('   - isAuthenticated:', authStore.isAuthenticated)
   
-  // ✅ Verificar que las cookies se borraron
-  console.log('Cookies después de logout:', document.cookie)
+  // ✅ Usar window.location para forzar recarga COMPLETA
+  console.log('🔄 Forzando recarga completa con window.location.href...')
+  console.log('=' .repeat(80))
   
-  // ✅ Forzar recarga completa de la página
-  console.log('🔄 Redirigiendo a /login...')
-  
-  // Usar window.location.href para recargar completamente
+  // Esperar un poco para que el backend procese
   setTimeout(() => {
     window.location.href = '/login'
   }, 500)
 }
 
-// ✅ Observar cambios en autenticación
 watch(isAuthenticated, (newValue) => {
   console.log('🔄 Estado de autenticación cambió:', newValue)
 })

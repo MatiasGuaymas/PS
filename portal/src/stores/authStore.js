@@ -75,45 +75,57 @@ export const authStore = reactive({
   },
 
   async logout() {
-    try {
-      console.log('🚪 Cerrando sesión...')
-      
-      // ✅ Llamar al endpoint de logout del backend
-      const response = await fetch('http://localhost:5000/auth/logout', {
-        method: 'POST',  // ✅ Cambiar a POST
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-
-      console.log('📡 Respuesta de logout:', response.status)
-
-      // ✅ Limpiar estado local INDEPENDIENTEMENTE de la respuesta
-      this.user = null
-      this.isAuthenticated = false
-
-      if (response.ok) {
-        const data = await response.json()
-        console.log('✅ Sesión cerrada en el backend:', data.message)
-      } else {
-        console.warn('⚠️ Respuesta no OK del backend, pero limpiamos local')
+  try {
+    console.log('=' .repeat(80))
+    console.log('🚪 LOGOUT - authStore')
+    
+    // ✅ Ver qué cookies hay ANTES del logout
+    console.log('📋 Cookies ANTES de logout:', document.cookie)
+    
+    // ✅ Llamar al backend
+    console.log('📡 Enviando POST /auth/logout...')
+    
+    const response = await fetch('http://localhost:5000/auth/logout', {
+      method: 'POST',
+      credentials: 'include',  // ✅ Esto envía las cookies
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       }
-      
-      // ✅ FORZAR eliminación de cookies desde el cliente también
-      this.clearCookies()
-      
-      return true
-      
-    } catch (error) {
-      console.error('❌ Error al cerrar sesión:', error)
-      // ✅ Limpiar de todas formas
-      this.user = null
-      this.isAuthenticated = false
-      this.clearCookies()
-      return false
+    })
+
+    console.log(`📡 Respuesta del backend: ${response.status}`)
+    
+    // ✅ Ver los headers Set-Cookie de la respuesta
+    const setCookieHeaders = response.headers.get('set-cookie')
+    console.log('📋 Set-Cookie headers recibidos:', setCookieHeaders)
+
+    // ✅ Limpiar estado local
+    this.user = null
+    this.isAuthenticated = false
+
+    if (response.ok) {
+      const data = await response.json()
+      console.log('✅ Backend confirmó logout:', data.message)
+    } else {
+      console.warn('⚠️ Backend error, pero estado local limpiado')
     }
-  },
+    
+    // ✅ Ver qué cookies hay DESPUÉS del logout
+    console.log('📋 Cookies DESPUÉS de logout:', document.cookie)
+    
+    console.log('✅ LOGOUT completado')
+    console.log('=' .repeat(80))
+    
+    return true
+    
+  } catch (error) {
+    console.error('❌ Error en logout:', error)
+    this.user = null
+    this.isAuthenticated = false
+    return false
+  }
+},
 
   // ✅ Nuevo método para limpiar cookies manualmente desde el cliente
   clearCookies() {

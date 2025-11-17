@@ -175,7 +175,8 @@ def callback():
                 secure=False,
                 samesite='Lax',
                 max_age=3600,
-                path='/'
+                path='/',
+                domain=None
             )
             
             response.set_cookie(
@@ -185,7 +186,8 @@ def callback():
                 secure=False,
                 samesite='Lax',
                 max_age=2592000,
-                path='/'
+                path='/',
+                domain=None
             )
             
             return response
@@ -204,49 +206,62 @@ def callback():
         flash(f"Error al iniciar sesión con Google: {str(e)}", "error")
         return redirect(url_for("auth.login"))
 
+
     
 
-@bp.route("/logout", methods=["GET", "POST"])  # ✅ Aceptar GET y POST
+@bp.route("/logout", methods=["GET", "POST"])
 def logout():
     """Cierra sesión - Soporta JWT y Session"""
     
-    # ✅ Verificar si es petición JSON (Vue)
-    is_json = request.accept_mimetypes.best == 'application/json' or \
-              request.is_json or \
-              request.headers.get('Content-Type') == 'application/json'
+    # Detectar si es petición JSON (Vue)
+    is_json = (
+        request.accept_mimetypes.best == 'application/json' or 
+        request.is_json or 
+        request.headers.get('Content-Type') == 'application/json' or
+        request.headers.get('Accept') == 'application/json'
+    )
     
     if is_json:
-        print("🚪 Logout desde Vue (JSON)")
-        
         response = make_response(jsonify({
             "ok": True,
             "message": "Sesión cerrada correctamente"
         }), 200)
         
-        # ✅ BORRAR cookies - Método 1: Establecer valor vacío con max_age=0
-        response.delete_cookie(
+        response.delete_cookie('access_token', path='/')
+        response.delete_cookie('refresh_token', path='/')
+        
+        response.set_cookie(
             'access_token',
-            path='/',
-            domain=None,
-            samesite='Lax'
+            value='',
+            domain='.localhost',  
+            httponly=True,
+            secure=False,
+            samesite='Lax',
+            max_age=0,
+            expires=0,
+            path='/'
         )
         
-        response.delete_cookie(
+        response.set_cookie(
             'refresh_token',
-            path='/',
-            domain=None,
-            samesite='Lax'
+            value='',
+            domain='.localhost',  
+            httponly=True,
+            secure=False,
+            samesite='Lax',
+            max_age=0,
+            expires=0,
+            path='/'
         )
         
-        print("✅ Cookies eliminadas en el backend")
+        
         return response
     else:
-        # ✅ Para Jinja2, limpiar sesión
-        print("🚪 Logout desde Jinja2")
+        # Logout tradicional con sesiones (Jinja2)
+        print("🚪 LOGOUT desde Jinja2")
         session.clear()
         flash("Has cerrado sesión correctamente.", "success")
         return redirect(url_for("auth.login"))
-    
 
 @bp.get("/me")
 @jwt_required
