@@ -344,7 +344,7 @@ class SiteService:
         from flask import current_app
         import uuid
 
-        if not image_data:
+        if not image_data or len(image_data) > 10:
             return 0
 
         client = current_app.storage
