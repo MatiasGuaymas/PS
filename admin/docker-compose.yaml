@@ -27,7 +27,10 @@ services:
     container_name: portal
     restart: unless-stopped
     ports:
-      - "5173:5173" 
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:5000/
     volumes:
       - ../portal:/app 
       - /app/node_modules 
