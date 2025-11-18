@@ -14,18 +14,6 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://grupo21.proyecto20
 const isAuthenticated = ref(false) // Cambiar a true cuando el usuario inicie sesión
 const userId = ref(1) // ID del usuario autenticado
 
-// // Estados de carga independientes
-// const loadingMostVisited = ref(true)
-// const loadingTopRated = ref(true)
-// const loadingRecentlyAdded = ref(true)
-// const loadingFavorites = ref(false)
-
-// // Datos de las secciones
-// const mostVisited = ref([])
-// const topRated = ref([])
-// const recentlyAdded = ref([])
-// const favorites = ref([])
-
 // Búsqueda
 const searchQuery = ref('')
 

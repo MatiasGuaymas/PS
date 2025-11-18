@@ -165,8 +165,10 @@ def callback():
             
             refresh_token = create_refresh_token(user_id=user.id)
             
-            # Redirigir a Vue con tokens en cookies
-            response = make_response(redirect('http://localhost:5173/'))
+            if (current_app.config['DEBUG']):
+                response = make_response(redirect('http://localhost:5173/'))
+            else:
+                response = make_response(redirect('https://admin-grupo21.proyecto2025.linti.unlp.edu.ar/'))
             
             response.set_cookie(
                 'access_token',
@@ -232,26 +234,22 @@ def logout():
         
         response.set_cookie(
             'access_token',
-            value='',
-            domain='.localhost',  
+            access_token,
             httponly=True,
             secure=False,
             samesite='Lax',
-            max_age=0,
-            expires=0,
+            max_age=3600,
             path='/'
         )
         
         response.set_cookie(
             'refresh_token',
-            value='',
-            domain='.localhost',  
+            refresh_token,
             httponly=True,
             secure=False,
             samesite='Lax',
-            max_age=0,
-            expires=0,
-            path='/'
+            max_age=2592000,
+            path='/' 
         )
         
         
