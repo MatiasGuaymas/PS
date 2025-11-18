@@ -347,7 +347,6 @@ class SiteService:
         if not image_data:
             return 0
 
-        client = current_app.storage
         images_processed = 0
 
         # Pre-cálculos una sola vez
