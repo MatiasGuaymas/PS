@@ -1,17 +1,17 @@
 import { ref } from 'vue'
 import axios from 'axios'
 
-const API_BASE_URL = `${API_BASE_URL}/api/sites`
+const API_BASE = import.meta.env.VITE_API_URL || 'https://admin-grupo21.proyecto2025.linti.unlp.edu.ar';
+const API_BASE_URL = `${API_BASE}/api/sites`
 
 export function useFilters() {
   const provinces = ref([])
   const states = ref([])
   const tags = ref([])
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL;
-
   const loadProvinces = async () => {
     try {
+      console.log(API_BASE_URL)
       const response = await axios.get(`${API_BASE_URL}/provinces`)
       provinces.value = response.data.data
     } catch (error) {

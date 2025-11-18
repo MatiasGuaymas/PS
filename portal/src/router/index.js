@@ -1,9 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { authStore } from '@/stores/authStore'
 import HomeView from '../views/HomeView.vue'
 import axios from 'axios'; 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://grupo21.proyecto2025.linti.unlp.edu.ar';
+import { maintenanceState, ensurePortalAvailability } from '@/utils/maintenanceState' 
+
 const router = createRouter({
-  history: createWebHistory(import.meta.env.VITE_API_URL),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
@@ -19,12 +22,26 @@ const router = createRouter({
       path: '/access-denied/:message',
       name: 'access-denied',
       component: () => import('../views/AccessDeniedView.vue'), 
-      props: true 
+      props: true,
+      meta: { bypassMaintenance: true } // Para que no se bloquee a sí misma
     },
     {
       path: '/login',
       name: 'login',
       component: () => import('../views/LoginView.vue'),
+      meta: { guestOnly: true, bypassMaintenance: true }
+    },
+    {
+      path: '/perfil',
+      name: 'perfil',
+      component: () => import('../views/ProfileView.vue'),
+      meta: { requiresAuth: true } 
+    },
+    {
+      path: '/registro',
+      name: 'registro',
+      component: () => import('../views/RegisterView.vue'),
+      meta: { guestOnly: true, bypassMaintenance: true }
     },
     {
       path: '/sitios/:id',
@@ -40,66 +57,83 @@ const router = createRouter({
   ],
 })
 
+
+// Hook para la verificación de mantenimiento (corre antes de la autenticación)
 router.beforeEach(async (to, from, next) => {
-  // Se me ocurre para bloquear reseñas: Solo aplicar la verificación a rutas específicas (si tienen meta.requiresCheck)
-  // if (!to.meta.requiresCheck) {
-  //   return next(); // Si no necesita verificación, continúa
-  // }
+  console.log(`🧭 Navegando a: ${to.path}`)
   
-  const result = await checkAccessCondition();
+  // No verificar mantenimiento si la ruta permite saltarlo (ej: login, access-denied)
+  const bypassMaintenance = to.matched.some(record => record.meta.bypassMaintenance)
   
-  
-  if (result.blocked) {
-    if (to.name !== 'access-denied') {
-      console.log("Navegación bloqueada. Redirigiendo a página de denegación.");
-      const encodedMessage = encodeURIComponent(result.message);
-      return next({ name: 'access-denied', params: { message: encodedMessage } });
-    } else {
-      return next(); 
-    }
-  } 
-  return next(); 
-});
+  if (!bypassMaintenance) {
+    // Si la aplicación está inactiva, fuerzo el refresh de la flag para ver si ya se levantó.
+    const forceRefresh = maintenanceState.isActive 
+    await ensurePortalAvailability(forceRefresh)
 
-export default router
-
-
-async function checkAccessCondition() {
-  try {
-    const response = await axios(`${API_BASE_URL}/api/handler/`); 
-    const isBlocked = response.data.status !== "ok"; 
-    const message = response.data.message || 'Acceso permitido';
-
-    return { blocked: isBlocked, message: message };
-
-  } catch (error) {
-    if (error.response) {
-      const serverStatus = error.response.status;
-      const serverMessage = error.response.data?.message;
-      if (serverStatus === 503) {
-        const finalMessage = serverMessage 
-            ? `Portal en Mantenimiento: ${serverMessage}` 
-            : 'El portal está actualmente en mantenimiento. Intente más tarde.';
-        
-        return {
-          blocked: true,
-          message: finalMessage,
-        };
-      } 
-
-    } else if (error.request) {
-      // Error de red
-      return {
-        blocked: true,
-        message: '❌ No se pudo conectar con el servidor (error de red o timeout).'
-      };
+    if (maintenanceState.isActive) {
+      console.log('🚧 Portal en Mantenimiento.')
       
-    } else {
-      // Otros errores
-      return {
-        blocked: true,
-        message: `⚠️ Error interno de solicitud: ${error.message}`
-      };
+      // Codifica el mensaje para pasarlo como parámetro de ruta
+      const encodedMessage = encodeURIComponent(maintenanceState.message || 'El portal está temporalmente no disponible.')
+      
+      // Si ya está en access-denied, permite la navegación
+      if (to.name === 'access-denied') {
+        return next();
+      }
+      
+      // Redirige a la página de acceso denegado con el mensaje
+      return next({ name: 'access-denied', params: { message: encodedMessage } });
     }
   }
-}
+  
+  // Continuar al siguiente `beforeEach` (el de autenticación)
+  next()
+})
+
+
+// Hook para la verificación de autenticación (se ejecuta después del de mantenimiento)
+router.beforeEach(async (to, from, next) => {
+  
+  // Lógica de espera si authStore.loading
+  if (authStore.loading) {
+    console.log('⏳ Esperando verificación de autenticación...')
+  
+    let attempts = 0
+    while (authStore.loading && attempts < 50) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      attempts++
+    }
+  }
+
+  const isAuthenticated = authStore.isAuthenticated
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const guestOnly = to.matched.some(record => record.meta.guestOnly)
+
+  // Si la ruta requiere autenticación y no está autenticado
+  if (requiresAuth && !isAuthenticated) {
+    console.log('❌ Acceso denegado, redirigiendo a /login')
+    next('/login')
+    return
+  }
+
+  // Si la ruta es solo para invitados y está autenticado
+  if (guestOnly && isAuthenticated) {
+    next('/')
+    return
+  }
+
+  // Permitir navegación
+  next()
+})
+
+// Hook para la verificación en la resolución final (opcional, para asegurar estado)
+router.beforeResolve(async (to, from, next) => {
+  // Siempre verifica el estado con refresh justo antes de renderizar la vista, 
+  // aunque el cache evite la petición real si ya se hizo recientemente.
+  if (!to.matched.some(record => record.meta.bypassMaintenance)) {
+     await ensurePortalAvailability(true) // Fuerza la verificación (respetando la promesa en curso)
+  }
+  next()
+})
+
+export default router

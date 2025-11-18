@@ -17,6 +17,9 @@ class SiteService:
         paginate: bool = True,
         page: int = 1,
         per_page: int = 25,
+        lat: float = None,  
+        lng: float = None,  
+        radius: float = None,  
     ):
         """
         Devuelve sitios históricos filtrados, ordenados y opcionalmente paginados.
@@ -29,6 +32,9 @@ class SiteService:
             paginate (bool): si True devuelve dict con paginación, si False lista completa
             page (int): número de página (si paginate=True)
             per_page (int): tamaño de página (si paginate=True)
+            lat (float): latitud para ordenamiento por distancia (opcional)
+            lng(float): longitud para ordenamiento por distancia (opcional)
+            radius(float): radio en km para filtrar por distancia (opcional)
 
         Returns:
             dict de paginación o lista de objetos HistoricSite
@@ -41,7 +47,7 @@ class SiteService:
         tags = filters.pop('tags', None)
 
         # Construir query base
-        query = build_search_query(Site, filters)
+        query = build_search_query(Site, filters,lat=lat,lng=lng,radius=radius)
 
         # Filtrado por tags: solo sitios que tengan TODOS los tags seleccionados
         if tags:

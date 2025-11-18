@@ -6,6 +6,8 @@ import Choices from 'choices.js'
 import 'choices.js/public/assets/styles/choices.min.css'
 import { useSites } from '../composables/useSites'
 import { useFilters } from '../composables/useFilters'
+import { LMap, LTileLayer, LCircle, LControl } from '@vue-leaflet/vue-leaflet'
+import 'leaflet/dist/leaflet.css'
 
 const route = useRoute()
 const router = useRouter()
@@ -24,6 +26,37 @@ const selectedTags = ref(route.query.tags ? route.query.tags.split(',') : [])
 const showFavoritesOnly = ref(route.query.favorites === 'true')
 const sortBy = ref(route.query.sort || 'site_name')
 const sortOrder = ref(route.query.order || 'asc')
+
+const mapCenter = ref([parseFloat(route.query.lat) || -34.6037, parseFloat(route.query.lng) || -58.3816])
+// Radio en metros (por defecto 50km, se actualizará con el zoom)
+const mapRadius = ref(parseInt(route.query.radius) || 50000) 
+const isGeoFiltered = ref(route.query.lat && route.query.lng && route.query.radius ? true : false)
+const mapZoom = ref(10) // Zoom inicial
+// Variable para alternar la visualización del mapa en el sidebar
+const showMap = ref(false)
+
+const handleMapMove = (event) => {
+  const newCenter = event.target.getCenter()
+  const newZoom = event.target.getZoom()
+  const bounds = event.target.getBounds()
+  
+  // Calcular el radio aproximado del mapa (distancia de centro a esquina)
+  const centerPoint = L.latLng(newCenter.lat, newCenter.lng)
+  const cornerPoint = L.latLng(bounds.getNorthEast().lat, bounds.getNorthEast().lng)
+  // Calculamos la distancia en metros entre el centro y la esquina (radio aproximado)
+  const calculatedRadius = centerPoint.distanceTo(cornerPoint) / Math.sqrt(2) // Dividimos por sqrt(2) para estimar el radio de un círculo inscrito
+  
+  mapCenter.value = [newCenter.lat, newCenter.lng]
+  mapRadius.value = Math.min(Math.round(calculatedRadius), 2000000); // Limitar a un máximo de 2000km
+  mapZoom.value = newZoom
+  isGeoFiltered.value = true // Activar el filtro geográfico al mover
+}
+
+// Toggle filtro geográfico
+const toggleGeoFilter = () => {
+  isGeoFiltered.value = !isGeoFiltered.value
+  handleSearch()
+}
 
 // UI State
 const perPage = 12
@@ -55,7 +88,12 @@ const buildFilters = () => ({
   city: selectedCity.value,
   state: selectedState.value,
   tags: selectedTags.value,
-  showFavoritesOnly: showFavoritesOnly.value
+  showFavoritesOnly: showFavoritesOnly.value,
+  ...(isGeoFiltered.value ? {
+    lat: mapCenter.value[0],
+    lng: mapCenter.value[1],
+    radius: mapRadius.value,
+  } : {})
 })
 
 // Buscar sitios
@@ -77,7 +115,11 @@ const updateURL = () => {
   if (sortBy.value !== 'site_name') query.sort = sortBy.value
   if (sortOrder.value !== 'asc') query.order = sortOrder.value
   if (currentPage.value > 1) query.page = currentPage.value
-  
+  if (isGeoFiltered.value) {
+    query.lat = mapCenter.value[0]
+    query.lng = mapCenter.value[1]
+    query.radius = mapRadius.value
+  }
   router.push({ query })
 }
 
@@ -102,6 +144,11 @@ const clearFilters = async () => {
   sortBy.value = 'site_name'
   sortOrder.value = 'asc'
   currentPage.value = 1
+  isGeoFiltered.value = false
+  mapCenter.value = [-34.6037, -58.3816] // Centro por defecto
+  mapRadius.value = 50000 // Radio por defecto
+  mapZoom.value = 10 // Zoom por defecto
+  showMap.value = false // Ocultar mapa
   
   if (choicesInstance) {
     choicesInstance.removeActiveItems()
@@ -123,9 +170,10 @@ const toggleFavorites = () => {
   handleSearch()
 }
 
-// Abrir vista de mapa
 const openMapView = () => {
-  alert('TODO')
+  showMap.value = true
+  filtersExpanded.value = true // Asegurar que el sidebar esté abierto en mobile/tablet
+  window.scrollTo({ top: 0, behavior: 'smooth' }) // Llevar arriba para que se vea el sidebar
 }
 
 // Inicializar Choices.js
@@ -154,6 +202,16 @@ onMounted(async () => {
   await loadAll()
   await initChoices()
   await fetchSites(buildFilters())
+  if (route.query.lat && route.query.lng && route.query.radius) { 
+    isGeoFiltered.value = true
+    mapCenter.value = [parseFloat(route.query.lat), parseFloat(route.query.lng)]
+    mapRadius.value = parseInt(route.query.radius)
+    // Ajustar zoom para reflejar un radio
+    const radiusToZoom = (r) => Math.round(14 - Math.log(r / 1000) / Math.log(2));
+    mapZoom.value = radiusToZoom(mapRadius.value);
+  } else {
+    isGeoFiltered.value = false
+  }
 })
 
 // Watch para cambios en la ruta
@@ -167,6 +225,22 @@ watch(() => route.query, () => {
   showFavoritesOnly.value = route.query.favorites === 'true'
   sortBy.value = route.query.sort || 'site_name'
   sortOrder.value = route.query.order || 'asc'
+  const lat = route.query.lat ? parseFloat(route.query.lat) : undefined
+  const lng = route.query.lng ? parseFloat(route.query.lng) : undefined
+  const radius = route.query.radius ? parseInt(route.query.radius) : undefined
+  
+  if (lat && lng && radius) {
+    mapCenter.value = [lat, lng]
+    mapRadius.value = radius
+    isGeoFiltered.value = true
+    // El zoom se puede recalcular o dejar que el mapa lo maneje, lo mantengo simple por ahora
+  } else if (!route.query.page || route.query.page === '1') {
+    // Si se limpia el resto de la URL y no hay geo-filtros, resetear el geo-filtro
+    isGeoFiltered.value = false
+    mapCenter.value = [-34.6037, -58.3816]
+    mapRadius.value = 50000
+    mapZoom.value = 10
+  }
 })
 </script>
 
@@ -174,7 +248,6 @@ watch(() => route.query, () => {
   <div class="sites-view">
     <div class="container-fluid">
       <div class="row">
-        <!-- Panel de Filtros -->
         <aside class="col-lg-3 filters-sidebar" :class="{ 'expanded': filtersExpanded }">
           <div class="filters-container">
             <div class="filters-header d-none d-lg-block">
@@ -185,7 +258,61 @@ watch(() => route.query, () => {
             </div>
 
             <div class="filters-content" :class="{ 'show': filtersExpanded }">
-              <!-- Búsqueda -->
+              
+              <div class="filter-group map-filter-group">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <label class="form-label mb-0">
+                    <i class="bi bi-compass me-1"></i>
+                    Filtro Geográfico
+                  </label>
+                  <button 
+                    @click="showMap = !showMap"
+                    class="btn btn-sm bi-map"
+                    :class="showMap ? 'btn-outline-secondary' : 'btn-outline-info'"
+                  >
+                    {{ showMap ? ' Ocultar Mapa' : ' Mostrar Mapa' }}
+                  </button>
+                </div>
+
+                <div v-if="showMap" class="map-container mb-3">
+                  <div style="height: 200px; width: 100%;">
+                    <l-map 
+                      :zoom="mapZoom" 
+                      :center="mapCenter" 
+                      @moveend="handleMapMove" 
+                      ref="mapRef"
+                    >
+                      <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" layer-type="base" name="OpenStreetMap"></l-tile-layer>
+                      
+                      <l-circle 
+                        :lat-lng="mapCenter" 
+                        :radius="mapRadius" 
+                        color="#764ba2"
+                        :fill-opacity="0.1"
+                        :weight="2"
+                      />
+                      
+                      <l-control position="topright" class="map-radius-control">
+                        Radio: {{ (mapRadius / 1000).toFixed(1) }} km
+                      </l-control>
+                    </l-map>
+                  </div>
+                </div>
+
+                <button 
+                  @click="toggleGeoFilter"
+                  class="btn w-100"
+                  :class="isGeoFiltered ? 'btn-success' : 'btn-outline-success'"
+                >
+                  <i class="bi" :class="isGeoFiltered ? 'bi-check-circle-fill' : 'bi-circle'"></i>
+                  {{ isGeoFiltered ? 'Filtro de Radio Activo' : 'Activar Filtro de Radio' }}
+                </button>
+                <small class="text-muted mt-2 d-block text-center">
+                  Radio aprox. de búsqueda: **{{ (mapRadius / 1000).toFixed(1) }} km** <span v-if="isGeoFiltered" class="text-success">(Activo)</span>
+                </small>
+              </div>
+              
+              <hr v-if="showMap" />
               <div class="filter-group">
                 <label class="form-label">Buscar</label>
                 <input
@@ -197,7 +324,6 @@ watch(() => route.query, () => {
                 >
               </div>
 
-              <!-- Ciudad -->
               <div class="filter-group">
                 <label class="form-label">Ciudad</label>
                 <input
@@ -208,7 +334,6 @@ watch(() => route.query, () => {
                 >
               </div>
 
-              <!-- Provincia -->
               <div class="filter-group">
                 <label class="form-label">Provincia</label>
                 <select v-model="selectedProvince" class="form-select">
@@ -219,7 +344,6 @@ watch(() => route.query, () => {
                 </select>
               </div>
 
-              <!-- Estado -->
               <div class="filter-group">
                 <label class="form-label">Estado de conservación</label>
                 <select v-model="selectedState" class="form-select">
@@ -230,7 +354,6 @@ watch(() => route.query, () => {
                 </select>
               </div>
 
-              <!-- Favoritos -->
               <div class="filter-group">
                 <button 
                   @click="toggleFavorites"
@@ -242,7 +365,6 @@ watch(() => route.query, () => {
                 </button>
               </div>
 
-              <!-- Tags -->
               <div class="filter-group">
                 <label class="form-label">Tags</label>
                 <select 
@@ -257,7 +379,6 @@ watch(() => route.query, () => {
                 </select>
               </div>
 
-              <!-- Ordenamiento -->
               <div class="filter-group">
                 <label class="form-label">Ordenar por</label>
                 <div class="input-group">
@@ -276,8 +397,6 @@ watch(() => route.query, () => {
                   </button>
                 </div>
               </div>
-
-              <!-- Acciones -->
               <div class="filter-actions">
                 <button @click="handleSearch" class="btn btn-primary w-100 mb-2">
                   <i class="bi bi-search me-1"></i>
@@ -287,16 +406,16 @@ watch(() => route.query, () => {
                   <i class="bi bi-x-circle me-1"></i>
                   Limpiar
                 </button>
-                <button @click="openMapView" class="btn btn-outline-info w-100">
+              <!-- TODO: Te lo dejo comentado mati por si queres hacer lo de los marcadores -->
+                <!-- <button @click="openMapView" class="btn btn-outline-info w-100">
                   <i class="bi bi-map me-1"></i>
-                  Ver Mapa
-                </button>
+                  Abrir Mapa
+                </button> -->
               </div>
             </div>
           </div>
         </aside>
 
-        <!-- Contenido Principal -->
         <main class="col-lg-9">
           <div class="content-container">
             <div class="content-header">
@@ -317,7 +436,6 @@ watch(() => route.query, () => {
               </button>
             </div>
 
-            <!-- Loading -->
             <div v-if="loading" class="text-center py-5">
               <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Cargando...</span>
@@ -325,12 +443,10 @@ watch(() => route.query, () => {
               <p class="mt-3 text-muted">Cargando sitios históricos...</p>
             </div>
 
-            <!-- Grid -->
             <div v-else-if="sites.length > 0" class="sites-grid">
               <SiteCard v-for="site in sites" :key="site.id" :site="site" />
             </div>
 
-            <!-- Sin resultados -->
             <div v-else class="text-center py-5">
               <i class="bi bi-search display-1 text-muted mb-3"></i>
               <h3>No se encontraron sitios</h3>
@@ -340,7 +456,6 @@ watch(() => route.query, () => {
               </button>
             </div>
 
-            <!-- Paginación -->
             <nav v-if="totalPages > 1 && !loading" aria-label="Paginación" class="mt-4">
               <ul class="pagination justify-content-center">
                 <li class="page-item" :class="{ disabled: currentPage === 1 }">
@@ -425,6 +540,29 @@ watch(() => route.query, () => {
 .filters-header h5 {
   color: white;
   font-weight: 600;
+}
+
+/* Estilos específicos para el mapa */
+.map-container {
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+
+.map-radius-control {
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #764ba2;
+  border: 1px solid #764ba2;
+}
+
+.map-filter-group {
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed #dee2e6;
+    margin-bottom: 1rem;
 }
 
 /* En mobile, colapsable */

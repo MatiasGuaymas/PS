@@ -1,9 +1,16 @@
 import os
+from datetime import timedelta
 
 class config:
     TESTING = False
     SECRET_KEY = 'secret_key'
     SESSION_TYPE = 'filesystem'
+
+    JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", SECRET_KEY)
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=1)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
+    JWT_ALGORITHM = "HS256"
+
     SQLALCHEMY_ENGINE_OPTIONS = {
         "pool_size": 10,
         "pool_recycle": 60,

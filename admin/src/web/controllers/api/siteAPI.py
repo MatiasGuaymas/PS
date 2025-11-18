@@ -26,6 +26,9 @@ def list_sites():
         - state: filtro por nombre de estado
         - sort: ordenamiento (site_name, registration, rating, default: site_name)
         - order: dirección (asc, desc, default: asc)
+        - lat: latitud para ordenamiento por distancia (opcional)
+        - lng: longitud para ordenamiento por distancia (opcional)
+        - radius: radio en km para filtrar por distancia (opcional)
     """
     # Parámetros de paginación
     page = request.args.get('page', 1, type=int)
@@ -50,6 +53,11 @@ def list_sites():
     sort_by = request.args.get('sort', 'site_name')  # site_name, registration, rating
     order = request.args.get('order', 'asc')  # asc, desc
     
+    # Parámetros de geolocalización
+    lat = request.args.get('lat', type=float)
+    lng = request.args.get('lng', type=float)
+    radius = request.args.get('radius', type=float)  # en km
+    print(f"Geofilter params - lat: {lat}, lng: {lng}, radius: {radius}")
     filters = {
         'active': True,
         'deleted': False 
@@ -80,12 +88,15 @@ def list_sites():
         sorted_by=order,
         paginate=True,
         page=page,
-        per_page=per_page
+        per_page=per_page,
+        lng=lng,
+        lat=lat,
+        radius=radius
     )
     
     # Serializar resultados
     sites_json = [site.to_dict() for site in pagination['items']]
-    
+    print(sites_json)
     return jsonify({
         'data': sites_json,
         'pagination': {
