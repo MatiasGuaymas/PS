@@ -344,7 +344,7 @@ class SiteService:
         from flask import current_app
         import uuid
 
-        if not image_data or len(image_data) > 10:
+        if not image_data:
             return 0
 
         client = current_app.storage
@@ -354,6 +354,8 @@ class SiteService:
         next_order = SiteService.get_next_image_order(site_id)
         is_first_image_for_site = (SiteService.get_cover_image(site_id) is None)
         for idx, img_info in enumerate(image_data):
+            if images_processed >= 10:
+                break  # Limitar a 10 imágenes por lote
             file = img_info["file"]
             if isinstance(file,str):
                 file=SiteService.create_filestorage_from_path(file)
