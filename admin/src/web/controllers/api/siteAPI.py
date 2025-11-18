@@ -57,7 +57,7 @@ def list_sites():
     lat = request.args.get('lat', type=float)
     lng = request.args.get('lng', type=float)
     radius = request.args.get('radius', type=float)  # en km
-    print(f"Geofilter params - lat: {lat}, lng: {lng}, radius: {radius}")
+    
     filters = {
         'active': True,
         'deleted': False 
@@ -96,7 +96,6 @@ def list_sites():
     
     # Serializar resultados
     sites_json = [site.to_dict() for site in pagination['items']]
-    print(sites_json)
     return jsonify({
         'data': sites_json,
         'pagination': {
