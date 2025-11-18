@@ -57,7 +57,7 @@ def list_sites():
     lat = request.args.get('lat', type=float)
     lng = request.args.get('lng', type=float)
     radius = request.args.get('radius', type=float)  # en km
-    print(f"Geofilter params - lat: {lat}, lng: {lng}, radius: {radius}")
+    
     filters = {
         'active': True,
         'deleted': False 
