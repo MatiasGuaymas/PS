@@ -356,261 +356,665 @@ def _create_site_tags_random_associations(sites, tags):
     # 3. Persistir todas las asociaciones
     db.session.add_all(associations)
 
-def _sitios(CATEGORIES,STATES):
-    """Genera multiples sitios para poder paginarlos y filtrarlos con diferentes estados"""
-    sites = []
+def _sitios(CATEGORIES, STATES):
+    """Genera múltiples sitios para poder paginarlos y filtrarlos con diferentes estados"""
     STATE_BUENO = STATES['Bueno']
     STATE_REGULAR = STATES['Regular']
     STATE_MALO = STATES['Malo']
 
-    # Subo 3 con imagenes y el resto lo dejo con la default
-    SiteService.new_images_transactional('static/img/sites/default.png',"/public/default_image.png")
-    # 1. Sitios de la Ciudad Autónoma de Buenos Aires (CABA)
-    s1 =Site(
-        site_name='Cabildo de Buenos Aires', short_desc='Sede de la Revolución de Mayo',
-        full_desc='Edificio colonial que fue la sede del gobierno durante el Virreinato y testigo de la Revolución de Mayo de 1810. Reconstruido en 1940.',
-        city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.373111 -34.608333)', srid=4326),
-        operning_year=1608, category_id=CATEGORIES['ARQ'], 
-        state_id=STATE_REGULAR # Histórico, requiere mantenimiento
-    )
-    s2 = Site(
-        site_name='Casa Rosada', short_desc='Sede del Poder Ejecutivo Nacional',
-        full_desc='Mansión gubernamental y lugar de encuentro de la historia política argentina, en Plaza de Mayo. Fue construida sobre el Fuerte de Buenos Aires.',
-        city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.371510 -34.608101)', srid=4326),
-        operning_year=1898, category_id=CATEGORIES['ARQ'], 
-        state_id=STATE_BUENO # Bien mantenido por ser sede de gobierno
-    )
-    s3= Site(
-        site_name='Puente de la Mujer', short_desc='Puente peatonal móvil en Puerto Madero',
-        full_desc='Diseñado por Santiago Calatrava, representa una pareja bailando tango. Es un ícono moderno en un barrio histórico-portuario.',
-        city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.363717 -34.603500)', srid=4326),
-        operning_year=2001, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_BUENO # Moderno
-    )
-    db.session.add_all([s1, s2, s3])
-    db.session.flush()
-    SiteService.process_new_images_transactional(s1.id,[{'file':'static/img/sites/cabildo.jpg','title_alt':'Cabildo de Buenos Aires','description':'Imagen del histórico Cabildo de Buenos Aires'}])
-    SiteService.process_new_images_transactional(s2.id,[{'file':'static/img/sites/casa_rosada.png','title_alt':'Casa Rosada','description':'Imagen de la emblemática Casa Rosada'}])
-    SiteService.process_new_images_transactional(s3.id,[{'file':'static/img/sites/puente_mujer.jpg','title_alt':'Puente de la Mujer','description':'Imagen del moderno Puente de la Mujer en Puerto Madero'}])
+    # Imagen por defecto
+    SiteService.new_images_transactional('static/img/sites/default.png', "/public/default_image.png")
 
-    sites.append(Site(
-        site_name='Museo Histórico Nacional', short_desc='Antigua Quinta de Gregorio Lezama',
-        full_desc='Ubicado en la antigua Quinta de Gregorio Lezama, este museo alberga colecciones históricas del país.',
-        city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.370500 -34.620000)', srid=4326),
-        operning_year=1891, category_id=CATEGORIES['DINO'], 
-        state_id=STATE_REGULAR
-    ))
-    sites.append(Site(
-        site_name='Monumento a los Dos Congresos', short_desc='Memorial en Plaza Congreso',
-        full_desc='Imponente monumento frente al Congreso Nacional, simbolizando la Asamblea de 1813 y el Congreso de 1816.',
-        city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.394100 -34.609400)', srid=4326),
-        operning_year=1914, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_REGULAR
-    ))
+    # Definición de los sitios (31)
+    sites_data = [
+        # 1. CABA
+        {
+            'site_info': {
+                'site_name': 'Cabildo de Buenos Aires',
+                'short_desc': 'Sede de la Revolución de Mayo',
+                'full_desc': 'Edificio colonial que fue la sede del gobierno durante el Virreinato y testigo de la Revolución de Mayo de 1810. Reconstruido en 1940.',
+                'city': 'Buenos Aires',
+                'province': 'CABA',
+                'location': WKTElement('POINT(-58.373111 -34.608333)', srid=4326),
+                'operning_year': 1608,
+                'category_id': CATEGORIES['ARQ'],
+                'state_id': STATE_REGULAR
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/cabildo.jpg',
+                    'title_alt': 'Cabildo de Buenos Aires',
+                    'description': 'Imagen del histórico Cabildo de Buenos Aires'
+                }
+            ]
+        },
+        # 2. CABA
+        {
+            'site_info': {
+                'site_name': 'Casa Rosada',
+                'short_desc': 'Sede del Poder Ejecutivo Nacional',
+                'full_desc': 'Mansión gubernamental y lugar de encuentro de la historia política argentina, en Plaza de Mayo. Fue construida sobre el Fuerte de Buenos Aires.',
+                'city': 'Buenos Aires',
+                'province': 'CABA',
+                'location': WKTElement('POINT(-58.371510 -34.608101)', srid=4326),
+                'operning_year': 1898,
+                'category_id': CATEGORIES['ARQ'],
+                'state_id': STATE_BUENO
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/casa_rosada.png',
+                    'title_alt': 'Casa Rosada',
+                    'description': 'Imagen de la emblemática Casa Rosada'
+                }
+            ]
+        },
+        # 3. CABA
+        {
+            'site_info': {
+                'site_name': 'Puente de la Mujer',
+                'short_desc': 'Puente peatonal móvil en Puerto Madero',
+                'full_desc': 'Diseñado por Santiago Calatrava, representa una pareja bailando tango. Es un ícono moderno en un barrio histórico-portuario.',
+                'city': 'Buenos Aires',
+                'province': 'CABA',
+                'location': WKTElement('POINT(-58.363717 -34.603500)', srid=4326),
+                'operning_year': 2001,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_BUENO
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/puente_mujer.jpg',
+                    'title_alt': 'Puente de la Mujer',
+                    'description': 'Imagen del moderno Puente de la Mujer en Puerto Madero'
+                }
+            ]
+        },
+        # 4. CABA
+        {
+            'site_info': {
+                'site_name': 'Museo Histórico Nacional',
+                'short_desc': 'Antigua Quinta de Gregorio Lezama',
+                'full_desc': 'Ubicado en la antigua Quinta de Gregorio Lezama, este museo alberga colecciones históricas del país.',
+                'city': 'Buenos Aires',
+                'province': 'CABA',
+                'location': WKTElement('POINT(-58.370500 -34.620000)', srid=4326),
+                'operning_year': 1891,
+                'category_id': CATEGORIES['DINO'],
+                'state_id': STATE_REGULAR
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/museo_historico.jpg',
+                    'title_alt': 'Museo Histórico Nacional',
+                    'description': 'Fachada del Museo Histórico Nacional'
+                }
+            ]
+        },
+        # 5. CABA
+        {
+            'site_info': {
+                'site_name': 'Monumento a los Dos Congresos',
+                'short_desc': 'Memorial en Plaza Congreso',
+                'full_desc': 'Imponente monumento frente al Congreso Nacional, simbolizando la Asamblea de 1813 y el Congreso de 1816.',
+                'city': 'Buenos Aires',
+                'province': 'CABA',
+                'location': WKTElement('POINT(-58.394100 -34.609400)', srid=4326),
+                'operning_year': 1914,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_REGULAR
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/dos_congresos.jpg',
+                    'title_alt': 'Monumento a los Dos Congresos',
+                    'description': 'Vista del Monumento a los Dos Congresos'
+                }
+            ]
+        },
+        # 6. Tucumán - NOA
+        {
+            'site_info': {
+                'site_name': 'Casa Histórica de Tucumán',
+                'short_desc': 'Lugar de la Declaración de la Independencia',
+                'full_desc': 'Casa donde se firmó la Declaración de Independencia de Argentina el 9 de julio de 1816. Reconstruida a principios del siglo XX.',
+                'city': 'San Miguel de Tucumán',
+                'province': 'Tucumán',
+                'location': WKTElement('POINT(-65.203900 -26.833300)', srid=4326),
+                'operning_year': 1760,
+                'category_id': CATEGORIES['ARQ'],
+                'state_id': STATE_BUENO
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/casa_tucuman.jpg',
+                    'title_alt': 'Casa Histórica de Tucumán',
+                    'description': 'Lugar donde se declaró la Independencia Argentina'
+                }
+            ]
+        },
+        # 7. Salta - NOA
+        {
+            'site_info': {
+                'site_name': 'Catedral Basílica de Salta',
+                'short_desc': 'Templo principal de Salta, estilo neoclásico',
+                'full_desc': 'Templo de gran valor arquitectónico y religioso, que alberga las imágenes del Señor y la Virgen del Milagro.',
+                'city': 'Salta',
+                'province': 'Salta',
+                'location': WKTElement('POINT(-65.412400 -24.789100)', srid=4326),
+                'operning_year': 1882,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_REGULAR
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/catedral_salta.jpg',
+                    'title_alt': 'Catedral Basílica de Salta',
+                    'description': 'Fachada de la Catedral de Salta'
+                }
+            ]
+        },
+        # 8. Jujuy - NOA
+        {
+            'site_info': {
+                'site_name': 'Pucará de Tilcara',
+                'short_desc': 'Fortaleza preincaica',
+                'full_desc': 'Ruinas de una antigua fortificación y asentamiento de la Quebrada de Humahuaca, con una antigüedad de más de 900 años.',
+                'city': 'Tilcara',
+                'province': 'Jujuy',
+                'location': WKTElement('POINT(-65.352000 -23.578600)', srid=4326),
+                'operning_year': 1100,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_MALO
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/pucara_tilcara.jpg',
+                    'title_alt': 'Pucará de Tilcara',
+                    'description': 'Ruinas preincaicas en Jujuy'
+                }
+            ]
+        },
+        # 9. Córdoba
+        {
+            'site_info': {
+                'site_name': 'Manzana Jesuítica de Córdoba',
+                'short_desc': 'Patrimonio de la Humanidad UNESCO',
+                'full_desc': 'Conjunto de edificios de la Compañía de Jesús (Universidad, Colegio, Iglesia y Residencia) construidos entre 1606 y 1767.',
+                'city': 'Córdoba',
+                'province': 'Córdoba',
+                'location': WKTElement('POINT(-64.184300 -31.417200)', srid=4326),
+                'operning_year': 1606,
+                'category_id': CATEGORIES['ARQ'],
+                'state_id': STATE_REGULAR
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/manzana_jesuitica.jpg',
+                    'title_alt': 'Manzana Jesuítica de Córdoba',
+                    'description': 'Patrimonio UNESCO en Córdoba'
+                }
+            ]
+        },
+        # 10. Santa Fe
+        {
+            'site_info': {
+                'site_name': 'Monumento a la Bandera',
+                'short_desc': 'Homenaje a la Bandera Nacional',
+                'full_desc': 'Complejo arquitectónico monumental construido en el lugar donde Manuel Belgrano izó por primera vez la Bandera Argentina en 1812.',
+                'city': 'Rosario',
+                'province': 'Santa Fe',
+                'location': WKTElement('POINT(-60.632900 -32.946300)', srid=4326),
+                'operning_year': 1957,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_BUENO
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/monumento_bandera.jpg',
+                    'title_alt': 'Monumento a la Bandera',
+                    'description': 'Monumento Nacional en Rosario'
+                }
+            ]
+        },
+        # 11. Santa Fe
+        {
+            'site_info': {
+                'site_name': 'Convento de San Lorenzo',
+                'short_desc': 'Escenario de la Batalla de San Lorenzo',
+                'full_desc': 'Templo y convento franciscano, famoso por haber sido el sitio de la única batalla de San Martín en suelo argentino en 1813.',
+                'city': 'San Lorenzo',
+                'province': 'Santa Fe',
+                'location': WKTElement('POINT(-60.741000 -32.748300)', srid=4326),
+                'operning_year': 1796,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_REGULAR
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/convento_sanlorenzo.jpg',
+                    'title_alt': 'Convento de San Lorenzo',
+                    'description': 'Sitio histórico de la Batalla de San Lorenzo'
+                }
+            ]
+        },
+        # 12. Córdoba
+        {
+            'site_info': {
+                'site_name': 'Estancia Jesuítica de Alta Gracia',
+                'short_desc': 'Antigua estancia jesuítica',
+                'full_desc': 'Una de las estancias del sistema Jesuítico, incluye la Residencia, la Iglesia y el Tajamar. Hoy es Museo Nacional Casa del Virrey Liniers.',
+                'city': 'Alta Gracia',
+                'province': 'Córdoba',
+                'location': WKTElement('POINT(-64.426200 -31.658000)', srid=4326),
+                'operning_year': 1643,
+                'category_id': CATEGORIES['ARQ'],
+                'state_id': STATE_REGULAR
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/estancia_altagracia.jpg',
+                    'title_alt': 'Estancia Jesuítica de Alta Gracia',
+                    'description': 'Estancia jesuítica en Córdoba'
+                }
+            ]
+        },
+        # 13. Tierra del Fuego
+        {
+            'site_info': {
+                'site_name': 'Misión Salesiana La Candelaria',
+                'short_desc': 'Antigua misión en Tierra del Fuego',
+                'full_desc': 'Fundada a fines del siglo XIX, fue la primera misión salesiana en la provincia, clave en la historia fueguina.',
+                'city': 'Río Grande',
+                'province': 'Tierra del Fuego',
+                'location': WKTElement('POINT(-67.750000 -53.799700)', srid=4326),
+                'operning_year': 1893,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_REGULAR
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/mision_candelaria.jpg',
+                    'title_alt': 'Misión Salesiana La Candelaria',
+                    'description': 'Primera misión en Tierra del Fuego'
+                }
+            ]
+        },
+        # 14. Córdoba 
+        {
+            'site_info': {
+                'site_name': 'Estancia Jesuítica de Jesús María',
+                'short_desc': 'Estancia con famosa bodega jesuítica',
+                'full_desc': 'La segunda estancia del sistema jesuítico de Córdoba, famosa por su producción vitivinícola ("Lagrimilla de Oro").',
+                'city': 'Jesús María',
+                'province': 'Córdoba',
+                'location': WKTElement('POINT(-64.093300 -30.985600)', srid=4326),
+                'operning_year': 1618,
+                'category_id': CATEGORIES['ARQ'],
+                'state_id': STATE_REGULAR
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/estancia_jesusmaria.jpg',
+                    'title_alt': 'Estancia Jesuítica de Jesús María',
+                    'description': 'Estancia jesuítica con bodega histórica'
+                }
+            ]
+        },
+        # 15. Mendoza
+        {
+            'site_info': {
+                'site_name': 'Monumento al Ejército de los Andes',
+                'short_desc': 'Homenaje a la gesta sanmartiniana',
+                'full_desc': 'Ubicado en el Cerro de la Gloria, conmemora el cruce de los Andes y la Campaña Libertadora del General San Martín.',
+                'city': 'Mendoza',
+                'province': 'Mendoza',
+                'location': WKTElement('POINT(-68.868700 -32.871500)', srid=4326),
+                'operning_year': 1914,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_BUENO
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/cerro_gloria.jpg',
+                    'title_alt': 'Monumento al Ejército de los Andes',
+                    'description': 'Cerro de la Gloria en Mendoza'
+                }
+            ]
+        },
+        # 16. Mendoza
+        {
+            'site_info': {
+                'site_name': 'Ruinas de San Francisco',
+                'short_desc': 'Vestigios de la antigua Mendoza',
+                'full_desc': 'Restos de la iglesia y convento de San Francisco, destruidos por el terremoto de 1861. Patrimonio de gran valor histórico en la vieja ciudad.',
+                'city': 'Mendoza',
+                'province': 'Mendoza',
+                'location': WKTElement('POINT(-68.835800 -32.895300)', srid=4326),
+                'operning_year': 1731,
+                'category_id': CATEGORIES['ARQ'],
+                'state_id': STATE_MALO
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/ruinas_sanfrancisco.jpg',
+                    'title_alt': 'Ruinas de San Francisco',
+                    'description': 'Ruinas del terremoto de 1861 en Mendoza'
+                }
+            ]
+        },
+        # 17. San Juan
+        {
+            'site_info': {
+                'site_name': 'Casa de Sarmiento',
+                'short_desc': 'Casa natal de Domingo F. Sarmiento',
+                'full_desc': 'Lugar de nacimiento del expresidente y prócer argentino, Domingo Faustino Sarmiento. Declarada Monumento Histórico Nacional.',
+                'city': 'San Juan',
+                'province': 'San Juan',
+                'location': WKTElement('POINT(-68.537500 -31.536700)', srid=4326),
+                'operning_year': 1801,
+                'category_id': CATEGORIES['ARQ'],
+                'state_id': STATE_BUENO
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/casa_sarmiento.jpg',
+                    'title_alt': 'Casa de Sarmiento',
+                    'description': 'Casa natal de Domingo Faustino Sarmiento'
+                }
+            ]
+        },
+        # 18. Buenos Aires
+        {
+            'site_info': {
+                'site_name': 'Fuerte Independencia',
+                'short_desc': 'Fuerte que dio origen a la ciudad de Tandil',
+                'full_desc': 'Fundado por Martín Rodríguez para establecer la frontera sur. Sus restos marcan el origen de la ciudad de Tandil en la provincia de Buenos Aires.',
+                'city': 'Tandil',
+                'province': 'Buenos Aires',
+                'location': WKTElement('POINT(-59.136400 -37.323600)', srid=4326),
+                'operning_year': 1823,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_REGULAR
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/fuerte_independencia.jpg',
+                    'title_alt': 'Fuerte Independencia',
+                    'description': 'Fuerte histórico de Tandil'
+                }
+            ]
+        },
+        # 19. Misiones
+        {
+            'site_info': {
+                'site_name': 'Misión Jesuítica San Ignacio Miní',
+                'short_desc': 'Ruinas jesuitas en Misiones',
+                'full_desc': 'Una de las misiones jesuíticas mejor conservadas del siglo XVII, declarada Patrimonio de la Humanidad por la UNESCO.',
+                'city': 'San Ignacio',
+                'province': 'Misiones',
+                'location': WKTElement('POINT(-55.534200 -27.251400)', srid=4326),
+                'operning_year': 1696,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_MALO
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/san_ignacio_mini.jpg',
+                    'title_alt': 'Misión Jesuítica San Ignacio Miní',
+                    'description': 'Ruinas jesuíticas Patrimonio UNESCO'
+                }
+            ]
+        },
+        # 20. Buenos Aires
+        {
+            'site_info': {
+                'site_name': 'Basílica de Nuestra Señora de Luján',
+                'short_desc': 'Santuario Nacional de la Virgen de Luján',
+                'full_desc': 'Impresionante templo de estilo neogótico, centro de peregrinación y uno de los sitios religiosos más importantes de Argentina.',
+                'city': 'Luján',
+                'province': 'Buenos Aires',
+                'location': WKTElement('POINT(-59.108400 -30.457800)', srid=4326),
+                'operning_year': 1930,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_BUENO
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/basilica_lujan.jpg',
+                    'title_alt': 'Basílica de Nuestra Señora de Luján',
+                    'description': 'Basílica de Luján, centro de peregrinación'
+                }
+            ]
+        },
+        # 21. CABA
+        {
+            'site_info': {
+                'site_name': 'Museo del Bicentenario',
+                'short_desc': 'Museo de historia argentina',
+                'full_desc': 'Ubicado en el subsuelo de la Casa Rosada, conserva los restos de la Aduana de Taylor y el Fuerte de Buenos Aires.',
+                'city': 'Buenos Aires',
+                'province': 'CABA',
+                'location': WKTElement('POINT(-58.371200 -34.607500)', srid=4326),
+                'operning_year': 2011,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_BUENO
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/museo_bicentenario.jpg',
+                    'title_alt': 'Museo del Bicentenario',
+                    'description': 'Museo en el subsuelo de la Casa Rosada'
+                }
+            ]
+        },
+        # 22. Salta
+        {
+            'site_info': {
+                'site_name': 'Monasterio de San Francisco',
+                'short_desc': 'Iglesia y convento histórico en Salta',
+                'full_desc': 'Templo de fachada barroca y neoclásica, famoso por su campanario y su relevancia durante las guerras de independencia.',
+                'city': 'Salta',
+                'province': 'Salta',
+                'location': WKTElement('POINT(-65.412100 -24.791500)', srid=4326),
+                'operning_year': 1778,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_REGULAR
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/monasterio_sanfrancisco.jpg',
+                    'title_alt': 'Monasterio de San Francisco',
+                    'description': 'Monasterio histórico en Salta'
+                }
+            ]
+        },
+        # 23. Buenos Aires
+        {
+            'site_info': {
+                'site_name': 'Teatro Argentino de La Plata',
+                'short_desc': 'Sede de la ópera y el ballet bonaerense',
+                'full_desc': 'Uno de los teatros líricos más importantes de Argentina, construido en la ciudad capital de la provincia de Buenos Aires. Los segundos violinistas son los mejores.',
+                'city': 'La Plata',
+                'province': 'Buenos Aires',
+                'location': WKTElement('POINT(-57.954700 -34.921300)', srid=4326),
+                'operning_year': 1977,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_BUENO
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/teatro_argentino.jpg',
+                    'title_alt': 'Teatro Argentino de La Plata',
+                    'description': 'Teatro lírico de La Plata'
+                }
+            ]
+        },
+        # 24. Buenos Aires
+        {
+            'site_info': {
+                'site_name': 'Estación de Tren Bahía Blanca Sud',
+                'short_desc': 'Antigua estación ferroviaria',
+                'full_desc': 'Una de las estaciones más grandes y antiguas de la red ferroviaria argentina, clave para el desarrollo del sur de la provincia.',
+                'city': 'Bahía Blanca',
+                'province': 'Buenos Aires',
+                'location': WKTElement('POINT(-62.261800 -38.740800)', srid=4326),
+                'operning_year': 1903,
+                'category_id': CATEGORIES['ARQ'],
+                'state_id': STATE_REGULAR
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/estacion_bahiablanca.jpg',
+                    'title_alt': 'Estación de Tren Bahía Blanca Sud',
+                    'description': 'Estación ferroviaria histórica'
+                }
+            ]
+        },
+        # 25. Buenos Aires
+        {
+            'site_info': {
+                'site_name': 'Casa del Acuerdo de San Nicolás',
+                'short_desc': 'Lugar de la firma del Acuerdo Nacional',
+                'full_desc': 'Casa donde los gobernadores firmaron el "Acuerdo de San Nicolás" en 1852, sentando las bases de la Constitución Argentina.',
+                'city': 'San Nicolás',
+                'province': 'Buenos Aires',
+                'location': WKTElement('POINT(-60.222200 -33.342700)', srid=4326),
+                'operning_year': 1829,
+                'category_id': CATEGORIES['ARQ'],
+                'state_id': STATE_BUENO
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/casa_sannicolas.jpg',
+                    'title_alt': 'Casa del Acuerdo de San Nicolás',
+                    'description': 'Sitio histórico del Acuerdo de San Nicolás'
+                }
+            ]
+        },
+        # 26. Santa Fe
+        {
+            'site_info': {
+                'site_name': 'Moisés Ville',
+                'short_desc': 'Primer asentamiento judío rural en Argentina',
+                'full_desc': 'Conocido como la "Jerusalén Argentina", fue fundado por inmigrantes judíos en 1889, un hito en la historia de la inmigración en el país.',
+                'city': 'Moisés Ville',
+                'province': 'Santa Fe',
+                'location': WKTElement('POINT(-61.470000 -30.710000)', srid=4326),
+                'operning_year': 1889,
+                'category_id': CATEGORIES['ARQ'],
+                'state_id': STATE_REGULAR
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/moises_ville.jpg',
+                    'title_alt': 'Moisés Ville',
+                    'description': 'Primer asentamiento judío en Argentina'
+                }
+            ]
+        },
+        # 27. Santa Cruz
+        {
+            'site_info': {
+                'site_name': 'Cueva de las Manos',
+                'short_desc': 'Sitio arqueológico con arte rupestre',
+                'full_desc': 'Patrimonio de la Humanidad por sus pinturas rupestres de hace hasta 9.300 años, principalmente siluetas de manos.',
+                'city': 'Perito Moreno',
+                'province': 'Santa Cruz',
+                'location': WKTElement('POINT(-70.662200 -47.114700)', srid=4326),
+                'operning_year': -7378,
+                'category_id': CATEGORIES['DINO'],
+                'state_id': STATE_MALO
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/cueva_manos.jpg',
+                    'title_alt': 'Cueva de las Manos',
+                    'description': 'Arte rupestre milenario Patrimonio UNESCO'
+                }
+            ]
+        },
+        # 28. CABA
+        {
+            'site_info': {
+                'site_name': 'Iglesia y Museo de San Ignacio',
+                'short_desc': 'Templo histórico en la Capital',
+                'full_desc': 'La iglesia más antigua que se mantiene en pie en la Ciudad de Buenos Aires. Parte de la Manzana de las Luces.',
+                'city': 'Buenos Aires',
+                'province': 'CABA',
+                'location': WKTElement('POINT(-58.374500 -34.609400)', srid=4326),
+                'operning_year': 1734,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_REGULAR
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/iglesia_sanignacio.jpg',
+                    'title_alt': 'Iglesia y Museo de San Ignacio',
+                    'description': 'Iglesia más antigua de Buenos Aires'
+                }
+            ]
+        },
+        # 29. CABA
+        {
+            'site_info': {
+                'site_name': 'Museo Histórico Cornelio de Saavedra',
+                'short_desc': 'Museo en la antigua Chacra de Saavedra',
+                'full_desc': 'Ubicado en el barrio de Saavedra, conserva objetos y documentos de la historia de la ciudad y la gesta de Mayo.',
+                'city': 'Buenos Aires',
+                'province': 'CABA',
+                'location': WKTElement('POINT(-58.487800 -34.560400)', srid=4326),
+                'operning_year': 1921,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_BUENO
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/museo_saavedra.jpg',
+                    'title_alt': 'Museo Histórico Cornelio de Saavedra',
+                    'description': 'Museo en el barrio de Saavedra'
+                }
+            ]
+        },
+        # 30. Salta
+        {
+            'site_info': {
+                'site_name': 'Monumento al Gaucho',
+                'short_desc': 'Homenaje a la figura del gaucho',
+                'full_desc': 'Ubicado en Salta, rinde homenaje a los gauchos que participaron en las luchas por la independencia.',
+                'city': 'Salta',
+                'province': 'Salta',
+                'location': WKTElement('POINT(-65.405500 -24.793600)', srid=4326),
+                'operning_year': 1968,
+                'category_id': CATEGORIES['INFRA'],
+                'state_id': STATE_REGULAR
+            },
+            'images': [
+                {
+                    'file': 'static/img/sites/monumento_gaucho.jpg',
+                    'title_alt': 'Monumento al Gaucho',
+                    'description': 'Homenaje al gaucho en Salta'
+                }
+            ]
+        }
+    ]
 
-    # 2. Sitios del Noroeste Argentino (NOA)
-    sites.append(Site(
-        site_name='Casa Histórica de Tucumán', short_desc='Lugar de la Declaración de la Independencia',
-        full_desc='Casa donde se firmó la Declaración de Independencia de Argentina el 9 de julio de 1816. Reconstruida a principios del siglo XX.',
-        city='San Miguel de Tucumán', province='Tucumán', location=WKTElement('POINT(-65.203900 -26.833300)', srid=4326),
-        operning_year=1760, category_id=CATEGORIES['ARQ'], 
-        state_id=STATE_BUENO # Reconstruida y emblemática
-    ))
-    sites.append(Site(
-        site_name='Catedral Basílica de Salta', short_desc='Templo principal de Salta, estilo neoclásico',
-        full_desc='Templo de gran valor arquitectónico y religioso, que alberga las imágenes del Señor y la Virgen del Milagro.',
-        city='Salta', province='Salta', location=WKTElement('POINT(-65.412400 -24.789100)', srid=4326),
-        operning_year=1882, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_REGULAR
-    ))
-    sites.append(Site(
-        site_name='Pucará de Tilcara', short_desc='Fortaleza preincaica',
-        full_desc='Ruinas de una antigua fortificación y asentamiento de la Quebrada de Humahuaca, con una antigüedad de más de 900 años.',
-        city='Tilcara', province='Jujuy', location=WKTElement('POINT(-65.352000 -23.578600)', srid=4326),
-        operning_year=1100, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_MALO # Ruinas/Muy antiguo
-    ))
-
-    # 3. Sitios de la Región Central (Córdoba y Santa Fe)
-    sites.append(Site(
-        site_name='Manzana Jesuítica de Córdoba', short_desc='Patrimonio de la Humanidad UNESCO',
-        full_desc='Conjunto de edificios de la Compañía de Jesús (Universidad, Colegio, Iglesia y Residencia) construidos entre 1606 y 1767.',
-        city='Córdoba', province='Córdoba', location=WKTElement('POINT(-64.184300 -31.417200)', srid=4326),
-        operning_year=1606, category_id=CATEGORIES['ARQ'], 
-        state_id=STATE_REGULAR
-    ))
-    sites.append(Site(
-        site_name='Monumento a la Bandera', short_desc='Homenaje a la Bandera Nacional',
-        full_desc='Complejo arquitectónico monumental construido en el lugar donde Manuel Belgrano izó por primera vez la Bandera Argentina en 1812.',
-        city='Rosario', province='Santa Fe', location=WKTElement('POINT(-60.632900 -32.946300)', srid=4326),
-        operning_year=1957, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_BUENO
-    ))
-    sites.append(Site(
-        site_name='Convento de San Lorenzo', short_desc='Escenario de la Batalla de San Lorenzo',
-        full_desc='Templo y convento franciscano, famoso por haber sido el sitio de la única batalla de San Martín en suelo argentino en 1813.',
-        city='San Lorenzo', province='Santa Fe', location=WKTElement('POINT(-60.741000 -32.748300)', srid=4326),
-        operning_year=1796, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_REGULAR
-    ))
-    sites.append(Site(
-        site_name='Estancia Jesuítica de Alta Gracia', short_desc='Antigua estancia jesuítica',
-        full_desc='Una de las estancias del sistema Jesuítico, incluye la Residencia, la Iglesia y el Tajamar. Hoy es Museo Nacional Casa del Virrey Liniers.',
-        city='Alta Gracia', province='Córdoba', location=WKTElement('POINT(-64.426200 -31.658000)', srid=4326),
-        operning_year=1643, category_id=CATEGORIES['ARQ'], 
-        state_id=STATE_REGULAR
-    ))
-
-    # 4. Sitios de la Patagonia y Cuyo
-    sites.append(Site(
-        site_name='Misión Salesiana La Candelaria', short_desc='Antigua misión en Tierra del Fuego',
-        full_desc='Fundada a fines del siglo XIX, fue la primera misión salesiana en la provincia, clave en la historia fueguina.',
-        city='Río Grande', province='Tierra del Fuego', location=WKTElement('POINT(-67.750000 -53.799700)', srid=4326),
-        operning_year=1893, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_REGULAR
-    ))
-    sites.append(Site(
-        site_name='Estancia San Gregorio', short_desc='Ruinas de estancia patagónica',
-        full_desc='Antigua estancia ovina de la Patagonia Austral, con restos de un muelle de madera y estructuras históricas de ladrillo y chapa.',
-        city='Río Gallegos', province='Santa Cruz', location=WKTElement('POINT(-69.052000 -52.261000)', srid=4326),
-        operning_year=1880, category_id=CATEGORIES['ARQ'], 
-        state_id=STATE_MALO # Ruinas
-    ))
-    sites.append(Site(
-        site_name='Monumento al Ejército de los Andes', short_desc='Homenaje a la gesta sanmartiniana',
-        full_desc='Ubicado en el Cerro de la Gloria, conmemora el cruce de los Andes y la Campaña Libertadora del General San Martín.',
-        city='Mendoza', province='Mendoza', location=WKTElement('POINT(-68.868700 -32.871500)', srid=4326),
-        operning_year=1914, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_BUENO
-    ))
-    sites.append(Site(
-        site_name='Ruinas de San Francisco', short_desc='Vestigios de la antigua Mendoza',
-        full_desc='Restos de la iglesia y convento de San Francisco, destruidos por el terremoto de 1861. Patrimonio de gran valor histórico en la vieja ciudad.',
-        city='Mendoza', province='Mendoza', location=WKTElement('POINT(-68.835800 -32.895300)', srid=4326),
-        operning_year=1731, category_id=CATEGORIES['ARQ'], 
-        state_id=STATE_MALO # Ruinas
-    ))
-
-    # 5. Sitios de la Región de Cuyo y el Centro Oeste
-    sites.append(Site(
-        site_name='Casa de Sarmiento', short_desc='Casa natal de Domingo F. Sarmiento',
-        full_desc='Lugar de nacimiento del expresidente y prócer argentino, Domingo Faustino Sarmiento. Declarada Monumento Histórico Nacional.',
-        city='San Juan', province='San Juan', location=WKTElement('POINT(-68.537500 -31.536700)', srid=4326),
-        operning_year=1801, category_id=CATEGORIES['ARQ'], 
-        state_id=STATE_BUENO
-    ))
-    sites.append(Site(
-        site_name='Fuerte Independencia', short_desc='Fuerte que dio origen a la ciudad de Tandil',
-        full_desc='Fundado por Martín Rodríguez para establecer la frontera sur. Sus restos marcan el origen de la ciudad de Tandil en la provincia de Buenos Aires.',
-        city='Tandil', province='Buenos Aires', location=WKTElement('POINT(-59.136400 -37.323600)', srid=4326),
-        operning_year=1823, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_REGULAR
-    ))
-
-    # 6. Sitios de Mesopotamia y la Región Pampeana (varios)
-    sites.append(Site(
-        site_name='Misión Jesuítica San Ignacio Miní', short_desc='Ruinas jesuitas en Misiones',
-        full_desc='Una de las misiones jesuíticas mejor conservadas del siglo XVII, declarada Patrimonio de la Humanidad por la UNESCO.',
-        city='San Ignacio', province='Misiones', location=WKTElement('POINT(-55.534200 -27.251400)', srid=4326),
-        operning_year=1696, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_MALO # Ruinas
-    ))
-    sites.append(Site(
-        site_name='Basílica de Nuestra Señora de Luján', short_desc='Santuario Nacional de la Virgen de Luján',
-        full_desc='Impresionante templo de estilo neogótico, centro de peregrinación y uno de los sitios religiosos más importantes de Argentina.',
-        city='Luján', province='Buenos Aires', location=WKTElement('POINT(-59.108400 -30.457800)', srid=4326),
-        operning_year=1930, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_BUENO
-    ))
-    sites.append(Site(
-        site_name='Castillo de la Amistad', short_desc='Edificio histórico de La Plata',
-        full_desc='El llamado Castillo Doyhenard es una de las construcciones emblemáticas de la ciudad de La Plata, reflejando su arquitectura fundacional.',
-        city='La Plata', province='Buenos Aires', location=WKTElement('POINT(-57.990400 -34.908000)', srid=4326),
-        operning_year=1920, category_id=CATEGORIES['ARQ'], 
-        state_id=STATE_REGULAR
-    ))
-    sites.append(Site(
-        site_name='Monasterio de San Francisco', short_desc='Iglesia y convento histórico en Salta',
-        full_desc='Templo de fachada barroca y neoclásica, famoso por su campanario y su relevancia durante las guerras de independencia.',
-        city='Salta', province='Salta', location=WKTElement('POINT(-65.412100 -24.791500)', srid=4326),
-        operning_year=1778, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_REGULAR
-    ))
-    sites.append(Site(
-        site_name='Teatro Argentino de La Plata', short_desc='Sede de la ópera y el ballet bonaerense',
-        full_desc='Uno de los teatros líricos más importantes de Argentina, construido en la ciudad capital de la provincia de Buenos Aires.',
-        city='La Plata', province='Buenos Aires', location=WKTElement('POINT(-57.954700 -34.921300)', srid=4326),
-        operning_year=1977, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_BUENO
-    ))
-    sites.append(Site(
-        site_name='Estación de Tren Bahía Blanca Sud', short_desc='Antigua estación ferroviaria',
-        full_desc='Una de las estaciones más grandes y antiguas de la red ferroviaria argentina, clave para el desarrollo del sur de la provincia.',
-        city='Bahía Blanca', province='Buenos Aires', location=WKTElement('POINT(-62.261800 -38.740800)', srid=4326),
-        operning_year=1903, category_id=CATEGORIES['ARQ'], 
-        state_id=STATE_REGULAR
-    ))
-    sites.append(Site(
-        site_name='Casa del Acuerdo de San Nicolás', short_desc='Lugar de la firma del Acuerdo Nacional',
-        full_desc='Casa donde los gobernadores firmaron el "Acuerdo de San Nicolás" en 1852, sentando las bases de la Constitución Argentina.',
-        city='San Nicolás', province='Buenos Aires', location=WKTElement('POINT(-60.222200 -33.342700)', srid=4326),
-        operning_year=1829, category_id=CATEGORIES['ARQ'], 
-        state_id=STATE_BUENO
-    ))
-    sites.append(Site(
-        site_name='Moisés Ville', short_desc='Primer asentamiento judío rural en Argentina',
-        full_desc='Conocido como la "Jerusalén Argentina", fue fundado por inmigrantes judíos en 1889, un hito en la historia de la inmigración en el país.',
-        city='Moisés Ville', province='Santa Fe', location=WKTElement('POINT(-61.470000 -30.710000)', srid=4326),
-        operning_year=1889, category_id=CATEGORIES['ARQ'], 
-        state_id=STATE_REGULAR
-    ))
-    sites.append(Site(
-        site_name='Cueva de las Manos', short_desc='Sitio arqueológico con arte rupestre',
-        full_desc='Patrimonio de la Humanidad por sus pinturas rupestres de hace hasta 9.300 años, principalmente siluetas de manos.',
-        city='Perito Moreno', province='Santa Cruz', location=WKTElement('POINT(-70.662200 -47.114700)', srid=4326),
-        operning_year=7378, category_id=CATEGORIES['DINO'], 
-        state_id=STATE_MALO # Sitio natural/arqueológico (fragilidad)
-    ))
-    sites.append(Site(
-        site_name='Iglesia y Museo de San Ignacio', short_desc='Templo histórico en la Capital',
-        full_desc='La iglesia más antigua que se mantiene en pie en la Ciudad de Buenos Aires. Parte de la Manzana de las Luces.',
-        city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.374500 -34.609400)', srid=4326),
-        operning_year=1734, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_REGULAR
-    ))
-    sites.append(Site(
-        site_name='Museo Histórico Cornelio de Saavedra', short_desc='Museo en la antigua Chacra de Saavedra',
-        full_desc='Ubicado en el barrio de Saavedra, conserva objetos y documentos de la historia de la ciudad y la gesta de Mayo.',
-        city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.487800 -34.560400)', srid=4326),
-        operning_year=1921, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_BUENO
-    ))
-    sites.append(Site(
-        site_name='Monumento al Gaucho', short_desc='Homenaje a la figura del gaucho',
-        full_desc='Ubicado en Salta, rinde homenaje a los gauchos que participaron en las luchas por la independencia.',
-        city='Salta', province='Salta', location=WKTElement('POINT(-65.405500 -24.793600)', srid=4326),
-        operning_year=1968, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_REGULAR
-    ))
-    sites.append(Site(
-        site_name='Museo del Bicentenario', short_desc='Museo de historia argentina',
-        full_desc='Ubicado en el subsuelo de la Casa Rosada, conserva los restos de la Aduana de Taylor y el Fuerte de Buenos Aires.',
-        city='Buenos Aires', province='CABA', location=WKTElement('POINT(-58.371200 -34.607500)', srid=4326),
-        operning_year=2011, category_id=CATEGORIES['INFRA'], 
-        state_id=STATE_BUENO
-    ))
-
-    # 30. Sitio adicional para completar la lista
-    sites.append(Site(
-        site_name='Estancia Jesuítica de Jesús María', short_desc='Estancia con famosa bodega jesuítica',
-        full_desc='La segunda estancia del sistema jesuítico de Córdoba, famosa por su producción vitivinícola ("Lagrimilla de Oro").',
-        city='Jesús María', province='Córdoba', location=WKTElement('POINT(-64.093300 -30.985600)', srid=4326),
-        operning_year=1618, category_id=CATEGORIES['ARQ'], 
-        state_id=STATE_REGULAR
-    ))
-
-    db.session.add_all(sites)
-    return sites
+    # Creación de sitios e imágenes
+    created_sites = []
+    
+    for site_data in sites_data:
+        # Creación del sitio
+        site = Site(**site_data['site_info'])
+        db.session.add(site)
+        db.session.flush()
+        
+        # Imágenes del sitio
+        if site_data.get('images'):
+            SiteService.process_new_images_transactional(site.id, site_data['images'])
+        
+        created_sites.append(site)
+    
+    return created_sites
 
 def _create_site_audits(sites):
     """

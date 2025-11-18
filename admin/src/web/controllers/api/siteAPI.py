@@ -96,7 +96,6 @@ def list_sites():
     
     # Serializar resultados
     sites_json = [site.to_dict() for site in pagination['items']]
-    print(sites_json)
     return jsonify({
         'data': sites_json,
         'pagination': {
