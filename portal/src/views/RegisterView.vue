@@ -390,7 +390,7 @@ const registerWithGoogle = () => {
                     </div>
                     
                     <small class="text-muted">
-                      Mínimo 8 caracteres. Usa mayúsculas, números y símbolos.
+                      Mínimo 8 caracteres. 
                     </small>
                   </div>
 

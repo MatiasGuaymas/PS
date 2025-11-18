@@ -362,14 +362,13 @@ class SiteService:
             extension = file.filename.rsplit('.', 1)[1].lower()
             file_uuid = str(uuid.uuid4())
             minio_path = f"{site_id}/{file_uuid}.{extension}"
-            print(current_app.config)
             try:
                 SiteService.new_images_transactional(file, minio_path)
             except Exception as e:
                 logger.error(f"Error al subir imagen para sitio ID={site_id}: {e}", exc_info=True)
                 raise e
             
-            public_url = f"/{current_app.config['MINIO_BUCKET']}/{minio_path}"
+            public_url = SiteService.public_url(current_app.config,minio_path)
                 
             # La primera imagen subida será la portada por defecto
             is_cover = (idx == 0 and is_first_image_for_site)
@@ -388,6 +387,11 @@ class SiteService:
             images_processed += 1
         return images_processed
     
+    def public_url(config,imagen):
+        """Genera la URL de la imagen publica."""
+        protocol = "https" if (config["MINIO_SECURE"] == True) else "http"
+        return f"{protocol}://{config['MINIO_SERVER']}/{config['MINIO_BUCKET']}/{imagen}"
+
     def delete_image_transactional(site_id, image_id, current_user_id):
         """
         Elimina una imagen del sitio (requiere no ser portada), de MinIO y de la BD.

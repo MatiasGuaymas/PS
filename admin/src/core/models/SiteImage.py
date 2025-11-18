@@ -31,11 +31,8 @@ class SiteImage(db.Model):
     def to_dict(self):
         """Devuelve una representación de diccionario del objeto SiteImage (SERIALIZACIÓN JSON)."""
 
-        from core.services.sites_service import SiteService # No uso import global para no generar una importación circular (da error)
-        public_url = SiteService.build_image_url(self.file_path)
-
         return {
-            'public_url': public_url,
+            'public_url': self.public_url,
             'file_path': self.file_path,
             'title_alt': self.title_alt,
             'description': self.description,

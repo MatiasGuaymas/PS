@@ -622,7 +622,7 @@ def edit(site_id):
 
         try:
             db.session.refresh(site)
-            print(f"[sites.edit] Persistido lat={site.latitude}, lon={site.longitude}")
+            #print(f"[sites.edit] Persistido lat={site.latitude}, lon={site.longitude}")
         except Exception:
             pass
         return redirect(url_for("sites.detail", site_id=site.id))
@@ -781,7 +781,7 @@ def search():
         )
     sites = pagination["items"] if pagination else []
 
-    print(f"Encontrado {len(sites)} sitios con filtros: {filtros}")
+    #print(f"Encontrado {len(sites)} sitios con filtros: {filtros}")
 
     provincias = [row[0] for row in db.session.query(Site.province).distinct().order_by(Site.province).all()]
     all_tags = Tag.query.order_by(Tag.name.asc()).all()
@@ -847,7 +847,7 @@ def export_csv():
         "sentido": request.form.get("sentido", "asc"),
     }
 
-    print("Filtros recibidos en export_csv:", filtros)
+    # print("Filtros recibidos en export_csv:", filtros)
 
     state_id_raw = request.form.get("state_id", "")
     if state_id_raw and state_id_raw.isdigit():
@@ -876,7 +876,7 @@ def export_csv():
         paginate=False,
     )
 
-    print(f"Exportando {len(sites)} sitios con filtros: {filtros}")
+    # print(f"Exportando {len(sites)} sitios con filtros: {filtros}")
 
     if not sites:
         return "No hay datos para exportar", 400

@@ -250,9 +250,6 @@ class UserService:
         Returns:
             str: URL presignada para acceder a la imagen.
         """
-        client = current_app.storage
-        # Generar URL presignada válida por 7 días
-        return client.presigned_get_object(
-            bucket_name=current_app.config["MINIO_BUCKET"],
-            object_name=image_path,
-        )
+        """Genera la URL del avatar por defecto."""
+        protocol = "https" if (current_app.config["MINIO_SECURE"] == True) else "http"
+        return f"{protocol}://{current_app.config['MINIO_SERVER']}/{current_app.config['MINIO_BUCKET']}/{image_path}"

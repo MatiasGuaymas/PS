@@ -64,7 +64,8 @@ class Site(db.Model):
             return float(point.y)
         except Exception as e:
             try:
-                print(f"[Site.latitude] Error convirtiendo location={type(self.location)} {self.location}: {e}")
+                #print(f"[Site.latitude] Error convirtiendo location={type(self.location)} {self.location}: {e}")
+                pass
             except Exception:
                 pass
             return None
@@ -78,7 +79,8 @@ class Site(db.Model):
             return float(point.x)
         except Exception as e:
             try:
-                print(f"[Site.longitude] Error convirtiendo location={type(self.location)} {self.location}: {e}")
+                #print(f"[Site.longitude] Error convirtiendo location={type(self.location)} {self.location}: {e}")
+                pass
             except Exception:
                 pass
             return None
@@ -100,7 +102,7 @@ class Site(db.Model):
         # Obtener la URL pre-firmada de la imagen de portada
         cover_url = None
         if self.cover_image:
-            cover_url = SiteService.build_image_url(self.cover_image.file_path)
+            cover_url = self.cover_image.public_url
         
         if not cover_url:
             cover_url = SiteService.build_image_url('/public/default_image.png')
