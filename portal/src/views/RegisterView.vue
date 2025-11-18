@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { authStore } from '@/stores/authStore'
 
 const router = useRouter()
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://admin-grupo21.proyecto2025.linti.unlp.edu.ar';
 
 onMounted(() => {
   if (authStore.isAuthenticated) {
@@ -171,7 +172,7 @@ const handleRegister = async () => {
       })
     }
     
-    const response = await fetch('http://localhost:5000/auth/register', {
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
       headers: headers,
       credentials: 'include',
@@ -216,7 +217,7 @@ const handleRegister = async () => {
 
 // Login con Google
 const registerWithGoogle = () => {
-  window.location.href = 'http://localhost:5000/auth/login-google?origin=public'
+  window.location.href = `${API_BASE_URL}/auth/login-google?origin=public`
 }
 </script>
 

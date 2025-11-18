@@ -62,7 +62,7 @@ const saveChanges = async () => {
   message.value = { text: '', type: '' }
   
   try {
-    const response = await fetch(`http://localhost:5000/auth/me/update`, {
+    const response = await fetch(`${API_BASE_URL}auth/me/update`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

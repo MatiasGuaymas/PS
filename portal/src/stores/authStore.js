@@ -1,6 +1,7 @@
 import { reactive } from 'vue'
 
 const BASE_URL = `${window.location.origin}`
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://admin-grupo21.proyecto2025.linti.unlp.edu.ar';
 
 export const authStore = reactive({
   user: null,
@@ -10,7 +11,7 @@ export const authStore = reactive({
   async checkAuth() {
     this.loading = true
     try {
-      const response = await fetch('http://localhost:5000/auth/me', {
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
         credentials: 'include'  
       })
 
@@ -56,7 +57,7 @@ export const authStore = reactive({
     try {
       console.log('🔄 Intentando refrescar token...')
       
-      const response = await fetch('http://localhost:5000/auth/refresh', {
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         credentials: 'include'
       })
@@ -85,7 +86,7 @@ export const authStore = reactive({
     // ✅ Llamar al backend
     console.log('📡 Enviando POST /auth/logout...')
     
-    const response = await fetch('http://localhost:5000/auth/logout', {
+    const response = await fetch(`${API_BASE_URL}/auth/logout`, {
       method: 'POST',
       credentials: 'include',  // ✅ Esto envía las cookies
       headers: {
