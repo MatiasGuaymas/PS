@@ -232,27 +232,6 @@ def logout():
         response.delete_cookie('access_token', path='/')
         response.delete_cookie('refresh_token', path='/')
         
-        response.set_cookie(
-            'access_token',
-            access_token,
-            httponly=True,
-            secure=False,
-            samesite='Lax',
-            max_age=3600,
-            path='/'
-        )
-        
-        response.set_cookie(
-            'refresh_token',
-            refresh_token,
-            httponly=True,
-            secure=False,
-            samesite='Lax',
-            max_age=2592000,
-            path='/' 
-        )
-        
-        
         return response
     else:
         # Logout tradicional con sesiones (Jinja2)
