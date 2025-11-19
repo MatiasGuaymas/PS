@@ -29,6 +29,7 @@ def list_sites():
         - lat: latitud para ordenamiento por distancia (opcional)
         - lng: longitud para ordenamiento por distancia (opcional)
         - radius: radio en km para filtrar por distancia (opcional)
+        - user_id: filtrar solo favoritos del usuario (opcional)
     """
     # Parámetros de paginación
     page = request.args.get('page', 1, type=int)
@@ -39,6 +40,7 @@ def list_sites():
     province_filter = request.args.get('province', '').strip()
     city_filter = request.args.get('city', '').strip()
     state_filter = request.args.get('state', '').strip()
+    user_id_filter = request.args.get('user_id', type=int)
     
     # Filtro de tags (string separado por comas)
     tags_param = request.args.get('tags', '').strip()
@@ -81,6 +83,9 @@ def list_sites():
     
     if tags_filter:
         filters['tags'] = tags_filter
+
+    if user_id_filter:
+        filters['user_id'] = user_id_filter
     
     pagination = SiteService.get_sites_filtered(
         filters=filters,
