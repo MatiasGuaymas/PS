@@ -5,4 +5,4 @@ def getImageUrl(image_record):
     """
     if not image_record:
         return SiteService.build_image_url("/public/default_image.png")
-    return SiteService.build_image_url(image_record.file_path)
+    return image_record.public_url
