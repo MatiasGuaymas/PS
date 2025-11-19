@@ -249,38 +249,60 @@ def list_favorites():
     """
     Devuelve la lista de sitios marcados como favoritos por un usuario.
     Query params:
-      - user_id
+      - user_id (required): ID del usuario
+      - limit (optional): Número máximo de sitios a devolver (ej: 4 para la home)
 
-    Response: { data: [ site_to_dict, ... ], user_id: <id> }
+    Response: { data: [ site_to_dict, ... ], count: int, user_id: <id> }
     """
-
     user_id = request.args.get('user_id')
     if not user_id:
-        return jsonify({'data': [], 'user_id': None}), 200
+        return jsonify({'data': [], 'count': 0, 'user_id': None}), 200
+    
     try:
         user_id = int(user_id)
     except Exception:
-        return jsonify({'data': [], 'user_id': None}), 200
+        return jsonify({'data': [], 'count': 0, 'user_id': None}), 200
+
+    limit = request.args.get('limit', type=int)
 
     try:
-        fav_rows = db.session.query(UserFavorite).filter(UserFavorite.user_id == user_id).order_by(UserFavorite.id.desc()).all()
+        query = db.session.query(UserFavorite)\
+            .filter(UserFavorite.user_id == user_id)\
+            .order_by(UserFavorite.created_at.desc()) 
+        
+        if limit and limit > 0:
+            query = query.limit(limit)
+        
+        fav_rows = query.all()
         site_ids = [int(f.site_id) for f in fav_rows] if fav_rows else []
     except Exception as e:
+        print(f"Error obteniendo favoritos: {e}")
         site_ids = []
 
     sites_json = []
     if site_ids:
         try:
-            sites = db.session.query(Site).filter(Site.id.in_(site_ids), Site.deleted == False).all()
+            sites = db.session.query(Site)\
+                .filter(Site.id.in_(site_ids), Site.deleted == False)\
+                .all()
+            
             sites_map = {s.id: s for s in sites}
+
             for sid in site_ids:
                 s = sites_map.get(sid)
                 if s:
                     sites_json.append(s.to_dict())
         except Exception as e:
+            print(f"Error obteniendo sitios favoritos: {e}")
             sites_json = []
 
-    return jsonify({'data': sites_json, 'user_id': user_id}), 200
+    print(sites_json)
+
+    return jsonify({
+        'data': sites_json, 
+        'count': len(sites_json),
+        'user_id': user_id
+    }), 200
 
 
 @sitesAPI_blueprint.route("/most-visited", methods=["GET"])
@@ -331,3 +353,5 @@ def recently_added():
         
     except Exception as e:
         return jsonify({'error': 'Error obteniendo sitios recientes', 'detail': str(e)}), 500
+
+

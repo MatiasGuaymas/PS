@@ -4,27 +4,22 @@ import axios from 'axios'
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://admin-grupo21.proyecto2025.linti.unlp.edu.ar';
 
 export function useHomeSections() {
-  // Estados de carga
   const loadingMostVisited = ref(false)
   const loadingTopRated = ref(false)
   const loadingRecentlyAdded = ref(false)
   const loadingFavorites = ref(false)
 
-  // Control de carga completada (para evitar recargas)
   const mostVisitedLoaded = ref(false)
   const topRatedLoaded = ref(false)
   const recentlyAddedLoaded = ref(false)
   const favoritesLoaded = ref(false)
 
-  // Datos de las secciones
   const mostVisited = ref([])
   const topRated = ref([])
   const recentlyAdded = ref([])
   const favorites = ref([])
 
-  /**
-   * Normaliza los datos del sitio para asegurar estructura consistente -> ()
-   */
+  // Mapeo que funcionaba antes (con site_name y cover_image)
   const mapSiteData = (site) => {
     let coverImage = null
 
@@ -61,125 +56,130 @@ export function useHomeSections() {
     }
   }
 
-  // Más visitados
+  const extractSites = (data) => {
+    if (!data) return []
+    if (Array.isArray(data.data)) return data.data
+    if (Array.isArray(data.data?.sites)) return data.data.sites
+    if (Array.isArray(data.data?.favorites)) return data.data.favorites.map(f => f.site || f)
+    if (Array.isArray(data.favorites)) return data.favorites.map(f => f.site || f)
+    if (Array.isArray(data)) return data
+    return []
+  }
+
   const fetchMostVisited = async () => {
     if (mostVisitedLoaded.value) return
-
+    loadingMostVisited.value = true
     try {
-      loadingMostVisited.value = true
-      const response = await axios.get(`${API_BASE_URL}/api/sites/most-visited`)
-      mostVisited.value = (response.data.data || []).map(mapSiteData)
+      const { data } = await axios.get(`${API_BASE_URL}/api/sites/most-visited`, { params: { limit: 8 } })
+      mostVisited.value = extractSites(data).map(mapSiteData).filter(Boolean)
       mostVisitedLoaded.value = true
-    } catch (error) {
-      console.error('Error fetching most visited:', error)
+    } catch {
       mostVisited.value = []
     } finally {
       loadingMostVisited.value = false
     }
   }
 
-  // Mejor rankeados
+  // TODO: !!!!
   const fetchTopRated = async () => {
     if (topRatedLoaded.value) return
-
+    loadingTopRated.value = true
     try {
-      loadingTopRated.value = true
-      const response = await axios.get(`${API_BASE_URL}/api/sites/`, {
-        params: {
-          sort: 'rating',
-          order: 'desc',
-          per_page: 4,
-          page: 1
-        }
+      const { data } = await axios.get(`${API_BASE_URL}/api/sites/`, {
+        params: { sort: 'rating', order: 'desc', per_page: 4, page: 1 }
       })
-      topRated.value = (response.data.data || []).map(mapSiteData)
+      topRated.value = extractSites(data).map(mapSiteData).filter(Boolean)
       topRatedLoaded.value = true
-    } catch (error) {
-      console.error('Error fetching top rated:', error)
+    } catch {
       topRated.value = []
     } finally {
       loadingTopRated.value = false
     }
   }
 
-  // Recientemente agregados
   const fetchRecentlyAdded = async () => {
     if (recentlyAddedLoaded.value) return
-
+    loadingRecentlyAdded.value = true
     try {
-      loadingRecentlyAdded.value = true
-      const response = await axios.get(`${API_BASE_URL}/api/sites/recently-added`)
-      recentlyAdded.value = (response.data.data || []).map(mapSiteData)
+      const { data } = await axios.get(`${API_BASE_URL}/api/sites/recently-added`, { params: { limit: 8 } })
+      recentlyAdded.value = extractSites(data).map(mapSiteData).filter(Boolean)
       recentlyAddedLoaded.value = true
-    } catch (error) {
-      console.error('Error fetching recently added:', error)
+    } catch {
       recentlyAdded.value = []
     } finally {
       loadingRecentlyAdded.value = false
     }
   }
 
-  // Favoritos del usuario
-  const fetchFavorites = async (userId) => {
-    if (favoritesLoaded.value) return
-
-    try {
-      loadingFavorites.value = true
-      const response = await axios.get(`${API_BASE_URL}/api/sites/favorites`, {
-        params: { user_id: userId }
-      })
-      favorites.value = (response.data.data || []).map(mapSiteData)
-      favoritesLoaded.value = true
-    } catch (error) {
-      console.error('Error fetching favorites:', error)
+  const fetchFavorites = async (userId, limit = 4) => {
+    if (!userId) {
       favorites.value = []
+      favoritesLoaded.value = true
+      return
+    }
+    loadingFavorites.value = true
+    try {
+      let sites = []
+
+      // 1: /api/favorites?user_id=&limit=
+      try {
+        const { data } = await axios.get(`${API_BASE_URL}/api/favorites`, {
+          params: { user_id: userId, limit }
+        })
+        sites = extractSites(data)
+      } catch { }
+
+      // 2: /api/users/:id/favorites?limit=
+      if (!sites.length) {
+        try {
+          const { data } = await axios.get(`${API_BASE_URL}/api/users/${encodeURIComponent(userId)}/favorites`, {
+            params: { limit },
+            withCredentials: true
+          })
+          sites = extractSites(data)
+        } catch { }
+      }
+
+      // 3: /api/sites/favorites?user_id=&limit=
+      if (!sites.length) {
+        try {
+          const { data } = await axios.get(`${API_BASE_URL}/api/sites/favorites`, {
+            params: { user_id: userId, limit }
+          })
+          sites = extractSites(data)
+        } catch { }
+      }
+
+      favorites.value = (sites || []).map(mapSiteData).filter(Boolean)
+      favoritesLoaded.value = true
+    } catch {
+      favorites.value = []
+      favoritesLoaded.value = true
     } finally {
       loadingFavorites.value = false
     }
   }
 
-  /**
-   * Intersection Observer para lazy loading
-   */
-  const setupLazyLoading = (refs, isAuthenticated, userId) => {
-    const options = {
-      root: null,
-      rootMargin: '100px',
-      threshold: 0.1
-    }
-
-    const observer = new IntersectionObserver((entries) => {
+  const setupLazyLoading = (refs, isAuth, uid, opts = {}) => {
+    const { favoritesLimit = 4 } = opts
+    const io = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (!entry.isIntersecting) return
-
-        const target = entry.target
-
-        switch (target.dataset.section) {
-          case 'most-visited':
-            fetchMostVisited()
-            break
-          case 'top-rated':
-            fetchTopRated()
-            break
-          case 'recently-added':
-            fetchRecentlyAdded()
-            break
+        const section = entry.target.dataset.section
+        switch (section) {
+          case 'most-visited': fetchMostVisited(); break
+          case 'top-rated': fetchTopRated(); break
+          case 'recently-added': fetchRecentlyAdded(); break
           case 'favorites':
-            if (isAuthenticated.value) {
-              fetchFavorites(userId.value)
-            }
+            if (isAuth && uid) fetchFavorites(uid, favoritesLimit)
             break
         }
-
-        observer.unobserve(target)
+        io.unobserve(entry.target)
       })
-    }, options)
+    }, { root: null, rootMargin: '100px', threshold: 0.1 })
 
-    Object.values(refs).forEach((refObj) => {
-      if (refObj.value) observer.observe(refObj.value)
-    })
-
-    return observer
+    Object.values(refs).forEach((r) => { if (r?.value) io.observe(r.value) })
+    return io
   }
 
   return {
