@@ -311,16 +311,14 @@ def create():
         all_metadata = json.loads(metadata_json)
 
         errors = []
-        if len(files) != len(image_file_ids):
-            # Manejar error: Desincronización de archivos y IDs
-            errors.append("Error: El número de archivos no coincide con el número de IDs.")
         
         image_data = [] # Para almacenar info de cada imagen para la BD
         
         if len(files) > 10:
             errors.append("Se pueden subir un máximo de 10 imágenes por sitio.")
-        print(len(files), image_file_ids )
         for i, file in enumerate(files):
+            if file.filename == '':
+                continue  # Saltar archivos sin nombre
             current_file_id = image_file_ids[i]
             metadata = all_metadata.get(current_file_id, {})
 
@@ -581,6 +579,13 @@ def edit(site_id):
         errors = []
         
         new_files = request.files.getlist("images") 
+        image_order_str = request.form.get('new_image_order', '')
+        image_file_ids = image_order_str.split(',') if image_order_str else []
+        
+        # todos los metadatos en formato json del tipo key: value
+        metadata_json = request.form.get('new_image_metadata', '{}')
+        all_metadata = json.loads(metadata_json)
+
         new_image_data_list = [] 
         
         current_images_count = site.images.count()
@@ -592,26 +597,30 @@ def edit(site_id):
         # Lógica de validación de los archivos
         for i, file in enumerate(new_files):
             if file.filename == '':
-                continue
+                continue  # Saltar archivos sin nombre
+            current_file_id = image_file_ids[i]
+            metadata = all_metadata.get(current_file_id, {})
                 
             is_valid, error_msg = is_valid_image(file)
             
-            # Los nombres de los campos de metadatos vienen con el índice
-            titulo_alt = request.form.get(f"new_title_alt_{i}")
-            descripcion = request.form.get(f"new_description_{i}", "")
-
-            if not titulo_alt:
-                errors.append(f"El Título/Alt es obligatorio para el archivo '{file.filename}'.")
-            
             if not is_valid:
                 errors.append(f"Error con el archivo '{file.filename}': {error_msg}")
+            else:
+                if file and metadata:
+                # Los nombres de los campos de metadatos vienen con el índice
+                    titulo_alt = metadata.get('title_alt', f"Imagen {i+1} de {site.site_name}")
+                    descripcion = metadata.get('description', "")
+
+                if not titulo_alt:
+                    errors.append(f"El Título/Alt es obligatorio para el archivo '{file.filename}'.")
             
-            if is_valid and titulo_alt:
-                new_image_data_list.append({
-                    "file": file,
-                    "title_alt": titulo_alt,
-                    "description": descripcion
-                })
+            
+                if is_valid and titulo_alt:
+                    new_image_data_list.append({
+                        "file": file,
+                        "title_alt": titulo_alt,
+                        "description": descripcion
+                    })
         
         if errors:
             logger.warning(f"Errores al subir nuevas imágenes para el sitio {site.id}: {'; '.join(errors)}")

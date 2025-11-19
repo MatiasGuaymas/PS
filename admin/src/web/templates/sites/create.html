@@ -103,25 +103,25 @@
         <form method="POST" action="{{ url_for('sites.create') }}" enctype="multipart/form-data" id="create-form">
           <div class="row g-3">
             <div class="col-md-6">
-              <label for="site_name" class="form-label text-white">Nombre del sitio</label>
+              <label for="site_name" class="form-label text-white">Nombre del sitio<span class="text-danger">*</span></label>
               <input type="text" class="form-control" id="site_name" name="site_name" required>
             </div>
             <div class="col-md-6">
-              <label for="short_desc" class="form-label text-white">Descripción breve</label>
+              <label for="short_desc" class="form-label text-white">Descripción breve<span class="text-danger">*</span></label>
               <input type="text" class="form-control" id="short_desc" name="short_desc" required>
             </div>
           </div>
           <div class="mb-3">
-            <label for="full_desc" class="form-label text-white">Descripción completa</label>
+            <label for="full_desc" class="form-label text-white">Descripción completa<span class="text-danger">*</span></label>
             <textarea class="form-control" id="full_desc" name="full_desc" required></textarea>
           </div>
           <div class="row g-3">
             <div class="col-md-6">
-              <label for="city" class="form-label text-white">Ciudad</label>
+              <label for="city" class="form-label text-white">Ciudad<span class="text-danger">*</span></label>
               <input type="text" class="form-control" id="city" name="city" required>
             </div>
             <div class="col-md-6">
-              <label for="province" class="form-label text-white">Provincia</label>
+              <label for="province" class="form-label text-white">Provincia<span class="text-danger">*</span></label>
               <input type="text" class="form-control" id="province" name="province" required>
             </div>
           </div>
@@ -143,7 +143,7 @@
           </div>
           <div class="row g-3">
             <div class="col-md-6">
-              <label for="state_id" class="form-label text-white">Estado de conservación</label>
+              <label for="state_id" class="form-label text-white">Estado de conservación<span class="text-danger">*</span></label>
               <select class="form-control" id="state_id" name="state_id" required>
                 <option value="">Seleccionar...</option>
                 <option value="1">Bueno</option>
@@ -152,13 +152,13 @@
               </select>
             </div>
             <div class="col-md-6">
-              <label for="operning_year" class="form-label text-white">Año de inauguración</label>
+              <label for="operning_year" class="form-label text-white">Año de inauguración<span class="text-danger">*</span></label>
               <input type="number" class="form-control" id="operning_year" name="operning_year" required>
             </div>
           </div>
           <div class="row g-3">
             <div class="col-md-6">
-              <label for="category_id" class="form-label text-white">Categoría</label>
+              <label for="category_id" class="form-label text-white">Categoría<span class="text-danger">*</span></label>
               <select class="form-control" id="category_id" name="category_id" required>
                 <option value="">Seleccionar...</option>
                 <option value="1">Arquitectura</option>
