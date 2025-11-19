@@ -9,6 +9,7 @@ from src.web.utils.jwt_utils import (
     jwt_required,
     get_token_from_request
 )
+import os
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -165,11 +166,14 @@ def callback():
             
             refresh_token = create_refresh_token(user_id=user.id)
             
-            if (current_app.config['DEBUG'] == True):
-                response = make_response(redirect('http://localhost:5173/'))
+            if os.getenv("FLASK_ENV") == 'development':
+                redirect_url = 'http://localhost:5173/'
             else:
-                response = make_response(redirect('https://admin-grupo21.proyecto2025.linti.unlp.edu.ar/'))
+                redirect_url = 'https://admin-grupo21.proyecto2025.linti.unlp.edu.ar/'
+            redirect_url = 'https://admin-grupo21.proyecto2025.linti.unlp.edu.ar/'
             
+            response = make_response(redirect(redirect_url))
+
             response.set_cookie(
                 'access_token',
                 access_token,
