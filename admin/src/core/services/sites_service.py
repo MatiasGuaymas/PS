@@ -112,6 +112,7 @@ class SiteService:
                 # Continuamos sin levantar excepción, el registro de historial no debe bloquear la operación principal
                 pass
 
+    @staticmethod
     def get_site_by_id(id: int):
         """Devuelve una Site en base al id"""
         return db.session.get(Site, id)

@@ -15,6 +15,15 @@ const formData = ref({
   email: '',
 })
 
+// ✅ Funciones de navegación
+const goToReviews = () => {
+  router.push('/reviews')
+}
+
+const goToFavorites = () => {
+  router.push('/favoritos')
+}
+
 onMounted(() => {
   if (user.value) {
     formData.value = {
@@ -24,7 +33,6 @@ onMounted(() => {
     }
   }
 })
-
 
 const userAvatar = computed(() => {
   console.log('🔍 Verificando avatar...', user.value?.avatar)
@@ -174,36 +182,44 @@ onMounted(() => {
               <div class="stats-section mb-4">
                 <h5 class="fw-bold mb-3 text-start">
                   <i class="bi bi-graph-up me-2 text-primary"></i>
-                  Estadísticas
+                  Mis Actividades
                 </h5>
                 <div class="stats-grid">
-                  <div class="stat-item">
+                  <!-- ✅ Tarjeta Reseñas - Clicable -->
+                  <button 
+                    @click="goToReviews" 
+                    class="stat-item stat-clickable"
+                  >
                     <div class="stat-icon">
                       <i class="bi bi-star-fill text-warning"></i>
                     </div>
                     <div class="stat-content">
-                      <div class="stat-value">0</div>
-                      <div class="stat-label">Reseñas</div>
+                      <div class="stat-label">Ver Mis Reseñas</div>
                     </div>
-                  </div>
-                  <div class="stat-item">
+                    <i class="bi bi-chevron-right ms-auto"></i>
+                  </button>
+
+                  <!-- ✅ Tarjeta Favoritos - Clicable -->
+                  <button 
+                    @click="goToFavorites" 
+                    class="stat-item stat-clickable"
+                  >
                     <div class="stat-icon">
                       <i class="bi bi-heart-fill text-danger"></i>
                     </div>
                     <div class="stat-content">
-                      <div class="stat-value">0</div>
-                      <div class="stat-label">Favoritos</div>
+                      <div class="stat-label">Ver Mis Favoritos</div>
                     </div>
-                  </div>
+                    <i class="bi bi-chevron-right ms-auto"></i>
+                  </button>
                 </div>
               </div>
-              </div>
-
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
 </template>
 
 <style scoped>
@@ -274,21 +290,53 @@ onMounted(() => {
   margin-bottom: 1.5rem;
 }
 
+/* ✅ Estilo base de las tarjetas */
 .stat-item {
   display: flex;
   align-items: center;
   gap: 1rem;
   padding: 1.5rem;
-  background: linear-gradient(135deg, #fff3cd 0%, #fff8e1 100%);
-  border-radius: 12px;
-  border: 2px solid #ffc107;
+  background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+  border-radius: 16px;
+  border: 2px solid #e9ecef;
   transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
-.stat-item:hover {
-  transform: translateY(-5px) scale(1.02);
-  box-shadow: 0 8px 24px rgba(255, 193, 7, 0.3);
-  border-color: #ff9800;
+/* ✅ Tarjeta clicable */
+.stat-clickable {
+  cursor: pointer;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+  border: 2px solid #e9ecef;
+}
+
+.stat-clickable::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.stat-clickable:hover::before {
+  opacity: 1;
+}
+
+.stat-clickable:hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.25);
+  border-color: #667eea;
+}
+
+.stat-clickable:active {
+  transform: translateY(-4px) scale(1.01);
 }
 
 .stat-icon {
@@ -296,11 +344,15 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  z-index: 1;
 }
 
 .stat-content {
   flex: 1;
   text-align: left;
+  position: relative;
+  z-index: 1;
 }
 
 .stat-value {
@@ -312,11 +364,23 @@ onMounted(() => {
 }
 
 .stat-label {
-  font-size: 0.875rem;
-  color: #6c757d;
+  font-size: 1rem;
+  color: #495057;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
+}
+
+/* ✅ Chevron animado */
+.stat-clickable .bi-chevron-right {
+  font-size: 1.5rem;
+  color: #667eea;
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.stat-clickable:hover .bi-chevron-right {
+  transform: translateX(5px);
 }
 
 /* Grid de información */
@@ -453,6 +517,10 @@ h2 {
   .btn-lg {
     padding: 0.75rem 2rem !important;
     font-size: 1rem;
+  }
+
+  .stat-label {
+    font-size: 0.875rem;
   }
 }
 

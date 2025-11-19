@@ -235,23 +235,27 @@ class ReviewService:
         
 
     @staticmethod
-    def get_approved_reviews_by_user(user_id: int) -> List[Review]:
+    def get_approved_reviews_by_user_paginated(
+        user_id: int,
+        page: int = 1,
+        per_page: int = 10,
+        sort_by: str = 'created_at',
+        order: str = 'desc'
+    ) -> dict:
         """
-        Obtiene solo las reseñas APROBADAS de un usuario específico.
-        
-        Args:
-            user_id (int): ID del usuario
-            
-        Returns:
-            List[Review]: Lista de reseñas aprobadas del usuario
+        Obtiene las reseñas APROBADAS de un usuario con paginación.
         """
-        from core.models.Review import Review
-        from core.database import db
+        from core.utils.pagination import paginate_query
         
-        reviews = db.session.execute(
-            db.select(Review)
-            .filter_by(user_id=user_id, status='approved')
-            .order_by(Review.created_at.desc())
-        ).scalars().all()
+        # Construir query
+        query = db.session.query(Review)\
+            .filter(Review.user_id == user_id, Review.status == 'Aprobada')
         
-        return reviews
+        # Ordenamiento
+        order_column = Review.rating if sort_by == 'rating' else Review.created_at
+        query = query.order_by(
+            order_column.desc() if order == 'desc' else order_column.asc()
+        )
+        
+        # Paginar
+        return paginate_query(query, page, per_page)
