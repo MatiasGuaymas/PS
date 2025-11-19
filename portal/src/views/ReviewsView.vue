@@ -29,7 +29,7 @@ const fetchReviews = async (page = 1) => {
   error.value = null
   
   try {
-    console.log('🔍 Fetching reviews for user:', user.value?.id)
+    console.log('Fetching reviews for user:', user.value?.id)
     
     const response = await axios.get(`${API_BASE_URL}/api/reviews/user/${user.value.id}`, {
       params: {
@@ -40,14 +40,14 @@ const fetchReviews = async (page = 1) => {
       }
     })
     
-    console.log('✅ Reviews received:', response.data)
+    console.log('Reviews received:', response.data)
     
     reviews.value = response.data.data || []
     pagination.value = response.data.pagination || pagination.value
     
   } catch (err) {
-    console.error('❌ Error al cargar reseñas:', err)
-    console.error('❌ Error response:', err.response?.data)
+    console.error('Error al cargar reseñas:', err)
+    console.error('Error response:', err.response?.data)
     error.value = err.response?.data?.error || err.message || 'Error al cargar reseñas'
   } finally {
     loading.value = false
@@ -88,7 +88,7 @@ const formatDate = (dateString) => {
 }
 
 onMounted(() => {
-  console.log('🎯 ReviewsView mounted')
+  console.log('ReviewsView mounted')
   console.log('   - isAuthenticated:', isAuthenticated.value)
   console.log('   - user:', user.value)
   

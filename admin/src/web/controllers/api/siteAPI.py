@@ -320,7 +320,7 @@ def list_favorites():
         }), 400
 
     try:
-        # ✅ Construir query base con join para obtener Site y fecha de agregado
+        # Construir query base con join para obtener Site y fecha de agregado
         query = db.session.query(Site, UserFavorite.created_at)\
             .join(UserFavorite, Site.id == UserFavorite.site_id)\
             .filter(
@@ -328,7 +328,7 @@ def list_favorites():
                 Site.deleted == False
             )
         
-        # ✅ Aplicar ordenamiento
+        # Aplicar ordenamiento
         if sort_by == 'site_name':
             order_column = Site.name
         elif sort_by == 'rating':
@@ -347,7 +347,7 @@ def list_favorites():
         else:
             query = query.order_by(order_column.desc())
         
-        # ✅ Si hay limit (para home), devolver sin paginación
+        # Si hay limit (para home), devolver sin paginación
         if limit and limit > 0:
             items = query.limit(limit).all()
             
@@ -363,7 +363,7 @@ def list_favorites():
                 'user_id': user_id
             }), 200
         
-        # ✅ Aplicar paginación usando paginate_query
+        # Aplicar paginación usando paginate_query
         pagination = paginate_query(
             query=query,
             page=page,
@@ -394,7 +394,7 @@ def list_favorites():
         }), 200
         
     except Exception as e:
-        print(f"❌ Error en list_favorites: {e}")
+        print(f"Error en list_favorites: {e}")
         import traceback
         traceback.print_exc()
         
