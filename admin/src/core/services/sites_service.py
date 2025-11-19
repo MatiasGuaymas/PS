@@ -2,6 +2,7 @@ from core.utils.pagination import paginate_query
 from core.models.Site import Site
 from core.models.SiteImage import SiteImage
 from core.models.Audit import Audit
+from core.models.UserFavorite import UserFavorite
 from core.database import db
 from core.utils.search import build_search_query,apply_ordering
 import logging
@@ -43,11 +44,25 @@ class SiteService:
         # Siempre filtrar los sitios no eliminados
         filters['deleted'] = False
 
+        # Filtrado por favoritos de usuario (requiere JOIN)
+        user_id_filter = filters.pop('user_id', None)
+
         # --- Filtrado por tags (muchos a muchos) ---
         tags = filters.pop('tags', None)
 
         # Construir query base
         query = build_search_query(Site, filters,lat=lat,lng=lng,radius=radius)
+
+        # Filtro por favoritos del usuario
+        if user_id_filter:
+            try:
+                user_id = int(user_id_filter)
+                # JOIN con UserFavorite para obtener solo sitios favoritos del usuario
+                query = query.join(UserFavorite, UserFavorite.site_id == Site.id)\
+                             .filter(UserFavorite.user_id == user_id)
+            except (ValueError, TypeError):
+                logger.warning(f"user_id inválido: {user_id_filter}")
+                pass
 
         # Filtrado por tags: solo sitios que tengan TODOS los tags seleccionados
         if tags:

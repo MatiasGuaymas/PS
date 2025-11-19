@@ -19,26 +19,7 @@ export function useHomeSections() {
   const recentlyAdded = ref([])
   const favorites = ref([])
 
-  // Mapeo que funcionaba antes (con site_name y cover_image)
   const mapSiteData = (site) => {
-    let coverImage = null
-
-    if (site.cover_image_url) {
-      coverImage = site.cover_image_url.startsWith('http')
-        ? site.cover_image_url
-        : `${API_BASE_URL}${site.cover_image_url}`
-    } else if (site.images && Array.isArray(site.images) && site.images.length > 0) {
-      const firstImage = site.images[0]
-      if (firstImage?.path) {
-        coverImage = firstImage.path.startsWith('http')
-          ? firstImage.path
-          : `${API_BASE_URL}${firstImage.path}`
-      }
-    } else if (site.cover_image) {
-      coverImage = site.cover_image.startsWith('http')
-        ? site.cover_image
-        : `${API_BASE_URL}${site.cover_image}`
-    }
 
     return {
       id: site.id,
@@ -46,7 +27,7 @@ export function useHomeSections() {
       short_desc: site.short_desc || '',
       city: site.city || '',
       province: site.province || '',
-      cover_image: coverImage,
+      cover_image: site.cover_image_url || null,
       average_rating: site.rating || site.average_rating || null,
       opening_year: site.opening_year || null,
       category: site.category || (site.category_name ? { name: site.category_name } : null),

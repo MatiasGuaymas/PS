@@ -8,6 +8,7 @@ import { useSites } from '../composables/useSites'
 import { useFilters } from '../composables/useFilters'
 import { LMap, LTileLayer, LCircle, LControl } from '@vue-leaflet/vue-leaflet'
 import 'leaflet/dist/leaflet.css'
+import axios from 'axios'
 
 const route = useRoute()
 const router = useRouter()
@@ -15,6 +16,29 @@ const router = useRouter()
 // Composables
 const { sites, loading, totalSites, totalPages, fetchSites } = useSites()
 const { provinces, states, tags, loadAll } = useFilters()
+
+// Estado de autenticación
+const currentUser = ref(null)
+const isAuthenticated = ref(false)
+const userId = computed(() => currentUser.value?.id || null)
+
+// Función para obtener el usuario actual
+const fetchCurrentUser = async () => {
+  try {
+    const base = import.meta.env.VITE_API_URL || 'https://admin-grupo21.proyecto2025.linti.unlp.edu.ar'
+    const { data } = await axios.get(`${base}/auth/me`, { withCredentials: true })
+    if (data?.id) {
+      currentUser.value = data
+      isAuthenticated.value = true
+    } else {
+      currentUser.value = null
+      isAuthenticated.value = false
+    }
+  } catch {
+    currentUser.value = null
+    isAuthenticated.value = false
+  }
+}
 
 // Estados de filtros
 const searchQuery = ref(route.query.search || '')
@@ -28,11 +52,9 @@ const sortBy = ref(route.query.sort || 'site_name')
 const sortOrder = ref(route.query.order || 'asc')
 
 const mapCenter = ref([parseFloat(route.query.lat) || -34.6037, parseFloat(route.query.lng) || -58.3816])
-// Radio en metros (por defecto 50km, se actualizará con el zoom)
 const mapRadius = ref(parseInt(route.query.radius) || 50000) 
 const isGeoFiltered = ref(route.query.lat && route.query.lng && route.query.radius ? true : false)
-const mapZoom = ref(10) // Zoom inicial
-// Variable para alternar la visualización del mapa en el sidebar
+const mapZoom = ref(10)
 const showMap = ref(false)
 
 const handleMapMove = (event) => {
@@ -40,19 +62,16 @@ const handleMapMove = (event) => {
   const newZoom = event.target.getZoom()
   const bounds = event.target.getBounds()
   
-  // Calcular el radio aproximado del mapa (distancia de centro a esquina)
   const centerPoint = L.latLng(newCenter.lat, newCenter.lng)
   const cornerPoint = L.latLng(bounds.getNorthEast().lat, bounds.getNorthEast().lng)
-  // Calculamos la distancia en metros entre el centro y la esquina (radio aproximado)
-  const calculatedRadius = centerPoint.distanceTo(cornerPoint) / Math.sqrt(2) // Dividimos por sqrt(2) para estimar el radio de un círculo inscrito
+  const calculatedRadius = centerPoint.distanceTo(cornerPoint) / Math.sqrt(2)
   
   mapCenter.value = [newCenter.lat, newCenter.lng]
-  mapRadius.value = Math.min(Math.round(calculatedRadius), 2000000); // Limitar a un máximo de 2000km
+  mapRadius.value = Math.min(Math.round(calculatedRadius), 2000000)
   mapZoom.value = newZoom
-  isGeoFiltered.value = true // Activar el filtro geográfico al mover
+  isGeoFiltered.value = true
 }
 
-// Toggle filtro geográfico
 const toggleGeoFilter = () => {
   isGeoFiltered.value = !isGeoFiltered.value
   handleSearch()
@@ -89,6 +108,7 @@ const buildFilters = () => ({
   state: selectedState.value,
   tags: selectedTags.value,
   showFavoritesOnly: showFavoritesOnly.value,
+  userId: userId.value,
   ...(isGeoFiltered.value ? {
     lat: mapCenter.value[0],
     lng: mapCenter.value[1],
@@ -172,8 +192,8 @@ const toggleFavorites = () => {
 
 const openMapView = () => {
   showMap.value = true
-  filtersExpanded.value = true // Asegurar que el sidebar esté abierto en mobile/tablet
-  window.scrollTo({ top: 0, behavior: 'smooth' }) // Llevar arriba para que se vea el sidebar
+  filtersExpanded.value = true
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 // Inicializar Choices.js
@@ -199,6 +219,7 @@ const initChoices = async () => {
 
 // Cargar al montar
 onMounted(async () => {
+  await fetchCurrentUser()
   await loadAll()
   await initChoices()
   await fetchSites(buildFilters())
@@ -206,7 +227,6 @@ onMounted(async () => {
     isGeoFiltered.value = true
     mapCenter.value = [parseFloat(route.query.lat), parseFloat(route.query.lng)]
     mapRadius.value = parseInt(route.query.radius)
-    // Ajustar zoom para reflejar un radio
     const radiusToZoom = (r) => Math.round(14 - Math.log(r / 1000) / Math.log(2));
     mapZoom.value = radiusToZoom(mapRadius.value);
   } else {
@@ -233,9 +253,7 @@ watch(() => route.query, () => {
     mapCenter.value = [lat, lng]
     mapRadius.value = radius
     isGeoFiltered.value = true
-    // El zoom se puede recalcular o dejar que el mapa lo maneje, lo mantengo simple por ahora
   } else if (!route.query.page || route.query.page === '1') {
-    // Si se limpia el resto de la URL y no hay geo-filtros, resetear el geo-filtro
     isGeoFiltered.value = false
     mapCenter.value = [-34.6037, -58.3816]
     mapRadius.value = 50000
@@ -313,6 +331,7 @@ watch(() => route.query, () => {
               </div>
               
               <hr v-if="showMap" />
+              
               <div class="filter-group">
                 <label class="form-label">Buscar</label>
                 <input
@@ -354,7 +373,7 @@ watch(() => route.query, () => {
                 </select>
               </div>
 
-              <div class="filter-group">
+              <div v-if="isAuthenticated" class="filter-group">
                 <button 
                   @click="toggleFavorites"
                   class="btn w-100"
@@ -397,6 +416,7 @@ watch(() => route.query, () => {
                   </button>
                 </div>
               </div>
+              
               <div class="filter-actions">
                 <button @click="handleSearch" class="btn btn-primary w-100 mb-2">
                   <i class="bi bi-search me-1"></i>
@@ -406,11 +426,6 @@ watch(() => route.query, () => {
                   <i class="bi bi-x-circle me-1"></i>
                   Limpiar
                 </button>
-              <!-- TODO: Te lo dejo comentado mati por si queres hacer lo de los marcadores -->
-                <!-- <button @click="openMapView" class="btn btn-outline-info w-100">
-                  <i class="bi bi-map me-1"></i>
-                  Abrir Mapa
-                </button> -->
               </div>
             </div>
           </div>
