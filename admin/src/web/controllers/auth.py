@@ -169,8 +169,7 @@ def callback():
             if os.getenv("FLASK_ENV") == 'development':
                 redirect_url = 'http://localhost:5173/'
             else:
-                redirect_url = 'https://admin-grupo21.proyecto2025.linti.unlp.edu.ar/'
-            redirect_url = 'https://admin-grupo21.proyecto2025.linti.unlp.edu.ar/'
+                redirect_url = 'https://grupo21.proyecto2025.linti.unlp.edu.ar/'
             
             response = make_response(redirect(redirect_url))
 
