@@ -373,17 +373,6 @@ watch(() => route.query, () => {
                 </select>
               </div>
 
-              <div v-if="isAuthenticated" class="filter-group">
-                <button 
-                  @click="toggleFavorites"
-                  class="btn w-100"
-                  :class="showFavoritesOnly ? 'btn-danger' : 'btn-outline-danger'"
-                >
-                  <i class="bi" :class="showFavoritesOnly ? 'bi-heart-fill' : 'bi-heart'"></i>
-                  {{ showFavoritesOnly ? 'Mostrando Favoritos' : 'Mostrar Favoritos' }}
-                </button>
-              </div>
-
               <div class="filter-group">
                 <label class="form-label">Tags</label>
                 <select 
@@ -415,6 +404,17 @@ watch(() => route.query, () => {
                     <i class="bi" :class="sortOrder === 'asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-up'"></i>
                   </button>
                 </div>
+              </div>
+
+              <div v-if="isAuthenticated" class="filter-group">
+                <button 
+                  @click="toggleFavorites"
+                  class="btn w-100"
+                  :class="showFavoritesOnly ? 'btn-danger' : 'btn-outline-danger'"
+                >
+                  <i class="bi" :class="showFavoritesOnly ? 'bi-heart-fill' : 'bi-heart'"></i>
+                  {{ showFavoritesOnly ? 'Mostrando Favoritos' : 'Mostrar Favoritos' }}
+                </button>
               </div>
               
               <div class="filter-actions">
