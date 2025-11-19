@@ -54,6 +54,8 @@
     border-radius: 8px;
     border: 1px solid #555;
     box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    position: relative; /* Necesario para el botón de cerrar */
+    cursor: grab;
 }
 
 .image-preview-item img {
@@ -62,6 +64,22 @@
     object-fit: cover;
     border-radius: 4px;
     margin-bottom: 5px;
+}
+.image-preview-item .btn-danger {
+    height: 25px;
+    width: 25px;
+    line-height: 1;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Clase fantasma de SortableJS */
+.sortable-ghost {
+    opacity: 0.5;
+    background-color: #5a5a5a;
+    border: 2px dashed #bb86fc;
 }
 </style>
 {% endblock %}
@@ -261,18 +279,65 @@
 
     // --- Lógica de Previsualización y Metadatos para Subida de Nuevas Imágenes ---
     const newImageInput = document.getElementById('images');
-    const newPreviewContainer = document.getElementById('image-upload-preview'); // ID ajustado
+    const newPreviewContainer = document.getElementById('image-upload-preview'); 
     
     const MAX_TOTAL_IMAGES = 10;
     const MAX_FILE_SIZE_MB = 5;
     
-    // Array para almacenar los archivos válidos y mantener el orden
-    // En la creación, todos los archivos son "nuevos"
-    let newFilesArray = []; 
+    // Array global que mapea el DOM a los objetos File
+    // Usaremos un Map para mantener una referencia segura (key = ID temporal único)
+    let fileMap = new Map(); 
+    let fileCounter = 0; // Para generar IDs únicos
+    
+    // 1. Inicializar SortableJS
+    Sortable.create(newPreviewContainer, {
+        animation: 150,
+        ghostClass: 'sortable-ghost', // Clase para el elemento fantasma
+        handle: '.image-preview-item', // Permite arrastrar desde cualquier parte del ítem
+        onEnd: function (evt) {
+            // El reordenamiento se maneja directamente en el DOM. 
+            // La reconstrucción del FormData se hará en el evento 'submit'.
+            console.log("Imágenes reordenadas. Nuevo índice del elemento:", evt.newIndex);
+        }
+    });
+
+    /**
+     * Elimina un archivo de la lista y su previsualización.
+     * @param {string} fileId - El ID temporal del archivo a eliminar.
+     */
+    function removeNewFile(fileId) {
+        if (fileMap.has(fileId)) {
+            fileMap.delete(fileId);
+            
+            // Eliminar el elemento del DOM
+            const itemToRemove = document.querySelector(`.image-preview-item[data-file-id="${fileId}"]`);
+            if (itemToRemove) {
+                itemToRemove.remove();
+            }
+            // Recargar el input file (es la forma más segura de sincronizar que se me ocurre)
+            updateFileInputWithNewFiles();
+        }
+    }
+    
+    /**
+     * Reconstruye el FileList del input file con los archivos restantes.
+     * Esto es necesario para que el FormData nativo use solo los archivos restantes.
+     */
+    function updateFileInputWithNewFiles() {
+        // Crear un nuevo DataTransfer y llenarlo con los archivos del Map
+        const dataTransfer = new DataTransfer();
+        fileMap.forEach(file => {
+            dataTransfer.items.add(file);
+        });
+        
+        // Asignar el nuevo FileList al input
+        newImageInput.files = dataTransfer.files;
+    }
+
 
     function validateAndPreviewNewImages(files) {
         newPreviewContainer.innerHTML = '';
-        newFilesArray = []; // Reiniciar la lista de archivos válidos
+        fileMap.clear(); // Limpiar el Map para las nuevas selecciones
         
         const filesToProcess = Array.from(files);
         
@@ -282,13 +347,13 @@
 
         if (filesToProcess.length > MAX_TOTAL_IMAGES) {
             alert(`Solo puedes subir hasta ${MAX_TOTAL_IMAGES} imágenes.`);
-            newImageInput.value = ''; // Limpiar el input file
+            newImageInput.value = '';
             return;
         }
 
         let validFiles = true;
 
-        filesToProcess.forEach((file, index) => {
+        filesToProcess.forEach((file) => {
             const fileSizeMB = file.size / (1024 * 1024);
             const fileExtension = file.name.split('.').pop().toLowerCase();
             const ALLOWED_EXTENSIONS = ['jpg', 'png', 'webp', 'jpeg']; 
@@ -299,15 +364,26 @@
                 return; 
             }
             
-            // Archivo válido: Añadir al array para mantener la referencia
-            newFilesArray.push(file);
+            // Generar ID único para este archivo - autoincremental
+            const fileId = `${fileCounter++}`;
+            fileMap.set(fileId, file);
+
 
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const previewItem = document.createElement('div');
-                    previewItem.className = 'image-preview-item'; 
+                    previewItem.className = 'image-preview-item position-relative'; 
+                    previewItem.setAttribute('data-file-id', fileId); // Enlazar el DOM con el Map
                     
+                    // Botón de Eliminación (X)
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0 m-1 p-0 px-2 rounded-circle';
+                    removeBtn.innerHTML = '<i class="bi bi-x"></i>';
+                    removeBtn.style.zIndex = 10;
+                    removeBtn.onclick = () => removeNewFile(fileId);
+
                     const img = document.createElement('img');
                     img.src = e.target.result;
                     img.alt = `Previsualización de ${file.name}`;
@@ -319,8 +395,9 @@
                     // Título/Alt obligatorio
                     const titleInput = document.createElement('input');
                     titleInput.type = 'text';
-                    titleInput.name = `new_title_alt_${index}`; 
-                    titleInput.className = 'form-control form-control-sm mb-1 te';
+                    // Name utiliza el ID único para que sea más fácil mapear en el backend si fuera necesario
+                    titleInput.name = `new_title_alt_${fileId}`; 
+                    titleInput.className = 'form-control form-control-sm mb-1';
                     titleInput.placeholder = 'Título/Alt (obligatorio)';
                     titleInput.required = true;
 
@@ -330,11 +407,13 @@
                     descLabel.textContent = 'Descripción (opcional)';
 
                     const descTextarea = document.createElement('textarea');
-                    descTextarea.name = `new_description_${index}`; 
+                    // Name utiliza el ID único
+                    descTextarea.name = `new_description_${fileId}`; 
                     descTextarea.className = 'form-control form-control-sm';
                     descTextarea.rows = '2';
                     descTextarea.placeholder = 'Descripción (opcional)';
                     
+                    previewItem.appendChild(removeBtn);
                     previewItem.appendChild(img);
                     previewItem.appendChild(titleLabel);
                     previewItem.appendChild(titleInput);
@@ -349,9 +428,12 @@
         // Si hay archivos inválidos, forzar a limpiar el input y el array
         if (!validFiles) {
             newImageInput.value = '';
-            newFilesArray = [];
+            fileMap.clear();
             newPreviewContainer.innerHTML = '';
         }
+
+        // Sincronizar el input con el Map de archivos válidos
+        updateFileInputWithNewFiles();
     }
 
     newImageInput.addEventListener('change', function() {
@@ -375,12 +457,11 @@
             coordsError.style.display = 'none';
         }
         
-        // Validación de Título/Alt para imágenes nuevas (si hay archivos seleccionados)
-        if (newFilesArray.length > 0) {
-            const titleInputs = newPreviewContainer.querySelectorAll('input[type="text"][required]');
-            let allTitlesFilled = true;
-            
-            titleInputs.forEach(input => {
+        const titleInputs = newPreviewContainer.querySelectorAll('input[type="text"][required]');
+        let allTitlesFilled = true;
+        
+        if (titleInputs.length > 0) {
+             titleInputs.forEach(input => {
                 if (!input.value.trim()) {
                     allTitlesFilled = false;
                     input.focus();
@@ -393,9 +474,56 @@
             if (!allTitlesFilled) {
                 e.preventDefault();
                 alert('Por favor, complete el Título/Alt obligatorio para todas las imágenes.');
+                return; 
             }
         }
         
+        // Manejo del Orden de las Imágenes y Metadatos
+        // Dado que SortableJS reordena los elementos DOM, iteramos sobre el DOM para obtener el orden final
+        
+        const finalFiles = []; // Array final de objetos File
+        const metadatos = {};  // Objeto para mapear metadatos (Título/Descripción)
+        const itemsInOrder = newPreviewContainer.querySelectorAll('.image-preview-item');
+        
+        itemsInOrder.forEach((item, index) => {
+            const fileId = item.getAttribute('data-file-id');
+            const file = fileMap.get(fileId);
+            
+            if (file) {
+                // Agregar el archivo al array final en el orden del DOM
+                finalFiles.push(file);
+
+                // Recolectar metadatos asociados al ID original
+                const titleInput = item.querySelector(`input[name="new_title_alt_${fileId}"]`);
+                const descTextarea = item.querySelector(`textarea[name="new_description_${fileId}"]`);
+                
+                metadatos[fileId] = {
+                    title_alt: titleInput ? titleInput.value.trim() : '',
+                    description: descTextarea ? descTextarea.value.trim() : ''
+                };
+            }
+        });
+        
+        // Reemplazar el FileList del input con el orden final y los archivos filtrados
+        const finalDataTransfer = new DataTransfer();
+        finalFiles.forEach(file => finalDataTransfer.items.add(file));
+        newImageInput.files = finalDataTransfer.files;
+
+        // Adjuntar los metadatos y el orden (fileIds en orden) al FormData 
+        // Esto permite a Flask/backend mapear los archivos recibidos (FileStorage) con su título/descripción y orden.
+        const fileOrderInput = document.createElement('input');
+        fileOrderInput.type = 'hidden';
+        fileOrderInput.name = 'new_image_order';
+        itemsInOrderArray = Array.from(itemsInOrder);
+        fileOrderInput.value = itemsInOrderArray.map(item => item.getAttribute('data-file-id')).join(',');
+        form.appendChild(fileOrderInput); // Adjuntar al formulario
+
+        const metadatosInput = document.createElement('input');
+        metadatosInput.type = 'hidden';
+        metadatosInput.name = 'new_image_metadata';
+        metadatosInput.value = JSON.stringify(metadatos);
+        form.appendChild(metadatosInput);
+
         // Si todo es válido, el formulario se envía
     });
   });

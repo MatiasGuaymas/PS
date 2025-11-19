@@ -302,23 +302,37 @@ def create():
             return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Las coordenadas seleccionadas no son válidas")
         
         files = request.files.getlist("images")
-        image_data = [] # Para almacenar info de cada imagen para la BD
+        # Lista de IDs temporales en el orden final
+        image_order_str = request.form.get('new_image_order', '')
+        image_file_ids = image_order_str.split(',') if image_order_str else []
+
+        # todos los metadatos en formato json del tipo key: value
+        metadata_json = request.form.get('new_image_metadata', '{}')
+        all_metadata = json.loads(metadata_json)
+
         errors = []
+        if len(files) != len(image_file_ids):
+            # Manejar error: Desincronización de archivos y IDs
+            errors.append("Error: El número de archivos no coincide con el número de IDs.")
+        
+        image_data = [] # Para almacenar info de cada imagen para la BD
+        
         if len(files) > 10:
             errors.append("Se pueden subir un máximo de 10 imágenes por sitio.")
-
+        print(len(files), image_file_ids )
         for i, file in enumerate(files):
-            if file.filename == '': # Si no se seleccionó un archivo en ese input
-                continue
+            current_file_id = image_file_ids[i]
+            metadata = all_metadata.get(current_file_id, {})
 
             is_valid, error_msg = is_valid_image(file)
             if not is_valid:
                 errors.append(f"Error con el archivo '{file.filename}': {error_msg}")
             else:
+                if file and metadata:
                 # Si es válida, guardar temporalmente los datos para procesar después de crear el sitio
                 # Los títulos y descripciones vienen por sus nombres únicos
-                titulo_alt = request.form.get(f"new_title_alt_{i}", f"Imagen {i+1} de {site_name}")
-                descripcion = request.form.get(f"new_description_{i}", "")
+                    titulo_alt = metadata.get('title_alt', f"Imagen {i+1} de {site_name}")
+                    descripcion = metadata.get('description', "")
 
                 if not titulo_alt:
                     errors.append(f"El Título/Alt es obligatorio para el archivo '{file.filename}'.")
