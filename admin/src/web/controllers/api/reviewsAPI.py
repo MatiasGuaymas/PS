@@ -1,16 +1,13 @@
 from flask import Blueprint, request, jsonify, session
-from src.core.services.review_service import ReviewService 
-from src.core.models.Site import Site 
-from src.core.models.Review import Review 
-from src.core.database import db
-from src.web.handlers.auth import login_required 
+from core.services.review_service import ReviewService 
+from core.models.Site import Site 
+from core.models.Review import Review 
+from core.database import db
+
+reviewsAPI_blueprint = Blueprint("reviewsAPI", __name__, url_prefix="/api/reviews")
 
 
-reviews_api_blueprint = Blueprint("reviews_api", __name__, url_prefix="/api/reviews")
-
-
-@reviews_api_blueprint.route("/sites/<int:site_id>/reviews", methods=["POST"])
-@login_required 
+@reviewsAPI_blueprint.route("/sites/<int:site_id>/reviews", methods=["POST"])
 def api_create_review(site_id):
     """
     API para que un usuario del portal cree una reseña.
@@ -60,7 +57,7 @@ def api_create_review(site_id):
         return jsonify({"ok": False, "error": "Error interno del servidor."}), 500
     
 
-@reviews_api_blueprint.route("/reviews", methods=["GET"])
+@reviewsAPI_blueprint.route("/reviews", methods=["GET"])
 def api_get_public_reviews():
     """
     API pública para devolver SOLO reseñas aprobadas, usado por el portal público.

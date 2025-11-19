@@ -135,7 +135,7 @@ export default {
  
     // obtener el estado inicial del favorito
     await this.getCurrentUser()
-    if(this.currentUser.id)
+    if(this.currentUser && this.currentUser.id)
       await this.fetchFavoriteStatus()
   },
   methods: {
