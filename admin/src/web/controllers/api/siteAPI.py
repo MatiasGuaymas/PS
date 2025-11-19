@@ -8,6 +8,8 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import or_, and_
 from core.services.sites_service import SiteService
 from core.models.UserFavorite import UserFavorite
+from core.utils.pagination import paginate_query
+
 
 sitesAPI_blueprint = Blueprint("sitesAPI", __name__, url_prefix="/api/sites")
 
@@ -29,6 +31,7 @@ def list_sites():
         - lat: latitud para ordenamiento por distancia (opcional)
         - lng: longitud para ordenamiento por distancia (opcional)
         - radius: radio en km para filtrar por distancia (opcional)
+        - user_id: filtrar solo favoritos del usuario (opcional)
     """
     # Parámetros de paginación
     page = request.args.get('page', 1, type=int)
@@ -39,6 +42,7 @@ def list_sites():
     province_filter = request.args.get('province', '').strip()
     city_filter = request.args.get('city', '').strip()
     state_filter = request.args.get('state', '').strip()
+    user_id_filter = request.args.get('user_id', type=int)
     
     # Filtro de tags (string separado por comas)
     tags_param = request.args.get('tags', '').strip()
@@ -81,6 +85,9 @@ def list_sites():
     
     if tags_filter:
         filters['tags'] = tags_filter
+
+    if user_id_filter:
+        filters['user_id'] = user_id_filter
     
     pagination = SiteService.get_sites_filtered(
         filters=filters,
@@ -247,40 +254,156 @@ def get_favorite(site_id):
 @sitesAPI_blueprint.route("/favorites", methods=["GET"])
 def list_favorites():
     """
-    Devuelve la lista de sitios marcados como favoritos por un usuario.
+    Devuelve la lista de sitios marcados como favoritos por un usuario con paginación.
+    
     Query params:
-      - user_id
-
-    Response: { data: [ site_to_dict, ... ], user_id: <id> }
+        - user_id (required): ID del usuario
+        - page: número de página (default: 1)
+        - per_page: items por página (default: 12)
+        - limit (optional): Número máximo de sitios a devolver (ej: 4 para la home)
+        - sort: ordenamiento (added_date, site_name, rating, registration, default: added_date)
+        - order: dirección (asc, desc, default: desc)
+    
+    Response: 
+    {
+        data: [ site_to_dict, ... ],
+        user_id: <id>,
+        pagination: {
+            page: 1,
+            per_page: 12,
+            total: 50,
+            total_pages: 5,
+            has_prev: false,
+            has_next: true,
+            prev_page: null,
+            next_page: 2
+        }
+    }
     """
-
+    # Parámetros de paginación
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 25, type=int)
+    
+    # Parámetros de ordenamiento
+    sort_by = request.args.get('sort', 'added_date')  # added_date, site_name, rating, registration
+    order = request.args.get('order', 'desc')  # asc, desc
+    
+    # Parámetro limit (para usar en home, por ejemplo)
+    limit = request.args.get('limit', type=int)
+    
+    # Validar user_id
     user_id = request.args.get('user_id')
     if not user_id:
-        return jsonify({'data': [], 'user_id': None}), 200
+        return jsonify({
+            'error': 'user_id es requerido',
+            'data': [],
+            'user_id': None,
+            'pagination': {
+                'page': 1,
+                'per_page': per_page,
+                'total': 0,
+                'total_pages': 0,
+                'has_prev': False,
+                'has_next': False,
+                'prev_page': None,
+                'next_page': None
+            }
+        }), 400
+    
     try:
         user_id = int(user_id)
-    except Exception:
-        return jsonify({'data': [], 'user_id': None}), 200
+    except ValueError:
+        return jsonify({
+            'error': 'user_id debe ser un número',
+            'data': [],
+            'user_id': None
+        }), 400
 
     try:
-        fav_rows = db.session.query(UserFavorite).filter(UserFavorite.user_id == user_id).order_by(UserFavorite.id.desc()).all()
-        site_ids = [int(f.site_id) for f in fav_rows] if fav_rows else []
-    except Exception as e:
-        site_ids = []
-
-    sites_json = []
-    if site_ids:
-        try:
-            sites = db.session.query(Site).filter(Site.id.in_(site_ids), Site.deleted == False).all()
-            sites_map = {s.id: s for s in sites}
-            for sid in site_ids:
-                s = sites_map.get(sid)
-                if s:
-                    sites_json.append(s.to_dict())
-        except Exception as e:
+        # Construir query base con join para obtener Site y fecha de agregado
+        query = db.session.query(Site, UserFavorite.created_at)\
+            .join(UserFavorite, Site.id == UserFavorite.site_id)\
+            .filter(
+                UserFavorite.user_id == user_id,
+                Site.deleted == False
+            )
+        
+        # Aplicar ordenamiento
+        if sort_by == 'site_name':
+            order_column = Site.name
+        elif sort_by == 'rating':
+            order_column = Site.rating_avg
+        elif sort_by == 'registration':
+            order_column = Site.registration
+        elif sort_by == 'added_date':
+            order_column = UserFavorite.created_at
+        else:
+            # Default: ordenar por fecha de agregado a favoritos
+            order_column = UserFavorite.created_at
+        
+        # Aplicar dirección del ordenamiento
+        if order.lower() == 'asc':
+            query = query.order_by(order_column.asc())
+        else:
+            query = query.order_by(order_column.desc())
+        
+        # Si hay limit (para home), devolver sin paginación
+        if limit and limit > 0:
+            items = query.limit(limit).all()
+            
             sites_json = []
-
-    return jsonify({'data': sites_json, 'user_id': user_id}), 200
+            for site, added_date in items:
+                site_dict = site.to_dict()
+                site_dict['favorited_at'] = added_date.isoformat() if added_date else None
+                sites_json.append(site_dict)
+            
+            return jsonify({
+                'data': sites_json,
+                'count': len(sites_json),
+                'user_id': user_id
+            }), 200
+        
+        # Aplicar paginación usando paginate_query
+        pagination = paginate_query(
+            query=query,
+            page=page,
+            per_page=per_page
+        )
+        
+        # Serializar sitios
+        sites_json = []
+        for site, added_date in pagination['items']:
+            site_dict = site.to_dict()
+            # Agregar fecha en que fue agregado a favoritos
+            site_dict['favorited_at'] = added_date.isoformat() if added_date else None
+            sites_json.append(site_dict)
+        
+        return jsonify({
+            'data': sites_json,
+            'user_id': user_id,
+            'pagination': {
+                'page': pagination['current_page'],
+                'per_page': pagination['per_page'],
+                'total': pagination['total'],
+                'total_pages': pagination['pages'],
+                'has_prev': pagination['has_prev'],
+                'has_next': pagination['has_next'],
+                'prev_page': pagination['prev_num'],
+                'next_page': pagination['next_num']
+            }
+        }), 200
+        
+    except Exception as e:
+        print(f"Error en list_favorites: {e}")
+        import traceback
+        traceback.print_exc()
+        
+        return jsonify({
+            'error': 'Error obteniendo favoritos',
+            'detail': str(e),
+            'data': [],
+            'user_id': user_id
+        }), 500
 
 
 @sitesAPI_blueprint.route("/most-visited", methods=["GET"])

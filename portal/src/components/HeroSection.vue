@@ -96,6 +96,7 @@ const handleKeyup = (event) => {
   position: relative;
   width: 100%;
   max-width: 500px;
+  margin-top: 2rem;
 }
 
 .hero-main-image {
@@ -256,6 +257,7 @@ const handleKeyup = (event) => {
   .hero-image-container {
     max-width: 100%;
     overflow: hidden;
+    margin-top: 2rem;
   }
 }
 </style>

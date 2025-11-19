@@ -22,6 +22,7 @@ from dotenv import load_dotenv
 from core import seeds
 from src.web.storage import storage
 from authlib.integrations.flask_client import OAuth
+from web.controllers.api.reviewAPI import reviewsAPI_blueprint 
 load_dotenv()
 
 session = Session()
@@ -80,6 +81,7 @@ def create_app(env = 'development', static_folder = "../../static"):
 
     #API
     app.register_blueprint(sitesAPI_blueprint)
+    app.register_blueprint(reviewsAPI_blueprint)
     app.register_blueprint(handler_blueprint)
     app.register_blueprint(reviews_api_blueprint)
 

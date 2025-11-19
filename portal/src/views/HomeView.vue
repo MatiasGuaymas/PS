@@ -1,29 +1,46 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import HeroSection from '../components/HeroSection.vue'
 import SiteCard from '../components/SiteCard.vue'
 import { useHomeSections } from '../composables/useHomeSections'
+import axios from 'axios'
 
 const router = useRouter()
 
-// URL base de la API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://grupo21.proyecto2025.linti.unlp.edu.ar';
+// Estado usuario
+const currentUser = ref(null)
+const isAuthenticated = ref(false)
+const userId = computed(() => currentUser.value?.id || null)
 
-// Estado de autenticación (simulado por ahora)
-const isAuthenticated = ref(false) // Cambiar a true cuando el usuario inicie sesión
-const userId = ref(1) // ID del usuario autenticado
+// Buscar usuario logeado
+const fetchCurrentUser = async () => {
+  try {
+    const base = import.meta.env.VITE_API_URL || 'https://admin-grupo21.proyecto2025.linti.unlp.edu.ar'
+    const { data } = await axios.get(`${base}/auth/me`, { withCredentials: true })
+    if (data?.id) {
+      currentUser.value = data
+      isAuthenticated.value = true
+    } else {
+      currentUser.value = null
+      isAuthenticated.value = false
+    }
+  } catch {
+    currentUser.value = null
+    isAuthenticated.value = false
+  }
+}
 
 // Búsqueda
 const searchQuery = ref('')
 
-// Referencias para lazy loading
+// Refs secciones
 const mostVisitedRef = ref(null)
 const topRatedRef = ref(null)
 const recentlyAddedRef = ref(null)
 const favoritesRef = ref(null)
 
-// Usar el composable
+// Composable
 const {
   loadingMostVisited,
   loadingTopRated,
@@ -36,31 +53,32 @@ const {
   setupLazyLoading
 } = useHomeSections()
 
-// Manejo de búsqueda
 const handleSearch = () => {
-  const trimmedQuery = searchQuery.value.trim()
-  
-  if (trimmedQuery) {
-    router.push({
-      name: 'sites',
-      query: { search: trimmedQuery }
-    })
-  } else {
-    router.push({ name: 'sites' })
-  }
+  const q = searchQuery.value.trim()
+  router.push(q ? { name: 'sites', query: { search: q } } : { name: 'sites' })
 }
 
-onMounted(() => {
-  setupLazyLoading(
-    {
-      mostVisitedRef,
-      topRatedRef,
-      recentlyAddedRef,
-      favoritesRef
-    },
-    isAuthenticated,
-    userId
+let observer = null
+
+const initSections = () => {
+  if (observer) observer.disconnect()
+  observer = setupLazyLoading(
+    { mostVisitedRef, topRatedRef, recentlyAddedRef, favoritesRef },
+    isAuthenticated.value,
+    userId.value,
+    { favoritesLimit: 4 }
   )
+}
+
+onMounted(async () => {
+  await fetchCurrentUser()
+  await nextTick() // Asegurar que <section v-if="isAuthenticated"> exista
+  initSections()
+})
+
+watch([isAuthenticated, userId], async () => {
+  await nextTick() // Esperar render del DOM antes de observar
+  initSections()
 })
 </script>
 
@@ -82,7 +100,7 @@ onMounted(() => {
             </div>
             <h2 class="mb-0">Más Visitados</h2>
           </div>
-          <router-link to="/sitios?sort=views&order=desc" class="btn btn-outline-primary">
+          <router-link to="/sitios" class="btn btn-outline-primary">
             Ver todos
             <i class="bi bi-arrow-right ms-1"></i>
           </router-link>
@@ -135,7 +153,7 @@ onMounted(() => {
         </div>
       </section>
 
-      <!-- TODO Sección: Favoritos -->
+      <!-- Sección: Favoritos -->
       <section v-if="isAuthenticated" ref="favoritesRef" data-section="favorites" class="sites-section">
         <div class="section-header">
           <div class="d-flex align-items-center">
@@ -144,7 +162,7 @@ onMounted(() => {
             </div>
             <h2 class="mb-0">Mis Favoritos</h2>
           </div>
-          <router-link to="/favoritos" class="btn btn-outline-danger">
+          <router-link to="/sitios?favorites=true" class="btn btn-outline-danger">
             Ver todos
             <i class="bi bi-arrow-right ms-1"></i>
           </router-link>
