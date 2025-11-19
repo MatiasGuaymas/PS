@@ -54,6 +54,18 @@ const router = createRouter({
       name: 'not-found',
       component: () => import('../views/NotFoundView.vue'),
     },
+    {
+      path: '/favoritos',
+      name: 'favoritos',
+      component: () => import('../views/FavoritesView.vue'),
+      meta: { requiresAuth: true } 
+    },
+    {
+      path: '/reviews',
+      name: 'reviews',
+      component: () => import('../views/ReviewsView.vue'),
+      meta: { requiresAuth: true }
+    }
   ],
 })
 
