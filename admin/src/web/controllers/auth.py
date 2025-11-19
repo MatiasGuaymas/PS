@@ -165,7 +165,7 @@ def callback():
             
             refresh_token = create_refresh_token(user_id=user.id)
             
-            if (current_app.config['DEBUG']):
+            if (current_app.config['DEBUG'] == True):
                 response = make_response(redirect('http://localhost:5173/'))
             else:
                 response = make_response(redirect('https://admin-grupo21.proyecto2025.linti.unlp.edu.ar/'))
