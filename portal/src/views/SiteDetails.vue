@@ -6,12 +6,14 @@
       </div>
       <div class="d-flex align-items-center">
         <button class="btn btn-sm btn-primary me-2" @click="addReview"><i class="bi bi-chat-dots-fill"></i> Agregar reseña</button>
-        <button class="btn btn-sm btn-info me-2" @click="addLiked" :disabled="favLoading">
-          <span v-if="favLoading" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-          <span v-else-if="favorited" class="bi bi-heart-fill me-1"></span>
-          <span v-else class="bi bi-heart me-1"></span>
-          Añadir a favoritos
-        </button>
+        <template v-if="canFavorite">
+          <button class="btn btn-sm btn-info me-2" @click="addLiked" :disabled="favLoading">
+            <span v-if="favLoading" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+            <span v-else-if="favorited" class="bi bi-heart-fill me-1"></span>
+            <span v-else class="bi bi-heart me-1"></span>
+            Añadir a favoritos
+          </button>
+        </template>
       </div>
     </div>
 
@@ -121,6 +123,8 @@ export default {
       lightbox: { visible: false, img: null },
       favLoading: false,
       favorited: false,
+      currentUser: null,
+      canFavorite: false,
     }
   },
   created() {
@@ -130,7 +134,9 @@ export default {
     await this.fetchSite()
  
     // obtener el estado inicial del favorito
-    await this.fetchFavoriteStatus()
+    await this.getCurrentUser()
+    if(this.currentUser.id)
+      await this.fetchFavoriteStatus()
   },
   methods: {
     goBack() {
@@ -186,12 +192,24 @@ export default {
         this.loading = false
       }
     },
+    async getCurrentUser() {
+      const base = this.apiBaseUrl
+      const url = `${base}/auth/me`
+      const response = await fetch(url, {
+        credentials: 'include'
+      })
+      const payload = await response.json()
+      if(payload.id) {
+        this.currentUser = payload
+        this.canFavorite = true
+      }
+    },
     async fetchFavoriteStatus() {
       if (!this.siteId) return
       try {
         const base = this.apiBaseUrl || ''
-        const url = `${base}/api/sites/${encodeURIComponent(this.siteId)}/favorite`
-        const res = await axios.get(url)
+        const url = `${base}/api/sites/${encodeURIComponent(this.siteId)}/get_favorite`
+        const res = await axios.get(url, { params: { user_id: this.currentUser.id } })
         if (res && res.data) {
           if (res.data.favorited !== undefined) {
             this.favorited = !!res.data.favorited
@@ -202,7 +220,6 @@ export default {
           }
         }
       } catch (e) {
-        if (e.response && e.response.status && e.response.status !== 404) console.error(e)
         this.favorited = false
       }
     },
@@ -220,7 +237,7 @@ export default {
       const el = document.getElementById('map')
       if (!el) {
         if (attempt >= MAX) {
-          console.error('Error al cargar el mapa.')
+          console.log('Error al cargar el mapa.')
           return
         }
         return setTimeout(() => this.initMap(attempt + 1), DELAY)
@@ -268,10 +285,9 @@ export default {
       this.favLoading = true
       this.error = null
       try {
-        const base = this.apiBaseUrl || ''
-        const url = `${base.replace(/\/$/, '')}/api/sites/${encodeURIComponent(this.siteId)}/favorite`
-        const payload = { user_id: 1 } // temporal: user hardcodeado
-        const res = await axios.post(url, payload)
+        const base = this.apiBaseUrl
+        const url = `${base}/api/sites/${encodeURIComponent(this.siteId)}/favorite`
+        const res = await axios.get(url, { params: { user_id: this.currentUser.id } })
         if (res && res.data) {
           const st = res.data.status
           if (st === 'favorited' || st === 'ok') {
@@ -281,7 +297,6 @@ export default {
           } else if (res.data.favorited !== undefined) {
             this.favorited = !!res.data.favorited
           } else {
-            // fallback: alternar localmente
             this.favorited = !this.favorited
           }
         } else {

@@ -181,14 +181,20 @@ def siteDetails(site_id):
     return jsonify({'data': json})
 
 
-@sitesAPI_blueprint.route("/<int:site_id>/favorite", methods=["POST"])
+@sitesAPI_blueprint.route("/<int:site_id>/favorite", methods=["GET"])
 def favorite_site(site_id):
     """
     Endpoint para marcar/desmarcar favorito (toggle).
     Body JSON: { "user_id": 1 }
     """
     
-    user_id = request.json.get('user_id')
+    user_id = request.args.get('user_id')
+    if user_id is None:
+        return jsonify({'error': 'No autorizado'}), 401
+    try:
+        user_id = int(user_id)
+    except Exception:
+        return jsonify({'error': 'User id inválido'}), 400
 
     site = db.session.query(Site).filter(Site.id == site_id, Site.deleted == False).first()
     if not site:
@@ -211,7 +217,7 @@ def favorite_site(site_id):
 
 
 
-@sitesAPI_blueprint.route("/<int:site_id>/favorite", methods=["GET"])
+@sitesAPI_blueprint.route("/<int:site_id>/get_favorite", methods=["GET"])
 def get_favorite(site_id):
     """
     Devuelve si el usuario tiene marcado el sitio como favorito
@@ -219,6 +225,12 @@ def get_favorite(site_id):
     """
 
     user_id = request.args.get('user_id')
+    if user_id is None:
+        return jsonify({'error': 'No autorizado'}), 401
+    try:
+        user_id = int(user_id)
+    except Exception:
+        return jsonify({'error': 'User id inválido'}), 400
 
     site = db.session.query(Site).filter(Site.id == site_id, Site.deleted == False).first()
     if not site:
@@ -243,7 +255,13 @@ def list_favorites():
     Response: { data: [ site_to_dict, ... ], user_id: <id> }
     """
 
-    user_id = request.args.get('user_id', 1)
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({'data': [], 'user_id': None}), 200
+    try:
+        user_id = int(user_id)
+    except Exception:
+        return jsonify({'data': [], 'user_id': None}), 200
 
     try:
         fav_rows = db.session.query(UserFavorite).filter(UserFavorite.user_id == user_id).order_by(UserFavorite.id.desc()).all()
