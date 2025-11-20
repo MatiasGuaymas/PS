@@ -326,3 +326,26 @@ def api_delete_review(review_id):
         db.session.rollback()
         print(f"❌ Error al eliminar reseña: {e}")
         return jsonify({"ok": False, "error": "Error interno al eliminar la reseña"}), 500
+
+@reviewsAPI_blueprint.route("/reviews/list/<int:site_id>", methods=["GET"])
+def api_get_site_reviews(site_id):
+    """
+    Endpoint para obtener todas las reseñas de un sitio
+    """
+
+    site = db.session.get(Site, site_id)
+    if not site:
+        return jsonify({'ok': False, 'error': 'Sitio no encontrado'}), 404
+
+    try:
+        reviews = ReviewService.get_approved_reviews_by_site_paginated(site_id, 1, 25, 'created_at', 'desc')
+
+        items = reviews['items']
+        reviews_data = []
+        for r in items:
+            reviews_data.append(r.to_dict())
+
+        return jsonify({'data': reviews_data}), 200
+    
+    except Exception as e:
+        return jsonify({'data': e}), 500

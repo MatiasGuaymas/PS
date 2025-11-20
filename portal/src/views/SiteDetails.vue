@@ -5,7 +5,6 @@
         <button class="btn btn-sm btn-outline-secondary" @click="goBack"><i class="bi bi-arrow-left"></i> Volver</button>
       </div>
       <div class="d-flex align-items-center">
-        <!-- ✅ Si NO está autenticado, mostrar botón de Google -->
         <template v-if="!canFavorite">
           <button class="btn btn-sm btn-primary" @click="loginWithGoogle">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 48 48" class="me-1">
@@ -18,7 +17,6 @@
           </button>
         </template>
         
-        <!-- ✅ Si está autenticado, mostrar botones normales -->
         <template v-else>
           <button class="btn btn-sm btn-primary me-2" @click="addReview">
             <i class="bi bi-chat-dots-fill"></i> Agregar reseña
@@ -120,6 +118,38 @@
         </div>
       </div>
     </div>
+
+    <!-- Reviews list -->
+    <div class="mt-4">
+      <h5>Reseñas</h5>
+      <div v-if="reviewsLoading" class="py-3 text-center">
+        <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+      </div>
+      <div v-else>
+        <div v-if="!reviews || reviews.length === 0" class="text-muted">Aún no hay reseñas para este sitio.</div>
+        <div v-else class="table-responsive">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Puntuación</th>
+                <th>Comentario</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(r, i) in reviews" :key="r.id || i">
+                <td>{{ r.user_email || r.user_name || r.user || 'Anónimo' }}</td>
+                <td>{{ r.rating ?? r.stars ?? '—' }}</td>
+                <td>{{ r.comment || r.body || '—' }}</td>
+                <td>{{ formatDate(r.created_at || r.created || r.date) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -141,6 +171,8 @@ export default {
       favorited: false,
       currentUser: null,
       canFavorite: false,
+      reviews: [],
+      reviewsLoading: false,
     }
   },
   created() {
@@ -197,7 +229,22 @@ export default {
       // Redirigir al login de Google
       window.location.href = `${this.apiBaseUrl}/auth/login-google?origin=public&redirect_to=${currentUrl}`
     },
-
+    async fetchReviews() {
+      if (!this.siteId) return
+      this.reviewsLoading = true
+      try {
+        const base = (this.apiBaseUrl || '').replace(/\/$/, '')
+        const url = `${base}/api/reviews/list/${encodeURIComponent(this.siteId)}`
+        const res = await axios.get(url)
+        console.log(res)
+        this.reviews = (res && res.data && res.data.data) ? res.data.data : (res.data || [])
+      } catch (e) {
+        console.error('fetchReviews error', e)
+        this.reviews = []
+      } finally {
+        this.reviewsLoading = false
+      }
+    },
     async fetchSite() {
       if (!this.siteId) {
         this.error = 'No se especificó la ID del sitio.'
@@ -212,6 +259,7 @@ export default {
         const payload = response.data || {}
         this.result = payload.data || payload
         this.$nextTick(() => { this.initMap() })
+        await this.fetchReviews()
       } catch (e) {
         this.error = e.response?.data?.message || e.message || 'Error desconocido'
         console.error(e)
@@ -249,6 +297,10 @@ export default {
       } catch (e) {
         this.favorited = false
       }
+    },
+    formatDate(dt) {
+      if (!dt) return '—'
+      try { return new Date(dt).toLocaleString() } catch { return dt }
     },
     toggleDescription() {
       this.showFull = !this.showFull

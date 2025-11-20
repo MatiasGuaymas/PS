@@ -335,3 +335,28 @@ class ReviewService:
         
         # Paginar
         return paginate_query(query, page, per_page)
+    
+    @staticmethod
+    def get_approved_reviews_by_site_paginated(
+        site_id: int,
+        page: int = 1,
+        per_page: int = 10,
+        sort_by: str = 'created_at',
+        order: str = 'desc'
+    ) -> dict:
+        """
+        Obtiene las reseñas APROBADAS de un sitio con paginación.
+        """
+        from core.utils.pagination import paginate_query
+        
+        # Construir query
+        query = db.session.query(Review).filter(Review.site_id == site_id, Review.status == 'Aprobada')
+        
+        # Ordenamiento
+        order_column = Review.rating if sort_by == 'rating' else Review.created_at
+        query = query.order_by(
+            order_column.desc() if order == 'desc' else order_column.asc()
+        )
+        
+        # Paginar
+        return paginate_query(query, page, per_page, order, sort_by)
