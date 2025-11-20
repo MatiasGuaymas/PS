@@ -14,10 +14,9 @@ reviewsAPI_blueprint = Blueprint("reviewsAPI", __name__, url_prefix="/api")
 
 @reviewsAPI_blueprint.route("/reviews", methods=["OPTIONS"])
 @reviewsAPI_blueprint.route("/reviews/<int:review_id>", methods=["OPTIONS"])
-# Agrega 'review_id=None' como argumento opcional
+# 'review_id=None' como argumento opcional
 def handle_reviews_preflight(review_id=None): 
     """Maneja las solicitudes OPTIONS para /api/reviews y /api/reviews/<id>."""
-    # El valor de review_id no se usa en esta función, pero es necesario aceptarlo
     return "", 200
 
 @reviewsAPI_blueprint.route("/reviews/check-existing", methods=["GET"])
@@ -28,7 +27,7 @@ def api_check_existing_review():
     """
     user_id = session.get("user_id") # Se mantiene para validar que hay sesión activa
     site_id = request.args.get("site_id", type=int)
-    # 🟢 Leer el email opcional de la URL
+    # Leer el email de la URL
     email_arg = request.args.get("user_email", default=None)
     
     if not user_id:
@@ -42,15 +41,14 @@ def api_check_existing_review():
         
         target_user = None
         
-        # 🟢 Lógica de Prioridad:
-        # 1. Si el frontend manda el email, buscamos el usuario por ese email (fix sesión cruzada)
+        # 1. Si el frontend manda el email, buscamos el usuario por ese email 
         if email_arg:
             target_user = User.query.filter_by(email=email_arg).first()
             if not target_user:
                 # Si mandaron un email pero no existe usuario, error 404
                  return jsonify({"ok": False, "error": "Usuario del email proporcionado no encontrado"}), 404
         else:
-            # 2. Si no manda email, usamos el de la sesión (comportamiento original)
+            # 2. Si no manda email, usamos el de la sesión 
             target_user = db.session.get(User, user_id)
             if not target_user:
                 return jsonify({"ok": False, "error": "Usuario de sesión no encontrado"}), 404
@@ -79,14 +77,14 @@ def api_check_existing_review():
     except Exception as e:
         print(f"Error en check_existing_review: {e}")
         return jsonify({"ok": False, "error": "Error al verificar reseña"}), 500
-#-----------------------------------------------------
+
 
 @reviewsAPI_blueprint.route("/reviews", methods=["POST"])
 def api_create_review():
     """
     API para crear una nueva reseña.
     """
-    # 1. Se mantiene la verificación de autenticación de sesión Flask
+    # 1. Verificación de autenticación de sesión Flask
     if not session.get("user_id"):
         return jsonify({"ok": False, "error": "No autenticado"}), 401
     
@@ -132,14 +130,13 @@ def api_create_review():
             db.func.lower(Review.user_email) == final_user_email.lower()
         ).first()
 
-        # 🛑 REINCORPORACIÓN CRÍTICA: Bloquear si ya existe una reseña
+        #Bloquear si ya existe una reseña
         if existing_review:
              return jsonify({"ok": False, "error": "Ya tienes una reseña para este sitio. Por favor, edítala."}), 409
 
         # 6. Crear reseña:
         new_review = Review(
             site_id=site_id,
-            # user_id=user.id,  <-- COMENTADO/ELIMINADO
             user_email=final_user_email,
             rating=rating,
             content=text.strip(),
@@ -219,8 +216,6 @@ def api_get_review_for_edit(review_id):
         if not review:
             return jsonify({"ok": False, "error": "Reseña no encontrada"}), 404
         
-        # ❌ Se eliminan todas las verificaciones de autoría
-        
         # 3. Devolver los datos de la reseña
         return jsonify({
             "ok": True,
@@ -228,7 +223,7 @@ def api_get_review_for_edit(review_id):
         }), 200
         
     except Exception as e:
-        print(f"❌ Error al obtener reseña para edición: {e}")
+        print(f" Error al obtener reseña para edición: {e}")
         return jsonify({"ok": False, "error": "Error interno al cargar la reseña"}), 500
   
 
@@ -236,10 +231,8 @@ def api_get_review_for_edit(review_id):
 def api_update_review(review_id):
     """
     API para actualizar una reseña.
-    MODIFICADO: Verifica la autoría usando el email enviado por el frontend (userEmailOverride)
-    para mantener consistencia con la creación y evitar conflictos de sesión cruzada.
+    Verifica la autoría usando el email enviado por el frontend (userEmailOverride)
     """
-    # user_id solo se usa para verificar que hay 'alguna' sesión activa, no importa de quién.
     user_id = session.get("user_id") 
     
     if not user_id:
@@ -262,11 +255,9 @@ def api_update_review(review_id):
         if not review:
             return jsonify({"ok": False, "error": "Reseña no encontrada"}), 404
         
-        # 🚨 VERIFICACIÓN DE AUTORÍA CORREGIDA 🚨
         # Comparamos el email de la reseña contra el email que envía el FRONTEND.
-        # Esto soluciona el problema de que tu sesión de backend sea Admin y tu usuario frontend sea User.
         if review.user_email.lower() != email_from_payload.lower():
-             print(f"❌ AUTORÍA DENEGADA: Reseña de {review.user_email} intentada por {email_from_payload}")
+             print(f" AUTORÍA DENEGADA: Reseña de {review.user_email} intentada por {email_from_payload}")
              return jsonify({"ok": False, "error": "No estás autorizado para editar esta reseña."}), 403
 
         # Actualizar campos
@@ -296,8 +287,6 @@ def api_update_review(review_id):
         print("-" * 50)
         return jsonify({"ok": False, "error": "Error al actualizar la reseña (Consulta el log del servidor para más detalles)"}), 500
 
-# En reviewsAPI.py
-
 @reviewsAPI_blueprint.route("/reviews/<int:review_id>", methods=["DELETE"])
 def api_delete_review(review_id):
     """
@@ -321,7 +310,6 @@ def api_delete_review(review_id):
         if not review:
             return jsonify({"ok": False, "error": "Reseña no encontrada"}), 404
 
-        # 🚨 VERIFICACIÓN DE AUTORÍA (Igual que en PUT)
         if review.user_email.lower() != email_from_payload.lower():
             print(f"❌ BORRADO DENEGADO: Reseña de {review.user_email} intentada por {email_from_payload}")
             return jsonify({"ok": False, "error": "No estás autorizado para eliminar esta reseña."}), 403
