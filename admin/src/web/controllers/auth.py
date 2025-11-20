@@ -9,7 +9,6 @@ from src.web.utils.jwt_utils import (
     jwt_required,
     get_token_from_request
 )
-import os
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -119,7 +118,11 @@ def authenticate():
 def login_google():
     """Inicia el flujo OAuth con Google"""
     origin = request.args.get('origin', 'admin')
+    redirect_to = request.args.get('redirect_to', '')
+    
     session['oauth_origin'] = origin
+    session['oauth_redirect_to'] = redirect_to
+    
     oauth = current_app.oauth
     redirect_uri = url_for('auth.callback', _external=True)
     return oauth.google.authorize_redirect(redirect_uri)
@@ -145,15 +148,12 @@ def callback():
         
         user = UserService.find_or_create_google_user(email, name, avatar)
         
-        if not user:
-            flash(f"No existe una cuenta con el email {email}", "error")
-            return redirect(url_for("auth.login"))
-        
         if not user.active:
             flash("El usuario no está activo.", "error")
             return redirect(url_for("auth.login"))
         
         origin = session.pop('oauth_origin', 'admin')
+        redirect_to = session.pop('oauth_redirect_to', '')
         
         # ✅ Si es para la app pública (Vue), crear JWT
         if origin == 'public':
@@ -165,12 +165,10 @@ def callback():
             )
             
             refresh_token = create_refresh_token(user_id=user.id)
+
+            redirect_url = redirect_to if redirect_to else 'http://localhost:5173/'
             
-            if os.getenv("FLASK_ENV") == 'development':
-                redirect_url = 'http://localhost:5173/'
-            else:
-                redirect_url = 'https://grupo21.proyecto2025.linti.unlp.edu.ar/'
-            
+            # Redirigir a Vue con tokens en cookies
             response = make_response(redirect(redirect_url))
 
             response.set_cookie(
@@ -209,6 +207,15 @@ def callback():
         
     except Exception as e:
         flash(f"Error al iniciar sesión con Google: {str(e)}", "error")
+
+    # Verificar desde dónde vino el usuario
+    origin = session.get('oauth_origin', 'admin')
+    
+    if origin == 'public':
+        # Redirigir a Vue con error
+        return redirect('http://localhost:5173/login?error=oauth_failed')
+    else:
+        # Redirigir a admin Flask
         return redirect(url_for("auth.login"))
 
 
@@ -227,6 +234,10 @@ def logout():
     )
     
     if is_json:
+        has_access = 'access_token' in request.cookies
+        has_refresh = 'refresh_token' in request.cookies
+        
+        
         response = make_response(jsonify({
             "ok": True,
             "message": "Sesión cerrada correctamente"
@@ -234,6 +245,41 @@ def logout():
         
         response.delete_cookie('access_token', path='/')
         response.delete_cookie('refresh_token', path='/')
+        
+        response.set_cookie(
+            'access_token',
+            value='',
+            domain='.localhost',  
+            httponly=True,
+            secure=False,
+            samesite='Lax',
+            max_age=0,
+            expires=0,
+            path='/'
+        )
+        
+        response.set_cookie(
+            'refresh_token',
+            value='',
+            domain='.localhost',  
+            httponly=True,
+            secure=False,
+            samesite='Lax',
+            max_age=0,
+            expires=0,
+            path='/'
+        )
+        
+        print("✅ Comandos de borrado enviados")
+        print(f"📋 Response Set-Cookie headers:")
+        set_cookie_headers = response.headers.getlist('Set-Cookie')
+        if set_cookie_headers:
+            for i, header in enumerate(set_cookie_headers, 1):
+                print(f"   [{i}] {header}")
+        else:
+            print("   ⚠️ No hay headers Set-Cookie en la respuesta")
+        
+        print("=" * 80)
         
         return response
     else:
