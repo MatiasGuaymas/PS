@@ -100,7 +100,7 @@ watch([isAuthenticated, userId], async () => {
             </div>
             <h2 class="mb-0">Más Visitados</h2>
           </div>
-          <router-link to="/sitios" class="btn btn-outline-primary">
+          <router-link to="/sitios?sort=views&order=desc" class="btn btn-outline-primary">
             Ver todos
             <i class="bi bi-arrow-right ms-1"></i>
           </router-link>

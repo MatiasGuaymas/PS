@@ -394,6 +394,7 @@ watch(() => route.query, () => {
                     <option value="site_name">Nombre</option>
                     <option value="registration">Fecha</option>
                     <option value="rating">Rating</option>
+                    <option value="views">Vistas</option>
                   </select>
                   <button 
                     @click="toggleSortOrder"
