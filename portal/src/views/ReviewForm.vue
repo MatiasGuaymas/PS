@@ -200,34 +200,71 @@ export default {
     },
     
     async handleSubmit() {
+      console.log('🚀 handleSubmit iniciado');
+      
       this.errorMessage = null;
       this.successMessage = null;
       this.isPendingModeration = false;
 
       if (!this.validateForm()) {
         this.errorMessage = 'Por favor, corrige los errores del formulario.';
+        console.log('❌ Validación del formulario falló');
         return;
       }
 
+      console.log('✅ Formulario validado correctamente');
       this.isSubmitting = true;
+
+      // Primero obtener el usuario actual
+      let currentUserId = null;
+      try {
+        console.log('📡 Obteniendo información del usuario...');
+        const userResponse = await axios.get(`${this.apiBaseUrl}/auth/me`, { withCredentials: true });
+        console.log('👤 Respuesta de /auth/me:', userResponse.data);
+        
+        currentUserId = userResponse.data?.id;
+        
+        if (!currentUserId) {
+          this.errorMessage = 'No se pudo obtener tu información de usuario. Inicia sesión nuevamente.';
+          this.isSubmitting = false;
+          console.log('❌ No se obtuvo user_id de /auth/me');
+          return;
+        }
+        
+        console.log('✅ User ID obtenido:', currentUserId);
+        
+      } catch (e) {
+        console.error('❌ Error al obtener usuario:', e);
+        this.errorMessage = 'Error de autenticación. Por favor inicia sesión.';
+        this.isSubmitting = false;
+        return;
+      }
+
       const data = {
         rating: this.rating,
         text: this.reviewText,
-        site_id: this.siteId // Necesario para la creación
+        site_id: this.siteId,
+        user_id: currentUserId
       };
+
+      console.log('📦 Datos a enviar:', data);
 
       try {
         let response;
         if (this.isEditing) {
-          // EDITAR: PUT a la reseña específica
+          console.log('✏️ Modo EDICIÓN');
           const url = `${this.apiBaseUrl}/api/reviews/${this.reviewId}`;
+          console.log('📡 PUT a:', url);
           response = await axios.put(url, data, { withCredentials: true }); 
         } else {
-          // CREAR: POST a la colección de reseñas
+          console.log('✨ Modo CREACIÓN');
           const url = `${this.apiBaseUrl}/api/reviews`;
+          console.log('📡 POST a:', url);
           response = await axios.post(url, data, { withCredentials: true }); 
         }
 
+        console.log('✅ Respuesta del servidor:', response.data);
+        
         this.successMessage = `Reseña ${this.isEditing ? 'actualizada' : 'creada'} con éxito.`;
         
         const newStatus = response.data?.data?.status || response.data?.status || 'approved'; 
@@ -236,37 +273,33 @@ export default {
           this.isPendingModeration = true;
         }
 
-        // Si es una creación, actualizamos el reviewId y cambiamos a modo edición
         if (!this.isEditing) {
             this.reviewId = response.data?.data?.id || response.data?.id;
             this.isEditing = true; 
         }
         
-        // Retrasar la redirección para que el usuario vea el mensaje de éxito
         setTimeout(() => {
           this.$router.push({ path: `/sitios/${this.siteId}` });
         }, 1500);
 
-
       } catch (e) {
-        console.error(e);
+        console.error('❌ Error al enviar reseña:', e);
+        console.error('❌ Response:', e.response);
         
         let message = 'Error al enviar la reseña. Verifica permisos o datos.';
         
-        // Si no hay response (falla de red, CORS, o 404/OPTIONS)
         if (!e.response) {
-            message = 'Error de conexión o configuración del servidor (CORS). El servidor falló el pre-chequeo (OPTIONS). **Revisa la consola de tu backend por el 404**.'
+            message = 'Error de conexión o configuración del servidor (CORS).';
         } else {
-            // Maneja 400, 401, 403, 500, etc.
-            message = e.response?.data?.message || message;
+            message = e.response?.data?.error || e.response?.data?.message || message;
         }
 
         this.errorMessage = message;
       } finally {
+        console.log('🏁 handleSubmit finalizado');
         this.isSubmitting = false;
       }
     },
-    
     // Función que se llama al confirmar el modal
     handleDeleteConfirm() {
       this.showDeleteModal = false;
