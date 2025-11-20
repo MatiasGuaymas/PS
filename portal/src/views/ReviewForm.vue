@@ -115,7 +115,7 @@ export default {
       validationErrors: { rating: null, reviewText: null },
       
       showDeleteModal: false, 
-      currentUserEmail: null, // 👈 [1] AÑADIDO
+      currentUserEmail: null, 
     };
   },
 
@@ -132,7 +132,7 @@ export default {
     }
 
     try {
-        // 🟢 PASO CLAVE: Obtener el email de la sesión antes de hacer cualquier otra cosa
+        // PASO CLAVE: Obtener el email de la sesión antes de hacer cualquier otra cosa
         await this.fetchCurrentUserEmail(); 
     } catch (e) {
         // Si fetchCurrentUserEmail falla, el mensaje de error ya está en this.errorMessage
@@ -152,7 +152,7 @@ export default {
       if (checkResult.hasReview) {
         console.log('🚨 Reseña existente detectada. Redirigiendo a modo edición:', checkResult.reviewId);
         
-        // 🚨 REDIRECCIÓN CRÍTICA: Cambia la ruta en el navegador a /edit/:id
+        // REDIRECCIÓN CRÍTICA: Cambia la ruta en el navegador a /edit/:id
         this.$router.replace({ 
             path: `/sitios/${this.siteId}/reviews/${checkResult.reviewId}/edit` 
         }).catch(err => {
@@ -189,9 +189,9 @@ export default {
 
     async fetchCurrentUserEmail() {
         try {
-            // ASUMIMOS QUE /auth/me devuelve { email: 'user@example.com' }
+            ///auth/me devuelve { email: 'user@example.com' }
             const url = `${this.apiBaseUrl}/auth/me`;
-            // Nota: Este endpoint debe existir y devolver el email del usuario autenticado en el puerto 5000.
+            // Este endpoint debe  devolver el email del usuario autenticado en el puerto.
             const response = await axios.get(url, { withCredentials: true }); 
             this.currentUserEmail = response.data?.email || response.data?.data?.email;
             console.log('✅ Email de sesión pública obtenido:', this.currentUserEmail);
@@ -226,11 +226,10 @@ export default {
       }
     },
     
-    // En ReviewForm.vue (dentro de methods)
 
     async checkExistingReview() {
       try {
-        // 🟢 1. Construir URL con el email explícito
+        // 1. Construir URL con el email explícito
         let url = `${this.apiBaseUrl}/api/reviews/check-existing?site_id=${this.siteId}`;
         
         // Usamos this.currentUserEmail que cargamos en created()
@@ -271,7 +270,6 @@ export default {
     },
     
     async handleSubmit() {
-    // La validación funciona, la dejamos
     if (!this.validateForm()) {
         return;
     }
@@ -280,10 +278,10 @@ export default {
     this.errorMessage = null;
     this.successMessage = null;
     
-    // 🟢 PASO 1: Usar la variable de email ya cargada y segura
+    // PASO 1: Usar la variable de email ya cargada y segura
     const userEmail = this.currentUserEmail; 
 
-    // 🟢 PASO 2: Verificar que el email existe antes de proceder (seguridad)
+    // PASO 2: Verificar que el email existe antes de proceder (seguridad)
     if (!userEmail) {
         // Si no hay email, es un error de sesión. 
         this.errorMessage = "Error de autenticación: No se pudo verificar la identidad del usuario. Intenta cerrar sesión y volver a entrar.";
@@ -296,7 +294,7 @@ export default {
             site_id: this.siteId,
             rating: this.rating,
             text: this.reviewText,
-            // 🚨 CORRECCIÓN CRÍTICA: Usamos la variable local verificada
+            //Usamos la variable local verificada
             userEmailOverride: userEmail,
         };
 
@@ -337,7 +335,6 @@ export default {
         
         let message = 'Error al enviar la reseña.';
         if (!e.response) {
-            // Este es el error que estabas viendo. Ahora debería desaparecer.
             message = 'Error de conexión con el servidor. (Verifica tu servidor backend si persiste).'; 
         } else {
             message = e.response?.data?.error || e.response?.data?.message || message;
@@ -369,8 +366,7 @@ export default {
       try {
         const url = `${this.apiBaseUrl}/api/reviews/${this.reviewId}`;
         
-        //  CAMBIO: Enviar el email en el cuerpo de la solicitud DELETE
-        // Nota la estructura: axios.delete(url, { data: { ... }, withCredentials: true })
+        // Enviar el email en el cuerpo de la solicitud DELETE
         await axios.delete(url, { 
             data: { 
                 userEmailOverride: this.currentUserEmail 
