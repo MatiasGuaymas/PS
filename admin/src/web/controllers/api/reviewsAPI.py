@@ -348,4 +348,26 @@ def api_get_site_reviews(site_id):
         return jsonify({'data': reviews_data}), 200
     
     except Exception as e:
-        return jsonify({'data': e}), 500
+        return jsonify({'data': "Ocurrió un error al cargar las reseñas del sitio."}), 500
+
+@reviewsAPI_blueprint.route("/reviews/score/<int:site_id>", methods=["GET"])
+def api_get_site_score(site_id):
+    """
+    Endpoint para obtener todas las reseñas de un sitio
+    """
+
+    site = db.session.get(Site, site_id)
+    if not site:
+        return jsonify({'ok': False, 'error': 'Sitio no encontrado'}), 404
+
+    try:
+        reviews = ReviewService.get_approved_reviews_by_site(site_id)
+
+        totalScore = 0
+        for r in reviews:
+            totalScore += r.rating
+        score = totalScore / len(reviews)
+        return jsonify({'data': f"{score} ⭐"}), 200
+    
+    except Exception as e:
+        return jsonify({'data': "Ocurrió un error al obtener la puntuación de un sitio." + e}), 500

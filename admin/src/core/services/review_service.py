@@ -360,3 +360,14 @@ class ReviewService:
         
         # Paginar
         return paginate_query(query, page, per_page, order, sort_by)
+
+    @staticmethod
+    def get_approved_reviews_by_site(
+        site_id: int
+    ) -> dict:
+        """
+        Obtiene las reseñas APROBADAS de un sitio.
+        """
+        
+        # Construir query
+        return db.session.query(Review).filter(Review.site_id == site_id, Review.status == 'Aprobada').all()
