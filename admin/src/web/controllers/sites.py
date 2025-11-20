@@ -276,19 +276,22 @@ def create():
         # Validación básica
         if not site_name or not short_desc or not full_desc or not city or not province or not operning_year:
             logger.warning(f"Intento de crear sitio con campos faltantes: usuario={current_user_id}, sitio='{site_name}'")
-            return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Faltan campos obligatorios")
+            flash("Faltan campos obligatorios", "error")
+            return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all())
         
         # Validacion de nombre unique
         # Hablamos de softDelete, si tmb reviso por deleted = False, deberia elimanrlo (hard) antes del insert
         existing_site = Site.query.filter_by(site_name=site_name).first()
         if existing_site:
             logger.warning(f"Intento de crear sitio con nombre duplicado: usuario={current_user_id}, sitio='{site_name}'")
-            return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Ya existe un sitio con ese nombre. Debe ser único.")
+            flash("Ya existe un sitio con ese nombre. Debe ser único.", "error")
+            return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all())
 
         # Validación de coordenadas
         if not latitude or not longitude:
             logger.warning(f"Intento de crear sitio sin coordenadas: usuario={current_user_id}, sitio='{site_name}'")
-            return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Debe seleccionar una ubicación en el mapa")
+            flash("Debe seleccionar una ubicación en el mapa", "error")
+            return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all())
         
         # Validar que las coordenadas sean números válidos
         try:
@@ -296,10 +299,13 @@ def create():
             lon_float = float(longitude)
             if not (-90 <= lat_float <= 90 and -180 <= lon_float <= 180):
                 logger.warning(f"Coordenadas inválidas para sitio: usuario={current_user_id}, sitio='{site_name}', lat={latitude}, lon={longitude}")
-                return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Las coordenadas seleccionadas no son válidas")
+                flash("Las coordenadas seleccionadas no son válidas", "error")
+                return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all())
         except (ValueError, TypeError) as e:
             logger.warning(f"Error convirtiendo coordenadas: usuario={current_user_id}, sitio='{site_name}', lat={latitude}, lon={longitude}, error={e}")
-            return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all(), error="Las coordenadas seleccionadas no son válidas")
+            flash("Las coordenadas seleccionadas no son válidas", "error")
+            flash(error_msg, "error")
+            return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all())
         
         files = request.files.getlist("images")
         # Lista de IDs temporales en el orden final
@@ -315,7 +321,10 @@ def create():
         image_data = [] # Para almacenar info de cada imagen para la BD
         
         if len(files) > 10:
-            errors.append("Se pueden subir un máximo de 10 imágenes por sitio.")
+            error_msg = f"Se pueden subir un máximo de 10 imágenes por sitio. Intentaste subir {len(files)} imágenes."
+            logger.warning(f"Usuario {current_user_id} intentó subir {len(files)} imágenes (límite: {MAX_IMAGES_PER_SITE})")
+            errors.append(error_msg)
+
         for i, file in enumerate(files):
             if file.filename == '':
                 continue  # Saltar archivos sin nombre
@@ -346,8 +355,9 @@ def create():
         if errors:
             logger.warning(f"Errores en la creación del sitio para usuario {current_user_id}: {'; '.join(errors)}")
             # Los valores de request.form se mantendrán si se renderiza el template
-            tags = Tag.query.order_by(Tag.name.asc()).all()
-            return render_template("sites/create.html", tags=tags, error="<br>".join(errors))
+            for error in errors:
+                flash(error, "error")
+            return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all())
 
         location = create_point_from_coords(latitude, longitude)
         new_site = Site(
@@ -393,7 +403,8 @@ def create():
                 # Si falla la subida de MinIO/BD, es un error grave para la transacción
                 db.session.rollback() 
                 logger.error(f"Fallo crítico al subir imágenes para nuevo sitio {new_site.id}: {e}")
-                return render_template("sites/create.html", tags=tags, error="Error crítico al subir las imágenes. El sitio no fue creado.")
+                flash("Error crítico al subir las imágenes. El sitio no fue creado.", "error")
+                return render_template("sites/create.html", tags=Tag.query.order_by(Tag.name.asc()).all())
                 
         db.session.commit()
         flash(f"Sitio '{new_site.site_name}' creado exitosamente.", "success")

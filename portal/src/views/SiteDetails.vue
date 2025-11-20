@@ -5,8 +5,22 @@
         <button class="btn btn-sm btn-outline-secondary" @click="goBack"><i class="bi bi-arrow-left"></i> Volver</button>
       </div>
       <div class="d-flex align-items-center">
-        <button class="btn btn-sm btn-primary me-2" @click="addReview"><i class="bi bi-chat-dots-fill"></i> Agregar reseña</button>
-        <template v-if="canFavorite">
+        <template v-if="!canFavorite">
+          <button class="btn btn-sm btn-primary" @click="loginWithGoogle">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 48 48" class="me-1">
+              <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+              <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+              <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+              <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+            </svg>
+            Inicia sesión para añadir a favoritos y dejar reseñas
+          </button>
+        </template>
+        
+        <template v-else>
+          <button class="btn btn-sm btn-primary me-2" @click="addReview">
+            <i class="bi bi-chat-dots-fill"></i> Agregar reseña
+          </button>
           <button class="btn btn-sm btn-info me-2" @click="addLiked" :disabled="favLoading">
             <span v-if="favLoading" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
             <span v-else-if="favorited" class="bi bi-heart-fill me-1"></span>
@@ -38,7 +52,7 @@
 
         <div class="col-md-7">
           <div class="card-body">
-            <h2 class="card-title mb-1">{{ result.name }}</h2>
+            <h2 class="card-title mb-1">{{ result.name }} {{ siteScore }}</h2>
             <div class="mb-2 text-muted">
               <small>{{ result.city }}{{ result.city && result.province ? ' / ' : '' }}{{ result.province }}</small>
               <span v-if="result.state_name" :class="['chip', stateChipClass, 'ms-2']">{{ result.state_name }}</span>
@@ -104,6 +118,38 @@
         </div>
       </div>
     </div>
+
+    <!-- Reviews list -->
+    <div class="mt-4">
+      <h5>Reseñas</h5>
+      <div v-if="reviewsLoading" class="py-3 text-center">
+        <div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div>
+      </div>
+      <div v-else>
+        <div v-if="!reviews || reviews.length === 0" class="text-muted">Aún no hay reseñas para este sitio.</div>
+        <div v-else class="table-responsive">
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Puntuación</th>
+                <th>Comentario</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(r, i) in reviews" :key="r.id || i">
+                <td>{{ r.user_email || r.user_name || r.user || 'Anónimo' }}</td>
+                <td>{{ r.rating ?? r.stars ?? '—' }}</td>
+                <td>{{ r.comment || r.body || '—' }}</td>
+                <td>{{ formatDate(r.created_at || r.created || r.date) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -125,6 +171,9 @@ export default {
       favorited: false,
       currentUser: null,
       canFavorite: false,
+      reviews: [],
+      reviewsLoading: false,
+      siteScore: 0
     }
   },
   created() {
@@ -132,11 +181,12 @@ export default {
   },
   async mounted() {
     await this.fetchSite()
- 
+  
     // obtener el estado inicial del favorito
     await this.getCurrentUser()
-    if(this.currentUser.id)
+    if(this.currentUser && this.currentUser.id)
       await this.fetchFavoriteStatus()
+    await this.fetchSiteScore()
   },
   methods: {
     goBack() {
@@ -161,6 +211,8 @@ export default {
         }
       }
 
+      
+
       if (window.history.length > 1) {
         this.$router.back()
         return
@@ -170,6 +222,30 @@ export default {
       const q = this.$route.query
       ['tag','q','province','category','state','page','per_page'].forEach(k => { if (q[k]) fallbackQuery[k]=q[k] })
       this.$router.push({ path: '/sitios', query: fallbackQuery })
+    },
+
+    loginWithGoogle() {
+      // Guardar la URL actual para volver después del login
+      const currentUrl = encodeURIComponent(window.location.href)
+      
+      // Redirigir al login de Google
+      window.location.href = `${this.apiBaseUrl}/auth/login-google?origin=public&redirect_to=${currentUrl}`
+    },
+    async fetchReviews() {
+      if (!this.siteId) return
+      this.reviewsLoading = true
+      try {
+        const base = (this.apiBaseUrl || '').replace(/\/$/, '')
+        const url = `${base}/api/reviews/list/${encodeURIComponent(this.siteId)}`
+        const res = await axios.get(url)
+        console.log(res)
+        this.reviews = (res && res.data && res.data.data) ? res.data.data : (res.data || [])
+      } catch (e) {
+        console.error('fetchReviews error', e)
+        this.reviews = []
+      } finally {
+        this.reviewsLoading = false
+      }
     },
     async fetchSite() {
       if (!this.siteId) {
@@ -185,12 +261,24 @@ export default {
         const payload = response.data || {}
         this.result = payload.data || payload
         this.$nextTick(() => { this.initMap() })
+        await this.fetchReviews()
       } catch (e) {
         this.error = e.response?.data?.message || e.message || 'Error desconocido'
         console.error(e)
       } finally {
         this.loading = false
       }
+    },
+    async fetchSiteScore() {
+      if(!this.siteId) {
+        this.error = "No se especificó la ID del sitio."
+        return
+      }
+
+      const base = this.apiBaseUrl
+      const url = `${base}/api/reviews/score/${encodeURIComponent(this.siteId)}`
+      const response = await axios.get(url)
+      this.siteScore = response.data.data
     },
     async getCurrentUser() {
       const base = this.apiBaseUrl
@@ -222,6 +310,10 @@ export default {
       } catch (e) {
         this.favorited = false
       }
+    },
+    formatDate(dt) {
+      if (!dt) return '—'
+      try { return new Date(dt).toLocaleString() } catch { return dt }
     },
     toggleDescription() {
       this.showFull = !this.showFull
@@ -277,7 +369,7 @@ export default {
       this.lightbox.visible = true
     },
     closeLightbox() {
-      this.lightbox.visible = false
+      this.lightbox.lightbox.visible = false
       this.lightbox.img = null
     },
     async addLiked() {
@@ -308,8 +400,50 @@ export default {
       } finally {
         this.favLoading = false
       }
+    },
+    
+    async addReview() {
+      if (!this.siteId) {
+        console.error("No se puede agregar reseña: siteId no está disponible.");
+        return;
+      }
+      
+      try {
+        // 1. Construir URL con el email explícito 
+        let url = `${this.apiBaseUrl}/api/reviews/check-existing?site_id=${this.siteId}`;
+        
+        // Si tenemos el usuario cargado, enviamos su email para evitar errores de sesión cruzada
+        if (this.currentUser && this.currentUser.email) {
+            url += `&user_email=${encodeURIComponent(this.currentUser.email)}`;
+        }
+
+        const response = await axios.get(url, { withCredentials: true });
+        
+        if (response.data.has_review && response.data.review_id) {
+          console.log('✅ Reseña existente detectada. Redirigiendo a edición.');
+          
+          this.$router.push({ 
+            name: 'edit-review', 
+            params: { reviewId: response.data.review_id, siteId: this.siteId }
+          });
+          
+        } else {
+          console.log('ℹ️ No hay reseña existente. Redirigiendo a creación.');
+          this.$router.push({ 
+            name: 'new-review', 
+            query: { site_id: this.siteId } 
+          });
+        }
+      } catch (error) {
+        console.error("Error al verificar reseña existente:", error);
+        // Fallback
+        this.$router.push({ 
+          name: 'new-review', 
+          query: { site_id: this.siteId } 
+        });
+      }
     }
-  },
+  }, 
   computed: {
     stateChipClass() {
       const s = (this.result?.state_name || '').toLowerCase()
@@ -406,8 +540,13 @@ export default {
   font-weight: 600;
   color: #fff;
 }
+
+.btn-primary svg {
+  vertical-align: middle;
+}
+
 .chip-default { background: #6c757d; } 
-.chip-good    { background: #198754; } 
+.chip-good    { background: #198754; } 
 .chip-regular { background: #0d6efd; } 
-.chip-bad     { background: #dc3545; } 
+.chip-bad     { background: #dc3545; } 
 </style>

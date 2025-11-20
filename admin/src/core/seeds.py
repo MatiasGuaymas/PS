@@ -852,6 +852,11 @@ def _sitios(CATEGORIES, STATES):
                     'file': 'static/img/sites/imagen_teatro.jpg',
                     'title_alt': 'Teatro Argentino de La Plata desde adentro',
                     'description': 'Teatro lírico de La Plata desde adentro'
+                },
+                {
+                    'file': 'static/img/sites/teatro_argentino_noche.jpg',
+                    'title_alt': 'Teatro Argentino de La Plata de noche',
+                    'description': 'Teatro lírico de La Plata de noche'
                 }
             ]
         },
