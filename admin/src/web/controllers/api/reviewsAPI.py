@@ -232,56 +232,43 @@ def api_get_review_for_edit(review_id):
         return jsonify({"ok": False, "error": "Error interno al cargar la reseña"}), 500
   
 
-
-
-
 @reviewsAPI_blueprint.route("/reviews/<int:review_id>", methods=["PUT"])
 def api_update_review(review_id):
     """
     API para actualizar una reseña.
-    CRÍTICO: Usa el user_id de la sesión para obtener el email REAL y VERIFICA la autoría.
+    MODIFICADO: Verifica la autoría usando el email enviado por el frontend (userEmailOverride)
+    para mantener consistencia con la creación y evitar conflictos de sesión cruzada.
     """
-    # review_id es el argumento que viene de la URL (ruta /reviews/<int:review_id>)
-    # user_id viene de la sesión.
+    # user_id solo se usa para verificar que hay 'alguna' sesión activa, no importa de quién.
     user_id = session.get("user_id") 
     
     if not user_id:
         return jsonify({"ok": False, "error": "No autenticado. Inicia sesión para editar."}), 401
+    
+    data = request.json
+    rating = data.get("rating", None)
+    text = data.get("text", None)
+    email_from_payload = data.get("userEmailOverride", None) # Email del usuario público
+
+    if rating is None or text is None:
+        return jsonify({"ok": False, "error": "Faltan rating y/o texto de la reseña"}), 400
+        
+    if not email_from_payload:
+           return jsonify({"ok": False, "error": "Falta el email de identidad del usuario (userEmailOverride)"}), 400
 
     try:
-        # Importaciones locales (para asegurar que las clases están disponibles)
-        from core.models.User import User
-        # from core.models.Review import Review # Ya debería estar arriba
-        
-        # 🟢 PASO CLAVE 1: Obtener el email REAL del usuario LOGUEADO (basado en la sesión)
-        user = db.session.get(User, user_id)
-        if not user:
-            return jsonify({"ok": False, "error": "Error de sesión (Usuario no encontrado)"}), 404
-        
-        session_user_email = user.email # 👈 Email de la sesión (SEGURO)
-
-        data = request.json
-        rating = data.get("rating", None)
-        text = data.get("text", None)
-        email_from_payload = data.get("userEmailOverride", None) # Email que envía el Front (se usa para validación de datos, pero NO para seguridad)
-
-        if rating is None or text is None:
-            return jsonify({"ok": False, "error": "Faltan rating y/o texto de la reseña"}), 400
-            
-        if not email_from_payload:
-            return jsonify({"ok": False, "error": "Falta el email de identidad del usuario (userEmailOverride)"}), 400
-
+        # Obtener la reseña
         review = db.session.get(Review, review_id)
         if not review:
             return jsonify({"ok": False, "error": "Reseña no encontrada"}), 404
         
-        # 🚨 PASO CLAVE 2: VERIFICACIÓN DE AUTORÍA (403 Forbidden)
-        # Se compara el email de la reseña con el email REAL de la sesión (session_user_email)
-        if review.user_email.lower() != session_user_email.lower():
-            # ESTE ES EL CÓDIGO QUE PREVIENE QUE user@example.com edite admin@example.com
-            print(f"❌ AUTORÍA DENEGADA: Reseña de {review.user_email} intentada por {session_user_email} (por ID de sesión)")
-            return jsonify({"ok": False, "error": "No estás autorizado para editar esta reseña."}), 403
-            
+        # 🚨 VERIFICACIÓN DE AUTORÍA CORREGIDA 🚨
+        # Comparamos el email de la reseña contra el email que envía el FRONTEND.
+        # Esto soluciona el problema de que tu sesión de backend sea Admin y tu usuario frontend sea User.
+        if review.user_email.lower() != email_from_payload.lower():
+             print(f"❌ AUTORÍA DENEGADA: Reseña de {review.user_email} intentada por {email_from_payload}")
+             return jsonify({"ok": False, "error": "No estás autorizado para editar esta reseña."}), 403
+
         # Actualizar campos
         review.rating = rating
         review.content = text.strip()
@@ -298,9 +285,10 @@ def api_update_review(review_id):
         return jsonify({
             "ok": True,
             "message": "Reseña actualizada exitosamente. Pendiente de moderación.",
-            "status": "Pendiente"
+            "status": "Pendiente",
+            "data": review.to_dict()
         }), 200
-
+        
     except Exception as e:
         db.session.rollback()
         print("-" * 50)
