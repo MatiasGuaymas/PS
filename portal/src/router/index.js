@@ -50,6 +50,18 @@ const router = createRouter({
       props: true 
     },
     {
+      path: '/reviews/new',
+      name: 'new-review',
+      component: () => import('../views/ReviewForm.vue'), 
+      meta: { requiresAuth: true } // Asumimos que se requiere autenticación para dejar una reseña
+    },
+    {
+      path: '/sites/:siteId/reviews/:reviewId/edit',
+      name: 'edit-review',
+      component: () => import('../views/ReviewForm.vue'), 
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('../views/NotFoundView.vue'),
