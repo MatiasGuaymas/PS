@@ -118,7 +118,11 @@ def authenticate():
 def login_google():
     """Inicia el flujo OAuth con Google"""
     origin = request.args.get('origin', 'admin')
+    redirect_to = request.args.get('redirect_to', '')
+    
     session['oauth_origin'] = origin
+    session['oauth_redirect_to'] = redirect_to
+    
     oauth = current_app.oauth
     redirect_uri = url_for('auth.callback', _external=True)
     return oauth.google.authorize_redirect(redirect_uri)
@@ -149,6 +153,7 @@ def callback():
             return redirect(url_for("auth.login"))
         
         origin = session.pop('oauth_origin', 'admin')
+        redirect_to = session.pop('oauth_redirect_to', '')
         
         # ✅ Si es para la app pública (Vue), crear JWT
         if origin == 'public':
@@ -160,10 +165,12 @@ def callback():
             )
             
             refresh_token = create_refresh_token(user_id=user.id)
+
+            redirect_url = redirect_to if redirect_to else 'http://localhost:5173/'
             
             # Redirigir a Vue con tokens en cookies
-            response = make_response(redirect('http://localhost:5173/'))
-            
+            response = make_response(redirect(redirect_url))
+
             response.set_cookie(
                 'access_token',
                 access_token,
