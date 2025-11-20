@@ -12,3 +12,11 @@ def handler_index():
             "message": flag.message
         }), 503
     return jsonify({"status": "ok"}), 200
+
+@handler_blueprint.route("/review", methods=["GET"])
+def review_enable():
+    flag = FlagService.get_flag_by_name("reviews_enabled")
+    if flag and  not flag.is_enabled:
+        return jsonify({"status": "Reviews are disabled"
+        }), 503
+    return jsonify({"status": "ok"}), 200
