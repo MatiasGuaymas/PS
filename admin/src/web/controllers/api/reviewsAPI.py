@@ -295,3 +295,46 @@ def api_update_review(review_id):
         print(f"❌ ERROR DE BASE DE DATOS AL ACTUALIZAR RESEÑA: {e}")
         print("-" * 50)
         return jsonify({"ok": False, "error": "Error al actualizar la reseña (Consulta el log del servidor para más detalles)"}), 500
+
+# En reviewsAPI.py
+
+@reviewsAPI_blueprint.route("/reviews/<int:review_id>", methods=["DELETE"])
+def api_delete_review(review_id):
+    """
+    API para eliminar una reseña.
+    Verifica la autoría comparando con el email enviado en el payload.
+    """
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"ok": False, "error": "No autenticado"}), 401
+
+    # En solicitudes DELETE, el body se obtiene igual
+    data = request.get_json() 
+    # Si axios no manda body, data será None, lo manejamos abajo
+    email_from_payload = data.get("userEmailOverride") if data else None
+
+    if not email_from_payload:
+        return jsonify({"ok": False, "error": "Falta el email de identidad para confirmar eliminación."}), 400
+
+    try:
+        review = db.session.get(Review, review_id)
+        if not review:
+            return jsonify({"ok": False, "error": "Reseña no encontrada"}), 404
+
+        # 🚨 VERIFICACIÓN DE AUTORÍA (Igual que en PUT)
+        if review.user_email.lower() != email_from_payload.lower():
+            print(f"❌ BORRADO DENEGADO: Reseña de {review.user_email} intentada por {email_from_payload}")
+            return jsonify({"ok": False, "error": "No estás autorizado para eliminar esta reseña."}), 403
+
+        # Proceder a eliminar
+        db.session.delete(review)
+        db.session.commit()
+        
+        print(f"🗑️ Reseña eliminada: ID={review_id} por {email_from_payload}")
+        
+        return jsonify({"ok": True, "message": "Reseña eliminada correctamente."}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error al eliminar reseña: {e}")
+        return jsonify({"ok": False, "error": "Error interno al eliminar la reseña"}), 500

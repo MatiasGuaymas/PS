@@ -353,14 +353,30 @@ export default {
       this.handleDelete();
     },
 
+
     async handleDelete() {
       this.isSubmitting = true;
       this.errorMessage = null;
       this.successMessage = null;
+      
+      // Verificar que tenemos el email (igual que en handleSubmit)
+      if (!this.currentUserEmail) {
+          this.errorMessage = "No se pudo verificar tu identidad para eliminar.";
+          this.isSubmitting = false;
+          return;
+      }
 
       try {
         const url = `${this.apiBaseUrl}/api/reviews/${this.reviewId}`;
-        await axios.delete(url, { withCredentials: true });
+        
+        //  CAMBIO: Enviar el email en el cuerpo de la solicitud DELETE
+        // Nota la estructura: axios.delete(url, { data: { ... }, withCredentials: true })
+        await axios.delete(url, { 
+            data: { 
+                userEmailOverride: this.currentUserEmail 
+            },
+            withCredentials: true 
+        });
 
         this.$router.push({ path: `/sitios/${this.siteId}`, query: { review_deleted: 'true' } });
 
