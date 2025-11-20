@@ -118,7 +118,6 @@
                 return response.json();
             })
             .then(data => {
-                console.log('Roles cargados:', data); // Para debug
                 const roleSelect = document.getElementById('edit-role');
                 data.forEach(role => {
                     const option = document.createElement('option');

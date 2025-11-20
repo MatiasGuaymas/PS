@@ -442,7 +442,6 @@ document.addEventListener('DOMContentLoaded', function() {
         onEnd: function (evt) {
             // El reordenamiento se maneja directamente en el DOM. 
             // La reconstrucción del FormData se hará en el evento 'submit'.
-            console.log("Imágenes reordenadas. Nuevo índice del elemento:", evt.newIndex);
         }
     });
 
@@ -588,7 +587,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Lógica de Eliminación Asíncrona de Imágenes ---
     document.querySelectorAll('.delete-image-btn').forEach(button => {
         button.addEventListener('click', function() {
-            console.log('Botón de eliminar imagen clickeado.');
             const imageId = this.getAttribute('data-image-id');
             const siteId = this.getAttribute('data-site-id');
             
