@@ -148,10 +148,10 @@ export default {
   },
   async mounted() {
     await this.fetchSite()
- 
+  
     // obtener el estado inicial del favorito
     await this.getCurrentUser()
-    if(this.currentUser.id)
+    if(this.currentUser && this.currentUser.id)
       await this.fetchFavoriteStatus()
   },
   methods: {
@@ -304,7 +304,7 @@ export default {
       this.lightbox.visible = true
     },
     closeLightbox() {
-      this.lightbox.visible = false
+      this.lightbox.lightbox.visible = false
       this.lightbox.img = null
     },
     async addLiked() {
@@ -335,8 +335,50 @@ export default {
       } finally {
         this.favLoading = false
       }
+    },
+    
+    async addReview() {
+      if (!this.siteId) {
+        console.error("No se puede agregar reseña: siteId no está disponible.");
+        return;
+      }
+      
+      try {
+        // 1. Construir URL con el email explícito 
+        let url = `${this.apiBaseUrl}/api/reviews/check-existing?site_id=${this.siteId}`;
+        
+        // Si tenemos el usuario cargado, enviamos su email para evitar errores de sesión cruzada
+        if (this.currentUser && this.currentUser.email) {
+            url += `&user_email=${encodeURIComponent(this.currentUser.email)}`;
+        }
+
+        const response = await axios.get(url, { withCredentials: true });
+        
+        if (response.data.has_review && response.data.review_id) {
+          console.log('✅ Reseña existente detectada. Redirigiendo a edición.');
+          
+          this.$router.push({ 
+            name: 'edit-review', 
+            params: { reviewId: response.data.review_id, siteId: this.siteId }
+          });
+          
+        } else {
+          console.log('ℹ️ No hay reseña existente. Redirigiendo a creación.');
+          this.$router.push({ 
+            name: 'new-review', 
+            query: { site_id: this.siteId } 
+          });
+        }
+      } catch (error) {
+        console.error("Error al verificar reseña existente:", error);
+        // Fallback
+        this.$router.push({ 
+          name: 'new-review', 
+          query: { site_id: this.siteId } 
+        });
+      }
     }
-  },
+  }, 
   computed: {
     stateChipClass() {
       const s = (this.result?.state_name || '').toLowerCase()
@@ -439,7 +481,7 @@ export default {
 }
 
 .chip-default { background: #6c757d; } 
-.chip-good    { background: #198754; } 
+.chip-good    { background: #198754; } 
 .chip-regular { background: #0d6efd; } 
-.chip-bad     { background: #dc3545; } 
+.chip-bad     { background: #dc3545; } 
 </style>

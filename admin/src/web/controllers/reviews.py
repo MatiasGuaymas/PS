@@ -281,37 +281,3 @@ def get_reviews_by_user(user_id):
     except Exception as e:
         return {"error": str(e)}, 500
 
-
-@reviews_blueprint.route("/api/public/reviews", methods=["GET"])
-def api_get_public_reviews():
-    """
-    API pública para devolver SOLO reseñas aprobadas.
-    Usada por el portal público.
-    """
-    try:
-        site_id = request.args.get("site_id", type=int)
-        page = request.args.get("page", 1, type=int)
-        per_page = request.args.get("per_page", 10, type=int)
-
-        # filtro por 'Aprobada' y por 'deleted == False'
-        query = Review.query.filter_by(status="Aprobada").join(Site).filter(Site.deleted == False)
-
-        if site_id:
-            query = query.filter(Review.site_id == site_id)
-
-        pagination = query.order_by(Review.created_at.desc()).paginate(
-            page=page, per_page=per_page, error_out=False
-        )
-
-        reviews_data = [r.to_dict() for r in pagination.items]
-
-        return {
-            "ok": True,
-            "total": pagination.total,
-            "page": page,
-            "per_page": per_page,
-            "reviews": reviews_data
-        }, 200
-
-    except Exception as e:
-        return {"ok": False, "error": str(e)}, 500

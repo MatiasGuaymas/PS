@@ -233,6 +233,82 @@ class ReviewService:
             db.session.rollback()
             return False
         
+    #--------------------------------------------------------
+    @staticmethod
+    def create_review_from_api(site_id: int, user_id: int, rating: int, text: str) -> Review:
+        """
+        Crea una nueva reseña desde la API pública.
+        La reseña queda en estado 'Pendiente' para moderación.
+        """
+        try:
+            # 1. Validar que el sitio existe y no está eliminado
+            site = db.session.get(Site, site_id)
+            if not site or site.deleted:
+                raise ValueError("El sitio no existe o fue eliminado")
+            
+            # 2. Validar que el usuario existe
+            user = db.session.get(User, user_id)
+            if not user:
+                raise ValueError("El usuario no existe")
+            
+            # 3. Verificar si ya existe una reseña (EN CUALQUIER ESTADO)
+            existing = db.session.query(Review).filter_by(
+                site_id=site_id, 
+                user_email=user.email
+            ).first()
+            
+            if existing:
+                # Ya existe una reseña, no permitir crear otra
+                # El frontend debería detectar esto y mostrar la existente para editar
+                raise ValueError("Ya tienes una reseña para este sitio. Por favor edítala en lugar de crear una nueva.")
+            
+            # 4. Validar rating (debe ser 1-5)
+            if not isinstance(rating, int) or rating < 1 or rating > 5:
+                raise ValueError("Rating inválido (debe ser 1-5)")
+            
+            # 5. Validar texto
+            if not text or not isinstance(text, str):
+                raise ValueError("El texto es obligatorio")
+            
+            text = text.strip()
+            if len(text) < 20 or len(text) > 1000:
+                raise ValueError(f"El texto debe tener entre 20 y 1000 caracteres (actual: {len(text)})")
+            
+            # 6. Crear la reseña
+            review = Review(
+                site_id=site_id,
+                user_email=user.email,
+                rating=rating,
+                content=text,
+                status='Pendiente',
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc)
+            )
+            
+            db.session.add(review)
+            db.session.commit()
+            
+            print(f"✅ Reseña creada exitosamente: ID={review.id}, Site={site_id}, User={user.email}")
+            
+            return review
+            
+        except ValueError as e:
+            raise e
+        except Exception as e:
+            db.session.rollback()
+            print(f"❌ Error al crear reseña: {e}")
+            raise Exception(f"Error al guardar la reseña: {str(e)}")
+    #--------------------------------------------------------
+
+    @staticmethod
+    def get_user_review_for_site(user_email: str, site_id: int) -> Optional[Review]:
+        """
+        Obtiene la reseña de un usuario para un sitio específico (si existe).
+        """
+        return db.session.query(Review).filter_by(
+            site_id=site_id,
+            user_email=user_email
+        ).first()
 
     @staticmethod
     def get_approved_reviews_by_user_paginated(
