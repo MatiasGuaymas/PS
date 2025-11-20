@@ -238,7 +238,6 @@ export default {
         const base = (this.apiBaseUrl || '').replace(/\/$/, '')
         const url = `${base}/api/reviews/list/${encodeURIComponent(this.siteId)}`
         const res = await axios.get(url)
-        console.log(res)
         this.reviews = (res && res.data && res.data.data) ? res.data.data : (res.data || [])
       } catch (e) {
         console.error('fetchReviews error', e)
@@ -329,7 +328,6 @@ export default {
       const el = document.getElementById('map')
       if (!el) {
         if (attempt >= MAX) {
-          console.log('Error al cargar el mapa.')
           return
         }
         return setTimeout(() => this.initMap(attempt + 1), DELAY)
@@ -419,16 +417,13 @@ export default {
 
         const response = await axios.get(url, { withCredentials: true });
         
-        if (response.data.has_review && response.data.review_id) {
-          console.log('✅ Reseña existente detectada. Redirigiendo a edición.');
-          
+        if (response.data.has_review && response.data.review_id) {          
           this.$router.push({ 
             name: 'edit-review', 
             params: { reviewId: response.data.review_id, siteId: this.siteId }
           });
           
         } else {
-          console.log('ℹ️ No hay reseña existente. Redirigiendo a creación.');
           this.$router.push({ 
             name: 'new-review', 
             query: { site_id: this.siteId } 

@@ -19,7 +19,6 @@ const fetchFavorites = async () => {
   error.value = null
   
   try {
-    console.log('Fetching favorites for user:', user.value?.id)
     
     const response = await axios.get(`${API_BASE_URL}/api/sites/favorites`, {
       params: {
@@ -29,7 +28,6 @@ const fetchFavorites = async () => {
       }
     })
     
-    console.log('✅ Response:', response.data)
     
     favorites.value = response.data.data || []
     
@@ -48,12 +46,8 @@ const goToSite = (siteId) => {
 }
 
 onMounted(() => {
-  console.log('FavoritesView mounted')
-  console.log('   - isAuthenticated:', isAuthenticated.value)
-  console.log('   - user:', user.value)
   
   if (!isAuthenticated.value) {
-    console.log('Not authenticated, redirecting to login')
     router.push('/login')
     return
   }

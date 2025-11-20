@@ -35,14 +35,11 @@ onMounted(() => {
 })
 
 const userAvatar = computed(() => {
-  console.log('🔍 Verificando avatar...', user.value?.avatar)
   
   if (user.value?.avatar) {
-    console.log('✅ Avatar encontrado:', user.value.avatar)
     return user.value.avatar
   }
   
-  console.log('❌ No hay avatar')
   return null
 })
 

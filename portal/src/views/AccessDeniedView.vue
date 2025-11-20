@@ -67,8 +67,6 @@ const checkAndExit = async () => {
         // El router.beforeEach manejará la verificación final antes de mostrar la home.
         router.replace('/')
     } else {
-        // se puede sacar es para ver el debug con el timer
-        console.log(`🚧 Sitio aún en mantenimiento. Último mensaje: ${message.value}`)
     }
 }
 

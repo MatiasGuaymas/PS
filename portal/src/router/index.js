@@ -84,7 +84,6 @@ const router = createRouter({
 
 // Hook para la verificación de mantenimiento (corre antes de la autenticación)
 router.beforeEach(async (to, from, next) => {
-  console.log(`🧭 Navegando a: ${to.path}`)
   
   // No verificar mantenimiento si la ruta permite saltarlo (ej: login, access-denied)
   const bypassMaintenance = to.matched.some(record => record.meta.bypassMaintenance)
@@ -95,7 +94,6 @@ router.beforeEach(async (to, from, next) => {
     await ensurePortalAvailability(forceRefresh)
 
     if (maintenanceState.isActive) {
-      console.log('🚧 Portal en Mantenimiento.')
       
       // Codifica el mensaje para pasarlo como parámetro de ruta
       const encodedMessage = encodeURIComponent(maintenanceState.message || 'El portal está temporalmente no disponible.')
@@ -120,7 +118,6 @@ router.beforeEach(async (to, from, next) => {
   
   // Lógica de espera si authStore.loading
   if (authStore.loading) {
-    console.log('⏳ Esperando verificación de autenticación...')
   
     let attempts = 0
     while (authStore.loading && attempts < 50) {
@@ -135,7 +132,6 @@ router.beforeEach(async (to, from, next) => {
 
   // Si la ruta requiere autenticación y no está autenticado
   if (requiresAuth && !isAuthenticated) {
-    console.log('❌ Acceso denegado, redirigiendo a /login')
     next('/login')
     return
   }

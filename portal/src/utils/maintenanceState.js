@@ -78,7 +78,6 @@ export const ensurePortalAvailability = async (forceRefresh = false) => {
         maintenanceState.isActive = Boolean(data.is_enabled) 
         maintenanceState.message = data.maintenance_message || ''
         
-        console.log(`📡 Estado de Mantenimiento actualizado. Activo: ${maintenanceState.isActive}`)
         
         return maintenanceState.isActive // Retorna el estado de mantenimiento
       })

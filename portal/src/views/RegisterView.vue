@@ -144,9 +144,6 @@ const handleRegister = async () => {
   loading.value = true
   
   try {
-    console.log('📝 Enviando registro...')
-    
-    // ✅ Usar FormData si hay imagen, sino JSON
     let requestBody
     let headers = {}
     
@@ -179,11 +176,9 @@ const handleRegister = async () => {
       body: requestBody
     })
     
-    console.log('📡 Respuesta status:', response.status)
     
     if (response.ok) {
       const data = await response.json()
-      console.log('✅ Registro exitoso:', data)
       
       // Pequeño delay para que la cookie se establezca
       await new Promise(resolve => setTimeout(resolve, 200))
@@ -191,7 +186,6 @@ const handleRegister = async () => {
       // Verificar autenticación
       await authStore.checkAuth()
       
-      console.log('👤 Usuario cargado:', authStore.user)
       
       // Redirigir
       router.push('/')

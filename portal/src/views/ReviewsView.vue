@@ -28,9 +28,7 @@ const fetchReviews = async (page = 1) => {
   loading.value = true
   error.value = null
   
-  try {
-    console.log('Fetching reviews for user:', user.value?.id)
-    
+  try {    
     const response = await axios.get(`${API_BASE_URL}/api/reviews/user/${user.value.id}`, {
       params: {
         page: page,
@@ -39,9 +37,7 @@ const fetchReviews = async (page = 1) => {
         order: 'desc'
       }
     })
-    
-    console.log('Reviews received:', response.data)
-    
+        
     reviews.value = response.data.data || []
     pagination.value = response.data.pagination || pagination.value
     
@@ -88,12 +84,8 @@ const formatDate = (dateString) => {
 }
 
 onMounted(() => {
-  console.log('ReviewsView mounted')
-  console.log('   - isAuthenticated:', isAuthenticated.value)
-  console.log('   - user:', user.value)
   
   if (!isAuthenticated.value) {
-    console.log('❌ Not authenticated, redirecting to login')
     router.push('/login')
     return
   }

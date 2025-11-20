@@ -120,10 +120,6 @@ export default {
   },
 
   async created() {
-    console.log('🎬 ReviewForm created()');
-    console.log('📍 siteId:', this.siteId);
-    console.log('📍 reviewId:', this.reviewId);
-    console.log('📍 isEditing:', this.isEditing);
     
     if (!this.siteId) {
       this.errorMessage = 'No se pudo obtener el ID del sitio. Regresa a la lista.';
@@ -143,14 +139,12 @@ export default {
     
     if (this.reviewId) {
       // 1. CASO EDICIÓN (ID viene en la URL)
-      console.log('✏️ Modo edición por URL: cargando reviewId', this.reviewId);
       await this.fetchReviewToEdit();
     } else {
       // 2. CASO CREACIÓN: Verificar si ya existe una reseña
       const checkResult = await this.checkExistingReview();
       
       if (checkResult.hasReview) {
-        console.log('🚨 Reseña existente detectada. Redirigiendo a modo edición:', checkResult.reviewId);
         
         // REDIRECCIÓN CRÍTICA: Cambia la ruta en el navegador a /edit/:id
         this.$router.replace({ 
@@ -194,7 +188,6 @@ export default {
             // Este endpoint debe  devolver el email del usuario autenticado en el puerto.
             const response = await axios.get(url, { withCredentials: true }); 
             this.currentUserEmail = response.data?.email || response.data?.data?.email;
-            console.log('✅ Email de sesión pública obtenido:', this.currentUserEmail);
         } catch (e) {
             // Si falla, al menos el campo se enviará como null, y el backend lo validará.
             console.warn('❌ No se pudo obtener el email del usuario actual. Esto causará un error en el backend si no está logeado.');

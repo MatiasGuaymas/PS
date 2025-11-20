@@ -11,7 +11,6 @@ export function useFilters() {
 
   const loadProvinces = async () => {
     try {
-      console.log(API_BASE_URL)
       const response = await axios.get(`${API_BASE_URL}/provinces`)
       provinces.value = response.data.data
     } catch (error) {
