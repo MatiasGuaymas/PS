@@ -14,7 +14,7 @@ export function useSites() {
     try {
       loading.value = true
       
-      // Construir query params
+      // Construcción de params
       const params = {
         page: filters.page || 1,
         per_page: filters.perPage || 12,
@@ -35,30 +35,27 @@ export function useSites() {
         params.tags = filters.tags.join(',')
       }
       
+      if (filters.showFavoritesOnly && filters.userId) {
+        params.user_id = filters.userId
+      }
       
       const response = await axios.get(API_BASE_URL, { params })
       const result = response.data
       
       // Mapear datos
-      let sitesData = result.data.map(site => ({
+      const sitesData = result.data.map(site => ({
         id: site.id,
         site_name: site.name,
         short_desc: site.short_desc,
         city: site.city,
         province: site.province,
         cover_image: site.cover_image_url || null,
-        average_rating: null,
-        operning_year: site.opening_year,
+        average_rating: site.rating || site.average_rating || null,
+        opening_year: site.opening_year,
         category: { name: site.category_name },
         state: { name: site.state_name },
         tags: site.tags || []
       }))
-      
-      // TODO: ¡ACTUALIZAR FAVORITOS! -> No me gustó esta solución
-      if (filters.showFavoritesOnly) {
-        const favorites = JSON.parse(localStorage.getItem('favorites') || '[]')
-        sitesData = sitesData.filter(site => favorites.includes(site.id))
-      }
       
       sites.value = sitesData
       totalSites.value = result.pagination.total

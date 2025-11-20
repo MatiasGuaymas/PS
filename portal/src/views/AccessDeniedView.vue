@@ -1,10 +1,30 @@
 <template>
-  <div class="access-denied">
-    <h2>🛑 Acceso Bloqueado</h2>
-    <p>Estamos temporalmente fuera de servicio.</p>
-    <div class="message-box">
-      <strong>Mensaje del Servidor:</strong>
-      <p>🚧 {{ message }} 🚧</p>
+  <div class="access-denied-container d-flex align-items-center justify-content-center vh-100 bg-light">
+    
+    <div class="card bg-white text-dark shadow-lg border-0 rounded-4" style="max-width: 500px;">
+      <div class="card-body p-5 text-center">
+        
+        <h1 class="display-1 text-danger mb-4">
+          <i class="bi bi-shield-slash-fill"></i> </h1>
+
+        <h2 class="card-title mb-3 fw-bolder">🛑 Acceso Bloqueado</h2>
+        
+        <p class="lead text-secondary-emphasis">
+          Parece que hemos encontrado una barrera. El servicio está temporalmente fuera de servicio.
+        </p>
+
+        <hr class="my-4">
+
+        <div class="alert alert-light border border-warning rounded-3 mt-4 p-3 text-start">
+          <h5 class="alert-heading text-dark fw-bold mb-2">
+            <i class="bi bi-tools me-2 text-warning"></i> Mensaje de Mantenimiento:
+          </h5>
+          <p class="mb-0 text-dark" style="text-align: center;">
+             <strong>{{ message }}</strong> 
+          </p>
+        </div>
+
+      </div>
     </div>
   </div>
 </template>
@@ -68,15 +88,21 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.access-denied {
-  text-align: center;
-  padding: 50px;
+/* Estilo para asegurar que el fondo claro sea uniforme */
+.access-denied-container {
+  min-height: 100vh;
+  background-color: var(--bs-light) !important; 
 }
-.message-box {
-  margin: 20px 0;
-  padding: 15px;
-  border: 1px solid #ff0000;
-  background-color: #ffeaea;
-  display: inline-block;
+
+/* Icono grande y moderno */
+.display-1 {
+  font-size: 5.5rem; /* Un poco más grande para dominar visualmente */
+  color: var(--bs-danger); /* Asegura que el color de alerta sea el Danger de Bootstrap */
+}
+
+.card {
+  /* Controla el ancho máximo para evitar que se vea muy estirado en pantallas grandes */
+  max-width: 500px;
+  /* Espacio extra de padding/margin si es necesario */
 }
 </style>
