@@ -96,7 +96,6 @@ import axios from 'axios';
 
 export default {
   data() {
-    // Busca siteId en params (edición) O query (creación).
     const siteId = this.$route.params.siteId || this.$route.query.site_id;
     return {
       apiBaseUrl: import.meta.env.VITE_API_URL || 'https://admin-grupo21.proyecto2025.linti.unlp.edu.ar',
@@ -104,11 +103,9 @@ export default {
       reviewId: this.$route.params.reviewId || null,
       siteName: 'Cargando...',
       
-      // Datos del Formulario
       rating: 0,
       reviewText: '',
       
-      // Estados de la Interfaz
       loading: true,
       isSubmitting: false,
       isEditing: !!this.$route.params.reviewId,
@@ -117,28 +114,65 @@ export default {
       successMessage: null,
       validationErrors: { rating: null, reviewText: null },
       
-      // Estado para el modal de eliminación (Reemplaza window.confirm)
       showDeleteModal: false, 
+      currentUserEmail: null, // 👈 [1] AÑADIDO
     };
   },
-  async created() {
-    if (!this.siteId) {
-      this.errorMessage = 'No se pudo obtener el ID del sitio. Regresa a la lista.';
-      this.loading = false;
-      return;
-    }
 
-    await this.fetchSiteName();
-    
-    if (this.isEditing) {
-      await this.fetchReviewToEdit();
-    } else {
-      this.loading = false; // Si es nueva, no hay que cargar nada
+  async created() {
+    console.log('🎬 ReviewForm created()');
+    console.log('📍 siteId:', this.siteId);
+    console.log('📍 reviewId:', this.reviewId);
+    console.log('📍 isEditing:', this.isEditing);
+    
+    if (!this.siteId) {
+      this.errorMessage = 'No se pudo obtener el ID del sitio. Regresa a la lista.';
+      this.loading = false;
+      return;
+    }
+
+    try {
+        // 🟢 PASO CLAVE: Obtener el email de la sesión antes de hacer cualquier otra cosa
+        await this.fetchCurrentUserEmail(); 
+    } catch (e) {
+        // Si fetchCurrentUserEmail falla, el mensaje de error ya está en this.errorMessage
+        return; 
     }
+    
+    await this.fetchSiteName();
+    
+    if (this.reviewId) {
+      // 1. CASO EDICIÓN (ID viene en la URL)
+      console.log('✏️ Modo edición por URL: cargando reviewId', this.reviewId);
+      await this.fetchReviewToEdit();
+    } else {
+      // 2. CASO CREACIÓN: Verificar si ya existe una reseña
+      const checkResult = await this.checkExistingReview();
+      
+      if (checkResult.hasReview) {
+        console.log('🚨 Reseña existente detectada. Redirigiendo a modo edición:', checkResult.reviewId);
+        
+        // 🚨 REDIRECCIÓN CRÍTICA: Cambia la ruta en el navegador a /edit/:id
+        this.$router.replace({ 
+            path: `/sitios/${this.siteId}/reviews/${checkResult.reviewId}/edit` 
+        }).catch(err => {
+           // Se ignora el error si la navegación es redundante
+           if (err.name !== 'NavigationDuplicated') {
+               throw err;
+           }
+        });
+        
+        // Evita que el formulario de creación se muestre por un instante y carga los datos
+        this.reviewId = checkResult.reviewId;
+        this.isEditing = true;
+        await this.fetchReviewToEdit(); 
+      }
+    }
+    
+    this.loading = false;
   },
   methods: {
     goBack() {
-      // Navegación de vuelta al detalle del sitio
       this.$router.push({ path: `/sitios/${this.siteId}` });
     },
     
@@ -153,11 +187,25 @@ export default {
       }
     },
 
+    async fetchCurrentUserEmail() {
+        try {
+            // ASUMIMOS QUE /auth/me devuelve { email: 'user@example.com' }
+            const url = `${this.apiBaseUrl}/auth/me`;
+            // Nota: Este endpoint debe existir y devolver el email del usuario autenticado en el puerto 5000.
+            const response = await axios.get(url, { withCredentials: true }); 
+            this.currentUserEmail = response.data?.email || response.data?.data?.email;
+            console.log('✅ Email de sesión pública obtenido:', this.currentUserEmail);
+        } catch (e) {
+            // Si falla, al menos el campo se enviará como null, y el backend lo validará.
+            console.warn('❌ No se pudo obtener el email del usuario actual. Esto causará un error en el backend si no está logeado.');
+            this.currentUserEmail = null;
+        }
+    },
+
     async fetchReviewToEdit() {
       this.loading = true;
       try {
         const url = `${this.apiBaseUrl}/api/reviews/${this.reviewId}`;
-        // Se asume que la API verifica si el usuario autenticado es el autor
         const response = await axios.get(url, { withCredentials: true }); 
         const review = response.data?.data || response.data;
         
@@ -166,30 +214,53 @@ export default {
         }
         
         this.rating = review.rating || 0;
-        this.reviewText = review.text || '';
-        this.isPendingModeration = (review.status === 'pending'); // Asumiendo que la API envía el estado
+        this.reviewText = review.content || review.text || '';
+        this.isPendingModeration = (review.status === 'Pendiente'); 
         
       } catch (e) {
         this.errorMessage = e.response?.data?.message || 'Error al cargar la reseña. ¿Es el autor?';
         console.error(e);
-        // Si falla, redirigimos al sitio 
         this.$router.push({ path: `/sitios/${this.siteId}`, query: { review_error: 'not_found_or_unauthorized' } });
       } finally {
         this.loading = false;
       }
     },
     
+    // En ReviewForm.vue (dentro de methods)
+
+    async checkExistingReview() {
+      try {
+        // 🟢 1. Construir URL con el email explícito
+        let url = `${this.apiBaseUrl}/api/reviews/check-existing?site_id=${this.siteId}`;
+        
+        // Usamos this.currentUserEmail que cargamos en created()
+        if (this.currentUserEmail) {
+             url += `&user_email=${encodeURIComponent(this.currentUserEmail)}`;
+        }
+
+        const response = await axios.get(url, { withCredentials: true });
+
+        if (response.data.has_review && response.data.review_id) {
+          // Retorna el ID de la reseña existente
+          return { hasReview: true, reviewId: response.data.review_id };
+        }
+        return { hasReview: false };
+      } catch (e) {
+        return { hasReview: false };
+      }
+    }, 
+    
+
+    
     validateForm() {
       this.validationErrors = { rating: null, reviewText: null };
       let isValid = true;
 
-      // Validación Puntuación
       if (this.rating < 1 || this.rating > 5) {
         this.validationErrors.rating = 'La puntuación debe ser entre 1 y 5.';
         isValid = false;
       }
 
-      // Validación Texto
       const len = this.reviewText.length;
       if (len < 20 || len > 1000) {
         this.validationErrors.reviewText = `El texto debe tener entre 20 y 1000 caracteres. Actualmente tiene ${len}.`;
@@ -200,113 +271,88 @@ export default {
     },
     
     async handleSubmit() {
-      console.log('🚀 handleSubmit iniciado');
-      
-      this.errorMessage = null;
-      this.successMessage = null;
-      this.isPendingModeration = false;
-
-      if (!this.validateForm()) {
-        this.errorMessage = 'Por favor, corrige los errores del formulario.';
-        console.log('❌ Validación del formulario falló');
+    // La validación funciona, la dejamos
+    if (!this.validateForm()) {
         return;
-      }
+    }
 
-      console.log('✅ Formulario validado correctamente');
-      this.isSubmitting = true;
+    this.isSubmitting = true;
+    this.errorMessage = null;
+    this.successMessage = null;
+    
+    // 🟢 PASO 1: Usar la variable de email ya cargada y segura
+    const userEmail = this.currentUserEmail; 
 
-      // Primero obtener el usuario actual
-      let currentUserId = null;
-      try {
-        console.log('📡 Obteniendo información del usuario...');
-        const userResponse = await axios.get(`${this.apiBaseUrl}/auth/me`, { withCredentials: true });
-        console.log('👤 Respuesta de /auth/me:', userResponse.data);
-        
-        currentUserId = userResponse.data?.id;
-        
-        if (!currentUserId) {
-          this.errorMessage = 'No se pudo obtener tu información de usuario. Inicia sesión nuevamente.';
-          this.isSubmitting = false;
-          console.log('❌ No se obtuvo user_id de /auth/me');
-          return;
-        }
-        
-        console.log('✅ User ID obtenido:', currentUserId);
-        
-      } catch (e) {
-        console.error('❌ Error al obtener usuario:', e);
-        this.errorMessage = 'Error de autenticación. Por favor inicia sesión.';
+    // 🟢 PASO 2: Verificar que el email existe antes de proceder (seguridad)
+    if (!userEmail) {
+        // Si no hay email, es un error de sesión. 
+        this.errorMessage = "Error de autenticación: No se pudo verificar la identidad del usuario. Intenta cerrar sesión y volver a entrar.";
         this.isSubmitting = false;
-        return;
-      }
+        return; 
+    }
 
-      const data = {
-        rating: this.rating,
-        text: this.reviewText,
-        site_id: this.siteId,
-        user_id: currentUserId
-      };
+    try {
+        const payload = {
+            site_id: this.siteId,
+            rating: this.rating,
+            text: this.reviewText,
+            // 🚨 CORRECCIÓN CRÍTICA: Usamos la variable local verificada
+            userEmailOverride: userEmail,
+        };
 
-      console.log('📦 Datos a enviar:', data);
+        let url;
+        let method;
 
-      try {
-        let response;
         if (this.isEditing) {
-          console.log('✏️ Modo EDICIÓN');
-          const url = `${this.apiBaseUrl}/api/reviews/${this.reviewId}`;
-          console.log('📡 PUT a:', url);
-          response = await axios.put(url, data, { withCredentials: true }); 
+            url = `${this.apiBaseUrl}/api/reviews/${this.reviewId}`;
+            method = 'put';
         } else {
-          console.log('✨ Modo CREACIÓN');
-          const url = `${this.apiBaseUrl}/api/reviews`;
-          console.log('📡 POST a:', url);
-          response = await axios.post(url, data, { withCredentials: true }); 
+            url = `${this.apiBaseUrl}/api/reviews`;
+            method = 'post';
         }
 
-        console.log('✅ Respuesta del servidor:', response.data);
-        
-        this.successMessage = `Reseña ${this.isEditing ? 'actualizada' : 'creada'} con éxito.`;
-        
-        const newStatus = response.data?.data?.status || response.data?.status || 'approved'; 
+        const response = await axios({
+            method: method,
+            url: url,
+            data: payload,
+            withCredentials: true
+        });
 
-        if (this.isEditing && newStatus === 'pending') {
-          this.isPendingModeration = true;
-        }
-
-        if (!this.isEditing) {
-            this.reviewId = response.data?.data?.id || response.data?.id;
-            this.isEditing = true; 
+        // Manejo de respuesta
+        this.successMessage = response.data?.message || 'Reseña enviada exitosamente.';
+        
+        if (method === 'post' && response.data?.data?.id) {
+            this.reviewId = response.data.data.id;
+            this.isEditing = true;
         }
         
+        // Redireccionar al sitio después de 1.5s
         setTimeout(() => {
-          this.$router.push({ path: `/sitios/${this.siteId}` });
+           this.$router.push({ path: `/sitios/${this.siteId}` }); 
         }, 1500);
 
-      } catch (e) {
+
+    } catch (e) {
         console.error('❌ Error al enviar reseña:', e);
-        console.error('❌ Response:', e.response);
         
-        let message = 'Error al enviar la reseña. Verifica permisos o datos.';
-        
+        let message = 'Error al enviar la reseña.';
         if (!e.response) {
-            message = 'Error de conexión o configuración del servidor (CORS).';
+            // Este es el error que estabas viendo. Ahora debería desaparecer.
+            message = 'Error de conexión con el servidor. (Verifica tu servidor backend si persiste).'; 
         } else {
             message = e.response?.data?.error || e.response?.data?.message || message;
         }
 
         this.errorMessage = message;
-      } finally {
-        console.log('🏁 handleSubmit finalizado');
+    } finally {
         this.isSubmitting = false;
-      }
+    }
     },
-    // Función que se llama al confirmar el modal
     handleDeleteConfirm() {
       this.showDeleteModal = false;
       this.handleDelete();
     },
 
-    // Lógica real de eliminación
     async handleDelete() {
       this.isSubmitting = true;
       this.errorMessage = null;
@@ -316,17 +362,16 @@ export default {
         const url = `${this.apiBaseUrl}/api/reviews/${this.reviewId}`;
         await axios.delete(url, { withCredentials: true });
 
-        // Redirigir al detalle del sitio después de eliminar
         this.$router.push({ path: `/sitios/${this.siteId}`, query: { review_deleted: 'true' } });
 
       } catch (e) {
-        this.errorMessage = e.response?.data?.message || 'Error al eliminar la reseña. Verifica permisos.';
+        this.errorMessage = e.response?.data?.error || e.response?.data?.message || 'Error al eliminar la reseña.';
         console.error(e);
       } finally {
         this.isSubmitting = false;
       }
     }
-  },
+  }
 };
 </script>
 
@@ -356,7 +401,7 @@ export default {
 .rating-stars .bi-star-fill {
   font-size: 1.5rem;
   cursor: pointer;
-  color: #ffc107; /* Color de las estrellas */
+  color: #ffc107; 
   transition: transform 0.2s;
 }
 

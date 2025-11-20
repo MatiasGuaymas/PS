@@ -311,21 +311,49 @@ export default {
         this.favLoading = false
       }
     },
-    // **********************************************
-    // * ESTE MÉTODO FUE MOVIDO DENTRO DE 'methods' *
-    // **********************************************
-    addReview() {
-      // Redirige al formulario de creación de reseñas, pasando la ID del sitio.
-      if (this.siteId) {
-          this.$router.push({ 
-              name: 'new-review', 
-              query: { site_id: this.siteId } 
-          });
-      } else {
-          console.error("No se puede agregar reseña: siteId no está disponible.");
+    
+    async addReview() {
+      if (!this.siteId) {
+        console.error("No se puede agregar reseña: siteId no está disponible.");
+        return;
       }
-    },
-  }, // Cierre CORREGIDO del objeto methods
+      
+      try {
+        // 🟢 1. Construir URL con el email explícito (si existe)
+        let url = `${this.apiBaseUrl}/api/reviews/check-existing?site_id=${this.siteId}`;
+        
+        // Si tenemos el usuario cargado, enviamos su email para evitar errores de sesión cruzada
+        if (this.currentUser && this.currentUser.email) {
+            url += `&user_email=${encodeURIComponent(this.currentUser.email)}`;
+        }
+
+        const response = await axios.get(url, { withCredentials: true });
+        
+        if (response.data.has_review && response.data.review_id) {
+          console.log('✅ Reseña existente detectada. Redirigiendo a edición.');
+          
+          this.$router.push({ 
+            name: 'edit-review', 
+            params: { reviewId: response.data.review_id, siteId: this.siteId }
+          });
+          
+        } else {
+          console.log('ℹ️ No hay reseña existente. Redirigiendo a creación.');
+          this.$router.push({ 
+            name: 'new-review', 
+            query: { site_id: this.siteId } 
+          });
+        }
+      } catch (error) {
+        console.error("Error al verificar reseña existente:", error);
+        // Fallback
+        this.$router.push({ 
+          name: 'new-review', 
+          query: { site_id: this.siteId } 
+        });
+      }
+    }
+  }, 
   computed: {
     stateChipClass() {
       const s = (this.result?.state_name || '').toLowerCase()

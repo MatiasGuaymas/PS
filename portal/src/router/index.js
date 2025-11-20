@@ -56,7 +56,7 @@ const router = createRouter({
       meta: { requiresAuth: true } // Asumimos que se requiere autenticación para dejar una reseña
     },
     {
-      path: '/sites/:siteId/reviews/:reviewId/edit',
+      path: '/sitios/:siteId/reviews/:reviewId/edit',
       name: 'edit-review',
       component: () => import('../views/ReviewForm.vue'), 
       meta: { requiresAuth: true }

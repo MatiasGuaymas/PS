@@ -234,7 +234,6 @@ class ReviewService:
             return False
         
     #--------------------------------------------------------
-
     @staticmethod
     def create_review_from_api(site_id: int, user_id: int, rating: int, text: str) -> Review:
         """
@@ -252,15 +251,16 @@ class ReviewService:
             if not user:
                 raise ValueError("El usuario no existe")
             
-            # 3. Verificar si ya existe una reseña de este usuario para este sitio
-            # ⚠️ CAMBIO AQUÍ: Buscar por user_email en vez de user_id
+            # 3. Verificar si ya existe una reseña (EN CUALQUIER ESTADO)
             existing = db.session.query(Review).filter_by(
                 site_id=site_id, 
-                user_email=user.email  # ← CAMBIO: usar email en vez de user_id
+                user_email=user.email
             ).first()
             
             if existing:
-                raise ValueError("Ya existe una reseña tuya para este sitio")
+                # Ya existe una reseña, no permitir crear otra
+                # El frontend debería detectar esto y mostrar la existente para editar
+                raise ValueError("Ya tienes una reseña para este sitio. Por favor edítala en lugar de crear una nueva.")
             
             # 4. Validar rating (debe ser 1-5)
             if not isinstance(rating, int) or rating < 1 or rating > 5:
@@ -275,10 +275,9 @@ class ReviewService:
                 raise ValueError(f"El texto debe tener entre 20 y 1000 caracteres (actual: {len(text)})")
             
             # 6. Crear la reseña
-            # ⚠️ CAMBIO AQUÍ: Quité user_id, solo uso user_email
             review = Review(
                 site_id=site_id,
-                user_email=user.email,  # ← Solo guardamos el email
+                user_email=user.email,
                 rating=rating,
                 content=text,
                 status='Pendiente',
@@ -294,14 +293,22 @@ class ReviewService:
             return review
             
         except ValueError as e:
-            # Re-lanzar errores de validación
             raise e
         except Exception as e:
             db.session.rollback()
             print(f"❌ Error al crear reseña: {e}")
             raise Exception(f"Error al guardar la reseña: {str(e)}")
-
     #--------------------------------------------------------
+
+    @staticmethod
+    def get_user_review_for_site(user_email: str, site_id: int) -> Optional[Review]:
+        """
+        Obtiene la reseña de un usuario para un sitio específico (si existe).
+        """
+        return db.session.query(Review).filter_by(
+            site_id=site_id,
+            user_email=user_email
+        ).first()
 
     @staticmethod
     def get_approved_reviews_by_user_paginated(
