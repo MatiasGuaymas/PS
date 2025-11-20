@@ -4,26 +4,50 @@ from core.models.Site import Site
 from core.models.Review import Review 
 from core.database import db
 
-reviewsAPI_blueprint = Blueprint("reviewsAPI", __name__, url_prefix="/api/reviews")
+# Definición del Blueprint: La base de URL ahora es solo /api
+reviewsAPI_blueprint = Blueprint("reviewsAPI", __name__, url_prefix="/api")
 
 
-@reviewsAPI_blueprint.route("/sites/<int:site_id>/reviews", methods=["POST"])
-def api_create_review(site_id):
+
+@reviewsAPI_blueprint.route("/reviews", methods=["OPTIONS"])
+@reviewsAPI_blueprint.route("/reviews/<int:review_id>", methods=["OPTIONS"])
+def handle_reviews_preflight():
+    """Maneja las solicitudes OPTIONS para /api/reviews y /api/reviews/<id>."""
+    return "", 200
+
+
+@reviewsAPI_blueprint.route("/reviews", methods=["POST"])
+def api_create_review():
     """
     API para que un usuario del portal cree una reseña.
+    Espera 'site_id' en el cuerpo del JSON.
     """
     data = request.get_json() or {}
     
-    # Obtener datos de la sesión y el cuerpo
+    # 1. Obtener datos de la sesión y el cuerpo
     rating = data.get("rating")
     text = data.get("text")
-    user_id = session.get("user_id")
+    site_id = data.get("site_id")
+    raw_user_id = session.get("user_id")
 
-    if not user_id:
+    # 2. Validación de Autenticación
+    if not raw_user_id:
         return jsonify({"ok": False, "error": "Acceso denegado. Se requiere autenticación."}), 401
     
+    # 3. Conversión de Tipos
     try:
-        # Llamar al servicio, que contiene toda la lógica de validación y persistencia
+        user_id = int(raw_user_id)
+        # site_id ya se valida en el servicio, pero lo convertimos aquí para el chequeo de falta
+        site_id = int(site_id) 
+    except (TypeError, ValueError):
+        # Si el site_id o user_id no es convertible, es un error de solicitud
+        return jsonify({"ok": False, "error": "ID de usuario o sitio inválido."}), 400
+    
+    if not site_id:
+        return jsonify({"ok": False, "error": "Falta el ID del sitio."}), 400
+    
+    try:
+        # 4. Llamar al servicio
         review = ReviewService.create_review_from_api(
             site_id=site_id,
             user_id=user_id,
@@ -35,32 +59,42 @@ def api_create_review(site_id):
         return jsonify({
             "ok": True, 
             "message": "Reseña creada. Pendiente de moderación.",
-            "review": review.to_dict() 
+            "data": review.to_dict() 
         }), 201
             
     except ValueError as e:
         # Manejo de errores de validación y lógica de negocio (desde el servicio)
         error_message = str(e)
         
+        # Estos errores vienen de validaciones en el Servicio (404/409/400)
         if "no existe" in error_message:
              return jsonify({"ok": False, "error": error_message}), 404
              
         if "existe una reseña" in error_message:
              return jsonify({"ok": False, "error": error_message}), 409
              
-        # Para "Rating inválido", "Texto inválido"
+        # Para "Rating inválido", "Texto inválido" y otros ValueErrors
         return jsonify({"ok": False, "error": error_message}), 400 
         
     except Exception as e:
-        # Manejo de errores internos del servidor
-        print(f"Error al crear reseña: {e}")
-        return jsonify({"ok": False, "error": "Error interno del servidor."}), 500
+        import traceback
+        import sys
+        
+        print("-" * 60)
+        print("Error DETECTADO en reviewsAPI.py (500 Internal Server Error):")
+        # Imprime la traza completa para el diagnóstico
+        traceback.print_exc(file=sys.stdout)
+        print("-" * 60)
+        return jsonify({"ok": False, "error": "Error interno del servidor. Revisa la consola del BACKEND (traza completa)."}, 500)
     
+
+
+# GET en /api/reviews
 
 @reviewsAPI_blueprint.route("/reviews", methods=["GET"])
 def api_get_public_reviews():
     """
-    API pública para devolver SOLO reseñas aprobadas, usado por el portal público.
+    API pública para devolver SOLO reseñas aprobadas.
     """
     try:
         site_id = request.args.get("site_id", type=int)
@@ -82,8 +116,8 @@ def api_get_public_reviews():
         return jsonify({
             "ok": True,
             "total": pagination.total,
-            "page": page,
-            "per_page": per_page,
+            "page": pagination.page,
+            "per_page": pagination.per_page,
             "reviews": reviews_data
         }), 200
 
