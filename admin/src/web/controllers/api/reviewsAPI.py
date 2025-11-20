@@ -15,79 +15,76 @@ def handle_reviews_preflight():
     """Maneja las solicitudes OPTIONS para /api/reviews y /api/reviews/<id>."""
     return "", 200
 
-
+#-----------------------------------------------------
 @reviewsAPI_blueprint.route("/reviews", methods=["POST"])
 def api_create_review():
     """
     API para que un usuario del portal cree una reseña.
-    Espera 'site_id' en el cuerpo del JSON.
     """
     data = request.get_json() or {}
     
-    # 1. Obtener datos de la sesión y el cuerpo
+    # 1. Obtener user_id: primero del body, sino de la sesión
+    user_id = data.get("user_id") or session.get("user_id")
+    
+    if not user_id:
+        return jsonify({
+            "ok": False, 
+            "error": "Debes iniciar sesión para dejar una reseña"
+        }), 401
+    
+
+    print(f"🔍 DEBUG - user_id recibido: {user_id}")
+    print(f"🔍 DEBUG - session user_id: {session.get('user_id')}")
+    
+    # 3. Obtener datos del request
     rating = data.get("rating")
     text = data.get("text")
     site_id = data.get("site_id")
-    raw_user_id = session.get("user_id")
-
-    # 2. Validación de Autenticación
-    if not raw_user_id:
-        return jsonify({"ok": False, "error": "Acceso denegado. Se requiere autenticación."}), 401
     
-    # 3. Conversión de Tipos
-    try:
-        user_id = int(raw_user_id)
-        # site_id ya se valida en el servicio, pero lo convertimos aquí para el chequeo de falta
-        site_id = int(site_id) 
-    except (TypeError, ValueError):
-        # Si el site_id o user_id no es convertible, es un error de solicitud
-        return jsonify({"ok": False, "error": "ID de usuario o sitio inválido."}), 400
-    
+    # 4. Validación básica
     if not site_id:
-        return jsonify({"ok": False, "error": "Falta el ID del sitio."}), 400
+        return jsonify({"ok": False, "error": "Falta el ID del sitio"}), 400
     
     try:
-        # 4. Llamar al servicio
+        # 5. Llamar al servicio
         review = ReviewService.create_review_from_api(
-            site_id=site_id,
-            user_id=user_id,
+            site_id=int(site_id),
+            user_id=int(user_id),  # Ahora usa el user_id correcto
             rating=rating,
             text=text
         )
-        
-        # Éxito: devolver 201 Created
+        # 5. Éxito: devolver 201 Created
         return jsonify({
-            "ok": True, 
-            "message": "Reseña creada. Pendiente de moderación.",
-            "data": review.to_dict() 
+            "ok": True,
+            "message": "Reseña creada exitosamente. Pendiente de moderación.",
+            "data": review.to_dict()
         }), 201
-            
-    except ValueError as e:
-        # Manejo de errores de validación y lógica de negocio (desde el servicio)
-        error_message = str(e)
         
-        # Estos errores vienen de validaciones en el Servicio (404/409/400)
-        if "no existe" in error_message:
-             return jsonify({"ok": False, "error": error_message}), 404
-             
-        if "existe una reseña" in error_message:
-             return jsonify({"ok": False, "error": error_message}), 409
-             
-        # Para "Rating inválido", "Texto inválido" y otros ValueErrors
-        return jsonify({"ok": False, "error": error_message}), 400 
+    except ValueError as e:
+        # 6. Errores de validación del servicio
+        error_msg = str(e)
+        
+        # Determinar código de estado según el error
+        if "no existe" in error_msg or "fue eliminado" in error_msg:
+            status_code = 404
+        elif "Ya existe" in error_msg:
+            status_code = 409  # Conflict
+        else:
+            status_code = 400  # Bad Request
+            
+        return jsonify({"ok": False, "error": error_msg}), status_code
         
     except Exception as e:
+        # 7. Error inesperado
+        print(f"❌ ERROR INESPERADO en api_create_review: {e}")
         import traceback
-        import sys
+        traceback.print_exc()
         
-        print("-" * 60)
-        print("Error DETECTADO en reviewsAPI.py (500 Internal Server Error):")
-        # Imprime la traza completa para el diagnóstico
-        traceback.print_exc(file=sys.stdout)
-        print("-" * 60)
-        return jsonify({"ok": False, "error": "Error interno del servidor. Revisa la consola del BACKEND (traza completa)."}, 500)
-    
-
+        return jsonify({
+            "ok": False, 
+            "error": "Error interno del servidor. Revisa los logs del backend."
+        }), 500
+#-----------------------------------------------------
 
 # GET en /api/reviews
 
