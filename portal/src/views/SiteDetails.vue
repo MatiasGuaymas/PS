@@ -5,6 +5,7 @@
         <button class="btn btn-sm btn-outline-secondary" @click="goBack"><i class="bi bi-arrow-left"></i> Volver</button>
       </div>
       <div class="d-flex align-items-center">
+        <!-- El @click="addReview" ahora llamará a la función correctamente ubicada -->
         <button class="btn btn-sm btn-primary me-2" @click="addReview"><i class="bi bi-chat-dots-fill"></i> Agregar reseña</button>
         <template v-if="canFavorite">
           <button class="btn btn-sm btn-info me-2" @click="addLiked" :disabled="favLoading">
@@ -132,7 +133,7 @@ export default {
   },
   async mounted() {
     await this.fetchSite()
- 
+  
     // obtener el estado inicial del favorito
     await this.getCurrentUser()
     if(this.currentUser && this.currentUser.id)
@@ -254,6 +255,7 @@ export default {
       const center = hasCoords ? [lat, lng] : [-34.6037, -58.3816]
 
       try {
+        // Asegúrate de que L esté disponible globalmente (asumo que importas Leaflet en index.html)
         this.map = L.map(el, { center, zoom: hasCoords ? 15 : 10, scrollWheelZoom: true })
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(this.map)
@@ -277,7 +279,7 @@ export default {
       this.lightbox.visible = true
     },
     closeLightbox() {
-      this.lightbox.visible = false
+      this.lightbox.lightbox.visible = false
       this.lightbox.img = null
     },
     async addLiked() {
@@ -308,8 +310,22 @@ export default {
       } finally {
         this.favLoading = false
       }
-    }
-  },
+    },
+    // **********************************************
+    // * ESTE MÉTODO FUE MOVIDO DENTRO DE 'methods' *
+    // **********************************************
+    addReview() {
+      // Redirige al formulario de creación de reseñas, pasando la ID del sitio.
+      if (this.siteId) {
+          this.$router.push({ 
+              name: 'new-review', 
+              query: { site_id: this.siteId } 
+          });
+      } else {
+          console.error("No se puede agregar reseña: siteId no está disponible.");
+      }
+    },
+  }, // Cierre CORREGIDO del objeto methods
   computed: {
     stateChipClass() {
       const s = (this.result?.state_name || '').toLowerCase()
@@ -407,7 +423,7 @@ export default {
   color: #fff;
 }
 .chip-default { background: #6c757d; } 
-.chip-good    { background: #198754; } 
+.chip-good    { background: #198754; } 
 .chip-regular { background: #0d6efd; } 
-.chip-bad     { background: #dc3545; } 
+.chip-bad     { background: #dc3545; } 
 </style>
