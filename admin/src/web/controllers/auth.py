@@ -9,6 +9,7 @@ from src.web.utils.jwt_utils import (
     jwt_required,
     get_token_from_request
 )
+import os
 
 bp = Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -86,7 +87,7 @@ def authenticate():
             secure=False,
             samesite='Lax',
             max_age=3600,
-            path='/'  # ✅ AGREGAR
+            path='/'  
         )
         
         response.set_cookie(
@@ -96,7 +97,7 @@ def authenticate():
             secure=False,
             samesite='Lax',
             max_age=2592000,
-            path='/'  # ✅ AGREGAR
+            path='/'  
         )
         
         return response
@@ -166,7 +167,10 @@ def callback():
             
             refresh_token = create_refresh_token(user_id=user.id)
 
-            redirect_url = redirect_to if redirect_to else 'http://localhost:5173/'
+            if(os.getenv == 'development'):
+                redirect_url = redirect_to if redirect_to else 'http://localhost:5173/'
+            else:
+                redirect_url = redirect_to if redirect_to else 'https://grupo21.proyecto2025.linti.unlp.edu.ar/'
             
             # Redirigir a Vue con tokens en cookies
             response = make_response(redirect(redirect_url))
@@ -195,7 +199,7 @@ def callback():
             
             return response
         else:
-            # ✅ Si es para admin (Flask), usar sesión tradicional
+            # Si es para admin (Flask), usar sesión tradicional
             session["user"] = user.email
             session["user_id"] = user.id
             session["role_name"] = user.role.name if user.role else "No Role"

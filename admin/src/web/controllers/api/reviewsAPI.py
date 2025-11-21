@@ -4,13 +4,24 @@ from core.models.Site import Site
 from core.models.Review import Review 
 from core.database import db
 from datetime import datetime, timezone
-
-
+from web.utils.jwt_utils import jwt_required
+from core.services.flag_service import FlagService
 
 # Definición del Blueprint: La base de URL ahora es solo /api
 reviewsAPI_blueprint = Blueprint("reviewsAPI", __name__, url_prefix="/api")
 
-
+def check_flag():
+    flag = FlagService.get_flag_by_name("reviews_enabled")
+    if not flag:
+        #no deberia pasar nunca pero por si algun gracioso me borra la db :)
+        return jsonify({
+            "status": "Reviews no permitidas"
+        }), 503
+    if not flag.is_enabled:
+        return jsonify({
+            "status": flag.description,
+            "message": flag.message
+        }), 503
 
 @reviewsAPI_blueprint.route("/reviews", methods=["OPTIONS"])
 @reviewsAPI_blueprint.route("/reviews/<int:review_id>", methods=["OPTIONS"])
@@ -20,12 +31,18 @@ def handle_reviews_preflight(review_id=None):
     return "", 200
 
 @reviewsAPI_blueprint.route("/reviews/check-existing", methods=["GET"])
+@jwt_required
 def api_check_existing_review():
     """
     Verifica si el usuario ya tiene una reseña para un sitio.
     PRIORIDAD: Busca por 'user_email' (parametro URL) si existe, sino usa la sesión.
     """
-    user_id = session.get("user_id") # Se mantiene para validar que hay sesión activa
+    check_flag()
+    user_data = request.current_user
+    
+    # Recuperar el user_id
+    user_id = user_data.get('user_id')
+
     site_id = request.args.get("site_id", type=int)
     # Leer el email de la URL
     email_arg = request.args.get("user_email", default=None)
@@ -79,13 +96,20 @@ def api_check_existing_review():
         return jsonify({"ok": False, "error": "Error al verificar reseña"}), 500
 
 
+
 @reviewsAPI_blueprint.route("/reviews", methods=["POST"])
+@jwt_required
 def api_create_review():
     """
     API para crear una nueva reseña.
     """
-    # 1. Verificación de autenticación de sesión Flask
-    if not session.get("user_id"):
+    check_flag()
+    user_data = request.current_user
+    
+    # Recuperar el user_id
+    user_id = user_data.get('user_id')
+
+    if not user_id:
         return jsonify({"ok": False, "error": "No autenticado"}), 401
     
     data = request.json
@@ -200,12 +224,18 @@ def api_get_public_reviews():
         return jsonify({"ok": False, "error": "Error al procesar la solicitud."}), 500
     
 @reviewsAPI_blueprint.route("/reviews/<int:review_id>", methods=["GET"])
+@jwt_required
 def api_get_review_for_edit(review_id):
     """
     API para obtener los datos de una reseña para edición.
     Se ignora la autoría/sesión del usuario para resolver el conflicto.
     """
-    user_id = session.get("user_id")
+    check_flag()
+    user_data = request.current_user
+    
+    # Recuperar el user_id
+    user_id = user_data.get('user_id')
+
     if not user_id:
         # Se necesita estar autenticado para EDITAR (401)
         return jsonify({"ok": False, "error": "No autenticado. Inicia sesión para editar."}), 401
@@ -228,12 +258,18 @@ def api_get_review_for_edit(review_id):
   
 
 @reviewsAPI_blueprint.route("/reviews/<int:review_id>", methods=["PUT"])
+@jwt_required
 def api_update_review(review_id):
     """
     API para actualizar una reseña.
     Verifica la autoría usando el email enviado por el frontend (userEmailOverride)
     """
-    user_id = session.get("user_id") 
+    check_flag()
+    user_data = request.current_user
+    
+    # Recuperar el user_id
+    user_id = user_data.get('user_id')
+
     
     if not user_id:
         return jsonify({"ok": False, "error": "No autenticado. Inicia sesión para editar."}), 401
@@ -288,12 +324,18 @@ def api_update_review(review_id):
         return jsonify({"ok": False, "error": "Error al actualizar la reseña (Consulta el log del servidor para más detalles)"}), 500
 
 @reviewsAPI_blueprint.route("/reviews/<int:review_id>", methods=["DELETE"])
+@jwt_required
 def api_delete_review(review_id):
     """
     API para eliminar una reseña.
     Verifica la autoría comparando con el email enviado en el payload.
     """
-    user_id = session.get("user_id")
+    check_flag()
+    user_data = request.current_user
+    
+    # Recuperar el user_id
+    user_id = user_data.get('user_id')
+
     if not user_id:
         return jsonify({"ok": False, "error": "No autenticado"}), 401
 

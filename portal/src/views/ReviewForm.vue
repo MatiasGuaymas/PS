@@ -12,7 +12,7 @@
     <div v-if="successMessage" class="alert alert-success">{{ successMessage }}</div>
     <div v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
     <div v-if="isPendingModeration" class="alert alert-warning">
-      ¡Atención! Tu reseña editada ha vuelto a estado **"Pendiente de Aprobación"**. Se mostrará una vez sea moderada.
+      ¡Atención! Si guardas una reseña, por más que este aprobada,pasara a estado de Pendiente de aprobación. Se mostrará una vez sea moderada.
     </div>
 
     <div v-if="loading" class="text-center py-5">
