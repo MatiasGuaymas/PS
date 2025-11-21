@@ -21,7 +21,6 @@ def is_json_request():
 
 
 @bp.get("/")
-@noLogin_required
 def login():
     return render_template("auth/login.html")
 
