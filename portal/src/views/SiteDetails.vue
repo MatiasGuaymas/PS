@@ -155,7 +155,7 @@
 
 <script>
 import axios from 'axios';
-
+import Swal from 'sweetalert2';
 export default {
   data() {
     return {
@@ -401,6 +401,21 @@ export default {
     },
     
     async addReview() {
+      try {
+        const flag = await axios.get(`${this.apiBaseUrl}/api/handler/review`);
+      } catch (error) {
+        if (error.response && error.response.status === 503) {
+          Swal.fire({
+            // Le mande un icono de herramientas para que sea igual al de la vista en mantenimiento del portal
+            iconHtml: '<i class="bi bi-tools fs-1 text-warning"></i>',
+            title: 'Reseñas Deshabilitadas',
+            text: 'Las reseñas están deshabilitadas temporalmente por mantenimiento.',
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#0d6efd' 
+          });
+          return;
+        }
+      }
       if (!this.siteId) {
         console.error("No se puede agregar reseña: siteId no está disponible.");
         return;
