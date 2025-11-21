@@ -141,7 +141,7 @@
               <tr v-for="(r, i) in reviews" :key="r.id || i">
                 <td>{{ r.user_email || r.user_name || r.user || 'Anónimo' }}</td>
                 <td>{{ r.rating ?? r.stars ?? '—' }}</td>
-                <td>{{ r.comment || r.body || '—' }}</td>
+                <td>{{ r.content || r.text || r.comment || r.body || '—' }}</td>
                 <td>{{ formatDate(r.created_at || r.created || r.date) }}</td>
               </tr>
             </tbody>
