@@ -21,7 +21,6 @@ def is_json_request():
 
 
 @bp.get("/")
-@noLogin_required
 def login():
     return render_template("auth/login.html")
 
@@ -115,11 +114,14 @@ def authenticate():
 
 
 @bp.get("/login-google")
-@noLogin_required
 def login_google():
     """Inicia el flujo OAuth con Google"""
     origin = request.args.get('origin', 'admin')
     redirect_to = request.args.get('redirect_to', '')
+    
+    if origin == 'admin' and 'user' in session:
+        flash("Ya has iniciado sesión.", "info")
+        return redirect(url_for("home"))
     
     session['oauth_origin'] = origin
     session['oauth_redirect_to'] = redirect_to
@@ -130,8 +132,7 @@ def login_google():
 
 
 @bp.route("/callback")
-@noLogin_required
-def callback():
+def callback():  
     """Callback de Google OAuth - Procesa la respuesta de Google"""
     try:
         oauth = current_app.oauth
@@ -156,7 +157,6 @@ def callback():
         origin = session.pop('oauth_origin', 'admin')
         redirect_to = session.pop('oauth_redirect_to', '')
         
-        # ✅ Si es para la app pública (Vue), crear JWT
         if origin == 'public':
             access_token = create_access_token(
                 user_id=user.id,
@@ -211,16 +211,16 @@ def callback():
         
     except Exception as e:
         flash(f"Error al iniciar sesión con Google: {str(e)}", "error")
-
-    # Verificar desde dónde vino el usuario
-    origin = session.get('oauth_origin', 'admin')
-    
-    if origin == 'public':
-        # Redirigir a Vue con error
-        return redirect('http://localhost:5173/login?error=oauth_failed')
-    else:
-        # Redirigir a admin Flask
-        return redirect(url_for("auth.login"))
+        
+        # Verificar desde dónde vino el usuario
+        origin = session.get('oauth_origin', 'admin')
+        
+        if origin == 'public':
+            # Redirigir a Vue con error
+            return redirect('http://localhost:5173/login?error=oauth_failed')
+        else:
+            # Redirigir a admin Flask
+            return redirect(url_for("auth.login"))
 
 
     
