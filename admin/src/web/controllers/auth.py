@@ -167,7 +167,7 @@ def callback():
             
             refresh_token = create_refresh_token(user_id=user.id)
 
-            if os.getenv('FLASK_ENV') == 'development':
+            if(os.getenv('FLASK_ENV','') == 'development'):
                 redirect_url = redirect_to if redirect_to else 'http://localhost:5173/'
             else:
                 redirect_url = redirect_to if redirect_to else 'https://grupo21.proyecto2025.linti.unlp.edu.ar/'
