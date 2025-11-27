@@ -6,7 +6,7 @@ from core.database import db
 from datetime import datetime, timezone
 from web.utils.jwt_utils import jwt_required
 from core.services.flag_service import FlagService
-
+from core.models.User import User
 # Definición del Blueprint: La base de URL ahora es solo /api
 reviewsAPI_blueprint = Blueprint("reviewsAPI", __name__, url_prefix="/api")
 

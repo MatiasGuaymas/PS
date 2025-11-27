@@ -367,7 +367,7 @@ export default {
       this.lightbox.visible = true
     },
     closeLightbox() {
-      this.lightbox.lightbox.visible = false
+      this.lightbox.visible = false
       this.lightbox.img = null
     },
     async addLiked() {

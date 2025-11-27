@@ -32,5 +32,6 @@ class Review(db.Model):
             "status": self.status,
             "rejection_reason": self.rejection_reason,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+            "site" : self.site.to_dict() if self.site else None
         }
 

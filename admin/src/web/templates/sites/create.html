@@ -5,8 +5,8 @@
 {% block head %}
 {{ super() }}
 <style>
-  /* Estilos necesarios para la selección de tags, copiados de la template de edición */
-  .tags-multiselect {
+/* Estilos necesarios para la selección de tags, copiados de la template de edición */
+.tags-multiselect {
     background-color: #2d2d2d;
     border: 1px solid #4b0082;
     border-radius: 4px;
@@ -14,9 +14,9 @@
     min-height: 120px;
     max-height: 200px;
     overflow-y: auto;
-  }
+}
 
-  .tag-option {
+.tag-option {
     padding: 6px 12px;
     margin: 2px;
     background-color: #3d3d3d;
@@ -26,50 +26,46 @@
     display: inline-block;
     color: #e0e0e0;
     font-size: 0.9rem;
-  }
+}
 
-  .tag-option:hover {
+.tag-option:hover {
     background-color: #4d4d4d;
-  }
+}
 
-  .tag-option.selected {
+.tag-option.selected {
     background-color: #6a0dad;
     border: 2px solid #bb86fc;
     color: #fff;
-  }
+}
 
-  /* --- ESTILOS PARA LA PREVISUALIZACIÓN DE SUBIDA DE NUEVAS IMÁGENES --- */
-  #image-upload-preview {
+/* --- ESTILOS PARA LA PREVISUALIZACIÓN DE SUBIDA DE NUEVAS IMÁGENES --- */
+#image-upload-preview {
     display: flex;
     flex-wrap: wrap;
-    gap: 15px;
-    /* Espacio entre las miniaturas */
+    gap: 15px; /* Espacio entre las miniaturas */
     padding-top: 10px;
-  }
+}
 
-  .image-preview-item {
-    width: 150px;
-    /* Tamaño fijo para la previsualización */
+.image-preview-item {
+    width: 150px; /* Tamaño fijo para la previsualización */
     flex-shrink: 0;
     background-color: #3d3d3d;
     padding: 10px;
     border-radius: 8px;
     border: 1px solid #555;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-    position: relative;
-    /* Necesario para el botón de cerrar */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    position: relative; /* Necesario para el botón de cerrar */
     cursor: grab;
-  }
+}
 
-  .image-preview-item img {
+.image-preview-item img {
     width: 100%;
     height: 100px;
     object-fit: cover;
     border-radius: 4px;
     margin-bottom: 5px;
-  }
-
-  .image-preview-item .btn-danger {
+}
+.image-preview-item .btn-danger {
     height: 25px;
     width: 25px;
     line-height: 1;
@@ -77,14 +73,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-  }
+}
 
-  /* Clase fantasma de SortableJS */
-  .sortable-ghost {
+/* Clase fantasma de SortableJS */
+.sortable-ghost {
     opacity: 0.5;
     background-color: #5a5a5a;
     border: 2px dashed #bb86fc;
-  }
+}
 </style>
 {% endblock %}
 
@@ -107,19 +103,16 @@
         <form method="POST" action="{{ url_for('sites.create') }}" enctype="multipart/form-data" id="create-form">
           <div class="row g-3">
             <div class="col-md-6">
-              <label for="site_name" class="form-label text-white">Nombre del sitio<span
-                  class="text-danger">*</span></label>
+              <label for="site_name" class="form-label text-white">Nombre del sitio<span class="text-danger">*</span></label>
               <input type="text" class="form-control" id="site_name" name="site_name" required>
             </div>
             <div class="col-md-6">
-              <label for="short_desc" class="form-label text-white">Descripción breve<span
-                  class="text-danger">*</span></label>
+              <label for="short_desc" class="form-label text-white">Descripción breve<span class="text-danger">*</span></label>
               <input type="text" class="form-control" id="short_desc" name="short_desc" required>
             </div>
           </div>
           <div class="mb-3">
-            <label for="full_desc" class="form-label text-white">Descripción completa<span
-                class="text-danger">*</span></label>
+            <label for="full_desc" class="form-label text-white">Descripción completa<span class="text-danger">*</span></label>
             <textarea class="form-control" id="full_desc" name="full_desc" required></textarea>
           </div>
           <div class="row g-3">
@@ -150,8 +143,7 @@
           </div>
           <div class="row g-3">
             <div class="col-md-6">
-              <label for="state_id" class="form-label text-white">Estado de conservación<span
-                  class="text-danger">*</span></label>
+              <label for="state_id" class="form-label text-white">Estado de conservación<span class="text-danger">*</span></label>
               <select class="form-control" id="state_id" name="state_id" required>
                 <option value="">Seleccionar...</option>
                 <option value="1">Bueno</option>
@@ -160,8 +152,7 @@
               </select>
             </div>
             <div class="col-md-6">
-              <label for="operning_year" class="form-label text-white">Año de inauguración<span
-                  class="text-danger">*</span></label>
+              <label for="operning_year" class="form-label text-white">Año de inauguración<span class="text-danger">*</span></label>
               <input type="number" class="form-control" id="operning_year" name="operning_year" required>
             </div>
           </div>
@@ -185,7 +176,7 @@
           </div>
           <div class="mb-3">
             <label for="tags" class="form-label text-white">Etiquetas</label>
-            <div id="tags-container" class="tags-multiselect">
+            <div id="tags-container" class="tags-multiselect"> 
               {% for tag in tags %}
               <div class="tag-option" data-value="{{ tag.id }}">
                 {{ tag.name }}
@@ -202,11 +193,10 @@
             <h5 class="text-white">Imágenes para el Sitio (Opcional, Máx 10)</h5>
             <div class="mb-3">
               <label for="images" class="form-label">Seleccionar archivos (Máx 5MB c/u, JPG/PNG/WEBP)</label>
-              <input class="form-control" type="file" id="images" name="images" multiple
-                accept="image/jpeg,image/png,image/webp">
+              <input class="form-control" type="file" id="images" name="images" multiple accept="image/jpeg,image/png,image/webp">
               <small class="form-text text-white">Puedes seleccionar hasta 10 imágenes al crear el sitio.</small>
               <div id="image-upload-preview" class="mt-3">
-              </div>
+                </div>
             </div>
           </div>
           <div class="d-flex gap-2">
@@ -275,7 +265,7 @@
     }
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
+  document.addEventListener('DOMContentLoaded', function() {
     // Agregar botón de ubicación actual
     var locationBtn = document.createElement('button');
     locationBtn.type = 'button';
@@ -283,31 +273,32 @@
     locationBtn.innerHTML = '📍 Usar mi ubicación actual';
     locationBtn.onclick = getCurrentLocation;
     document.getElementById('map').parentNode.appendChild(locationBtn);
-
+    
     // Inicializar selección de tags
     initializeTagSelection();
 
     // --- Lógica de Previsualización y Metadatos para Subida de Nuevas Imágenes ---
     const newImageInput = document.getElementById('images');
-    const newPreviewContainer = document.getElementById('image-upload-preview');
-
+    const newPreviewContainer = document.getElementById('image-upload-preview'); 
+    
     const MAX_TOTAL_IMAGES = 10;
     const MAX_FILE_SIZE_MB = 5;
-
+    
     // Array global que mapea el DOM a los objetos File
     // Usaremos un Map para mantener una referencia segura (key = ID temporal único)
-    let fileMap = new Map();
+    let fileMap = new Map(); 
     let fileCounter = 0; // Para generar IDs únicos
-
+    
     // 1. Inicializar SortableJS
     Sortable.create(newPreviewContainer, {
-      animation: 150,
-      ghostClass: 'sortable-ghost', // Clase para el elemento fantasma
-      handle: '.image-preview-item', // Permite arrastrar desde cualquier parte del ítem
-      onEnd: function (evt) {
-        // El reordenamiento se maneja directamente en el DOM. 
-        // La reconstrucción del FormData se hará en el evento 'submit'.
-      }
+        animation: 150,
+        ghostClass: 'sortable-ghost', // Clase para el elemento fantasma
+        handle: '.image-preview-item', // Permite arrastrar desde cualquier parte del ítem
+        onEnd: function (evt) {
+            // El reordenamiento se maneja directamente en el DOM. 
+            // La reconstrucción del FormData se hará en el evento 'submit'.
+            console.log("Imágenes reordenadas. Nuevo índice del elemento:", evt.newIndex);
+        }
     });
 
     /**
@@ -315,289 +306,253 @@
      * @param {string} fileId - El ID temporal del archivo a eliminar.
      */
     function removeNewFile(fileId) {
-      if (fileMap.has(fileId)) {
-        fileMap.delete(fileId);
-
-        // Eliminar el elemento del DOM
-        const itemToRemove = document.querySelector(`.image-preview-item[data-file-id="${fileId}"]`);
-        if (itemToRemove) {
-          itemToRemove.remove();
+        if (fileMap.has(fileId)) {
+            fileMap.delete(fileId);
+            
+            // Eliminar el elemento del DOM
+            const itemToRemove = document.querySelector(`.image-preview-item[data-file-id="${fileId}"]`);
+            if (itemToRemove) {
+                itemToRemove.remove();
+            }
+            // Recargar el input file (es la forma más segura de sincronizar que se me ocurre)
+            updateFileInputWithNewFiles();
         }
-        // Recargar el input file (es la forma más segura de sincronizar que se me ocurre)
-        updateFileInputWithNewFiles();
-      }
     }
-
+    
     /**
      * Reconstruye el FileList del input file con los archivos restantes.
      * Esto es necesario para que el FormData nativo use solo los archivos restantes.
      */
     function updateFileInputWithNewFiles() {
-      // Crear un nuevo DataTransfer y llenarlo con los archivos del Map
-      const dataTransfer = new DataTransfer();
-      fileMap.forEach(file => {
-        dataTransfer.items.add(file);
-      });
-
-      // Asignar el nuevo FileList al input
-      newImageInput.files = dataTransfer.files;
+        // Crear un nuevo DataTransfer y llenarlo con los archivos del Map
+        const dataTransfer = new DataTransfer();
+        fileMap.forEach(file => {
+            dataTransfer.items.add(file);
+        });
+        
+        // Asignar el nuevo FileList al input
+        newImageInput.files = dataTransfer.files;
     }
 
 
     function validateAndPreviewNewImages(files) {
-      newPreviewContainer.innerHTML = '';
-      fileMap.clear(); // Limpiar el Map para las nuevas selecciones
-
-      const filesToProcess = Array.from(files);
-
-      if (filesToProcess.length === 0) {
-        return;
-      }
-
-      if (filesToProcess.length > MAX_TOTAL_IMAGES) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Límite de imágenes excedido',
-          html: `Solo puedes subir hasta <b>${MAX_TOTAL_IMAGES} imágenes</b> por sitio.<br>Intentaste seleccionar <b>${filesToProcess.length} imágenes</b>.`,
-          confirmButtonColor: '#6a0dad',
-          confirmButtonText: 'Entendido'
-        });
-        newImageInput.value = '';
-        return;
-      }
-
-      let validFiles = true;
-      let invalidFileNames = [];
-
-      filesToProcess.forEach((file) => {
-        const fileSizeMB = file.size / (1024 * 1024);
-        const fileExtension = file.name.split('.').pop().toLowerCase();
-        const ALLOWED_EXTENSIONS = ['jpg', 'png', 'webp', 'jpeg'];
-
-        if (fileSizeMB > MAX_FILE_SIZE_MB || !ALLOWED_EXTENSIONS.includes(fileExtension)) {
-          invalidFileNames.push(file.name);
-          validFiles = false;
-          return;
-        }
-
-        newFilesArray.push(file);
-
-        // Generar ID único para este archivo - autoincremental
-        const fileId = `${fileCounter++}`;
-        fileMap.set(fileId, file);
-
-
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = function (e) {
-            const previewItem = document.createElement('div');
-            previewItem.className = 'image-preview-item position-relative';
-            previewItem.setAttribute('data-file-id', fileId); // Enlazar el DOM con el Map
-
-            // Botón de Eliminación (X)
-            const removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0 m-1 p-0 px-2 rounded-circle';
-            removeBtn.innerHTML = '<i class="bi bi-x"></i>';
-            removeBtn.style.zIndex = 10;
-            removeBtn.onclick = () => removeNewFile(fileId);
-
-            const img = document.createElement('img');
-            img.src = e.target.result;
-            img.alt = `Previsualización de ${file.name}`;
-
-            const titleLabel = document.createElement('label');
-            titleLabel.className = 'form-label small mb-0 mt-1 text-white';
-            titleLabel.textContent = 'Título/Alt *';
-
-            // Título/Alt obligatorio
-            const titleInput = document.createElement('input');
-            titleInput.type = 'text';
-            // Name utiliza el ID único para que sea más fácil mapear en el backend si fuera necesario
-            titleInput.name = `new_title_alt_${fileId}`;
-            titleInput.className = 'form-control form-control-sm mb-1';
-            titleInput.placeholder = 'Título/Alt (obligatorio)';
-            titleInput.required = true;
-
-            // Descripción
-            const descLabel = document.createElement('label');
-            descLabel.className = 'form-label small mb-0 mt-1 text-white';
-            descLabel.textContent = 'Descripción (opcional)';
-
-            const descTextarea = document.createElement('textarea');
-            // Name utiliza el ID único
-            descTextarea.name = `new_description_${fileId}`;
-            descTextarea.className = 'form-control form-control-sm';
-            descTextarea.rows = '2';
-            descTextarea.placeholder = 'Descripción (opcional)';
-
-            previewItem.appendChild(removeBtn);
-            previewItem.appendChild(img);
-            previewItem.appendChild(titleLabel);
-            previewItem.appendChild(titleInput);
-            previewItem.appendChild(descLabel);
-            previewItem.appendChild(descTextarea);
-            newPreviewContainer.appendChild(previewItem);
-          };
-          reader.readAsDataURL(file);
-        }
-      });
-
-      // Si hay archivos inválidos, forzar a limpiar el input y el array
-      if (!validFiles) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Archivos inválidos detectados',
-          html: `Los siguientes archivos no cumplen con los requisitos:<br><br>
-                       <div style="text-align: left; padding: 0 20px;">
-                           <ul style="color: #dc3545;">
-                               ${invalidFileNames.map(name => `<li><b>${name}</b></li>`).join('')}
-                           </ul>
-                       </div>
-                       <br><small class="text-muted">Requisitos: JPG/PNG/WEBP, máximo ${MAX_FILE_SIZE_MB}MB cada uno</small>`,
-          confirmButtonColor: '#6a0dad',
-          confirmButtonText: 'Entendido',
-          width: '600px'
-        });
-        newImageInput.value = '';
-        fileMap.clear();
         newPreviewContainer.innerHTML = '';
-      }
+        fileMap.clear(); // Limpiar el Map para las nuevas selecciones
+        
+        const filesToProcess = Array.from(files);
+        
+        if (filesToProcess.length === 0) {
+            return;
+        }
 
-      // Sincronizar el input con el Map de archivos válidos
-      updateFileInputWithNewFiles();
+        if (filesToProcess.length > MAX_TOTAL_IMAGES) {
+            alert(`Solo puedes subir hasta ${MAX_TOTAL_IMAGES} imágenes.`);
+            newImageInput.value = '';
+            return;
+        }
+
+        let validFiles = true;
+
+        filesToProcess.forEach((file) => {
+            const fileSizeMB = file.size / (1024 * 1024);
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            const ALLOWED_EXTENSIONS = ['jpg', 'png', 'webp', 'jpeg']; 
+
+            if (fileSizeMB > MAX_FILE_SIZE_MB || !ALLOWED_EXTENSIONS.includes(fileExtension)) {
+                alert(`El archivo ${file.name} es inválido (tamaño > ${MAX_FILE_SIZE_MB}MB o formato no permitido).`);
+                validFiles = false;
+                return; 
+            }
+            
+            // Generar ID único para este archivo - autoincremental
+            const fileId = `${fileCounter++}`;
+            fileMap.set(fileId, file);
+
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'image-preview-item position-relative'; 
+                    previewItem.setAttribute('data-file-id', fileId); // Enlazar el DOM con el Map
+                    
+                    // Botón de Eliminación (X)
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'btn btn-danger btn-sm position-absolute top-0 end-0 m-1 p-0 px-2 rounded-circle';
+                    removeBtn.innerHTML = '<i class="bi bi-x"></i>';
+                    removeBtn.style.zIndex = 10;
+                    removeBtn.onclick = () => removeNewFile(fileId);
+
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = `Previsualización de ${file.name}`;
+                    
+                    const titleLabel = document.createElement('label');
+                    titleLabel.className = 'form-label small mb-0 mt-1 text-white';
+                    titleLabel.textContent = 'Título/Alt *';
+                    
+                    // Título/Alt obligatorio
+                    const titleInput = document.createElement('input');
+                    titleInput.type = 'text';
+                    // Name utiliza el ID único para que sea más fácil mapear en el backend si fuera necesario
+                    titleInput.name = `new_title_alt_${fileId}`; 
+                    titleInput.className = 'form-control form-control-sm mb-1';
+                    titleInput.placeholder = 'Título/Alt (obligatorio)';
+                    titleInput.required = true;
+
+                    // Descripción
+                    const descLabel = document.createElement('label');
+                    descLabel.className = 'form-label small mb-0 mt-1 text-white' ;
+                    descLabel.textContent = 'Descripción (opcional)';
+
+                    const descTextarea = document.createElement('textarea');
+                    // Name utiliza el ID único
+                    descTextarea.name = `new_description_${fileId}`; 
+                    descTextarea.className = 'form-control form-control-sm';
+                    descTextarea.rows = '2';
+                    descTextarea.placeholder = 'Descripción (opcional)';
+                    
+                    previewItem.appendChild(removeBtn);
+                    previewItem.appendChild(img);
+                    previewItem.appendChild(titleLabel);
+                    previewItem.appendChild(titleInput);
+                    previewItem.appendChild(descLabel);
+                    previewItem.appendChild(descTextarea);
+                    newPreviewContainer.appendChild(previewItem);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // Si hay archivos inválidos, forzar a limpiar el input y el array
+        if (!validFiles) {
+            newImageInput.value = '';
+            fileMap.clear();
+            newPreviewContainer.innerHTML = '';
+        }
+
+        // Sincronizar el input con el Map de archivos válidos
+        updateFileInputWithNewFiles();
     }
 
-    newImageInput.addEventListener('change', function () {
-      validateAndPreviewNewImages(this.files);
+    newImageInput.addEventListener('change', function() {
+        validateAndPreviewNewImages(this.files);
     });
-
+    
     // --- Validación Final antes del envío ---
-    form.addEventListener('submit', function (e) {
-      const latInput = document.getElementById('latitude');
-      const lonInput = document.getElementById('longitude');
-      const coordsError = document.getElementById('coords-error');
+    form.addEventListener('submit', function(e) {
+        const latInput = document.getElementById('latitude');
+        const lonInput = document.getElementById('longitude');
+        const coordsError = document.getElementById('coords-error');
 
-      //  Validación de Coordenadas
-      if (!latInput.value || !lonInput.value) {
-        e.preventDefault();
-        coordsError.style.display = 'block';
-        document.getElementById('map').style.borderColor = '#dc3545';
-        Swal.fire({
-          icon: 'warning',
-          title: 'Ubicación requerida',
-          text: 'Por favor, selecciona una ubicación en el mapa antes de continuar.',
-          confirmButtonColor: '#6a0dad',
-          confirmButtonText: 'Entendido'
-        });
-        return;
-      } else {
-        coordsError.style.display = 'none';
-      }
-
-      const titleInputs = newPreviewContainer.querySelectorAll('input[type="text"][required]');
-      let allTitlesFilled = true;
-
-      if (titleInputs.length > 0) {
-        titleInputs.forEach(input => {
-          if (!input.value.trim()) {
-            allTitlesFilled = false;
-            input.focus();
-            input.style.borderColor = '#dc3545';
-          } else {
-            input.style.borderColor = '';
-          }
-        });
-
-        if (!allTitlesFilled) {
-          e.preventDefault();
-          Swal.fire({
-            icon: 'warning',
-            title: 'Títulos incompletos',
-            html: `Por favor, completa el <b>Título/Alt obligatorio</b> para todas las imágenes.<br><br>
-                           <small class="text-muted">Faltan ${emptyTitlesCount} título(s)</small>`,
-            confirmButtonColor: '#6a0dad',
-            confirmButtonText: 'Entendido'
-          });
-          return;
+        //  Validación de Coordenadas
+        if (!latInput.value || !lonInput.value) {
+            e.preventDefault();
+            coordsError.style.display = 'block';
+            document.getElementById('map').style.borderColor = '#dc3545';
+            alert('Por favor, selecciona una ubicación en el mapa.');
+            return;
+        } else {
+            coordsError.style.display = 'none';
         }
-      }
-
-      // Manejo del Orden de las Imágenes y Metadatos
-      // Dado que SortableJS reordena los elementos DOM, iteramos sobre el DOM para obtener el orden final
-
-      const finalFiles = []; // Array final de objetos File
-      const metadatos = {};  // Objeto para mapear metadatos (Título/Descripción)
-      const itemsInOrder = newPreviewContainer.querySelectorAll('.image-preview-item');
-
-      itemsInOrder.forEach((item, index) => {
-        const fileId = item.getAttribute('data-file-id');
-        const file = fileMap.get(fileId);
-
-        if (file) {
-          // Agregar el archivo al array final en el orden del DOM
-          finalFiles.push(file);
-
-          // Recolectar metadatos asociados al ID original
-          const titleInput = item.querySelector(`input[name="new_title_alt_${fileId}"]`);
-          const descTextarea = item.querySelector(`textarea[name="new_description_${fileId}"]`);
-
-          metadatos[fileId] = {
-            title_alt: titleInput ? titleInput.value.trim() : '',
-            description: descTextarea ? descTextarea.value.trim() : ''
-          };
+        
+        const titleInputs = newPreviewContainer.querySelectorAll('input[type="text"][required]');
+        let allTitlesFilled = true;
+        
+        if (titleInputs.length > 0) {
+             titleInputs.forEach(input => {
+                if (!input.value.trim()) {
+                    allTitlesFilled = false;
+                    input.focus();
+                    input.style.borderColor = '#dc3545';
+                } else {
+                    input.style.borderColor = '';
+                }
+            });
+            
+            if (!allTitlesFilled) {
+                e.preventDefault();
+                alert('Por favor, complete el Título/Alt obligatorio para todas las imágenes.');
+                return; 
+            }
         }
-      });
+        
+        // Manejo del Orden de las Imágenes y Metadatos
+        // Dado que SortableJS reordena los elementos DOM, iteramos sobre el DOM para obtener el orden final
+        
+        const finalFiles = []; // Array final de objetos File
+        const metadatos = {};  // Objeto para mapear metadatos (Título/Descripción)
+        const itemsInOrder = newPreviewContainer.querySelectorAll('.image-preview-item');
+        
+        itemsInOrder.forEach((item, index) => {
+            const fileId = item.getAttribute('data-file-id');
+            const file = fileMap.get(fileId);
+            
+            if (file) {
+                // Agregar el archivo al array final en el orden del DOM
+                finalFiles.push(file);
 
-      // Reemplazar el FileList del input con el orden final y los archivos filtrados
-      const finalDataTransfer = new DataTransfer();
-      finalFiles.forEach(file => finalDataTransfer.items.add(file));
-      newImageInput.files = finalDataTransfer.files;
+                // Recolectar metadatos asociados al ID original
+                const titleInput = item.querySelector(`input[name="new_title_alt_${fileId}"]`);
+                const descTextarea = item.querySelector(`textarea[name="new_description_${fileId}"]`);
+                
+                metadatos[fileId] = {
+                    title_alt: titleInput ? titleInput.value.trim() : '',
+                    description: descTextarea ? descTextarea.value.trim() : ''
+                };
+            }
+        });
+        
+        // Reemplazar el FileList del input con el orden final y los archivos filtrados
+        const finalDataTransfer = new DataTransfer();
+        finalFiles.forEach(file => finalDataTransfer.items.add(file));
+        newImageInput.files = finalDataTransfer.files;
 
-      // Adjuntar los metadatos y el orden (fileIds en orden) al FormData 
-      // Esto permite a Flask/backend mapear los archivos recibidos (FileStorage) con su título/descripción y orden.
-      const fileOrderInput = document.createElement('input');
-      fileOrderInput.type = 'hidden';
-      fileOrderInput.name = 'new_image_order';
-      itemsInOrderArray = Array.from(itemsInOrder);
-      fileOrderInput.value = itemsInOrderArray.map(item => item.getAttribute('data-file-id')).join(',');
-      form.appendChild(fileOrderInput); // Adjuntar al formulario
+        // Adjuntar los metadatos y el orden (fileIds en orden) al FormData 
+        // Esto permite a Flask/backend mapear los archivos recibidos (FileStorage) con su título/descripción y orden.
+        const fileOrderInput = document.createElement('input');
+        fileOrderInput.type = 'hidden';
+        fileOrderInput.name = 'new_image_order';
+        itemsInOrderArray = Array.from(itemsInOrder);
+        fileOrderInput.value = itemsInOrderArray.map(item => item.getAttribute('data-file-id')).join(',');
+        form.appendChild(fileOrderInput); // Adjuntar al formulario
 
-      const metadatosInput = document.createElement('input');
-      metadatosInput.type = 'hidden';
-      metadatosInput.name = 'new_image_metadata';
-      metadatosInput.value = JSON.stringify(metadatos);
-      form.appendChild(metadatosInput);
+        const metadatosInput = document.createElement('input');
+        metadatosInput.type = 'hidden';
+        metadatosInput.name = 'new_image_metadata';
+        metadatosInput.value = JSON.stringify(metadatos);
+        form.appendChild(metadatosInput);
 
-      // Si todo es válido, el formulario se envía
+        // Si todo es válido, el formulario se envía
     });
   });
 
 
   // Función para inicializar la selección múltiple de tags (Copiada de la template de edición)
   function initializeTagSelection() {
-    const tagOptions = document.querySelectorAll('.tag-option');
-    const hiddenInput = document.getElementById('tags');
-    const selectedTags = new Set();
-
-    // En la creación, el valor inicial es vacío, no necesitamos parsing
-
-    tagOptions.forEach(option => {
-
-      option.addEventListener('click', function () {
-        const value = this.getAttribute('data-value');
-
-        if (selectedTags.has(value)) {
-          selectedTags.delete(value);
-          this.classList.remove('selected');
-        } else {
-          selectedTags.add(value);
-          this.classList.add('selected');
-        }
-
-        hiddenInput.value = Array.from(selectedTags).join(',');
+      const tagOptions = document.querySelectorAll('.tag-option');
+      const hiddenInput = document.getElementById('tags');
+      const selectedTags = new Set();
+      
+      // En la creación, el valor inicial es vacío, no necesitamos parsing
+      
+      tagOptions.forEach(option => {
+          
+          option.addEventListener('click', function() {
+              const value = this.getAttribute('data-value');
+              
+              if (selectedTags.has(value)) {
+                  selectedTags.delete(value);
+                  this.classList.remove('selected');
+              } else {
+                  selectedTags.add(value);
+                  this.classList.add('selected');
+              }
+              
+              hiddenInput.value = Array.from(selectedTags).join(',');
+          });
       });
-    });
   }
 </script>
 
