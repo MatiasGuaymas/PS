@@ -54,7 +54,6 @@ def api_check_existing_review():
         return jsonify({"ok": False, "error": "Falta site_id"}), 400
     
     try:
-        from core.models.User import User
         
         target_user = None
         
@@ -131,7 +130,6 @@ def api_create_review():
          return jsonify({"ok": False, "error": "Falta el email de identidad del usuario (userEmailOverride)"}), 400
         
     try:
-        from core.models.User import User
         from core.models.Review import Review
         from core.models.Site import Site 
         
@@ -392,24 +390,47 @@ def api_get_site_reviews(site_id):
     except Exception as e:
         return jsonify({'data': "Ocurrió un error al cargar las reseñas del sitio."}), 500
 
-@reviewsAPI_blueprint.route("/reviews/score/<int:site_id>", methods=["GET"])
-def api_get_site_score(site_id):
+@reviewsAPI_blueprint.route("/reviews/user/<int:user_id>", methods=["GET"])
+def api_get_user_reviews(user_id):
     """
-    Endpoint para obtener todas las reseñas de un sitio
+    Obtiene las reseñas de un usuario específico
     """
-
-    site = db.session.get(Site, site_id)
-    if not site:
-        return jsonify({'ok': False, 'error': 'Sitio no encontrado'}), 404
-
     try:
-        reviews = ReviewService.get_approved_reviews_by_site(site_id)
-
-        totalScore = 0
-        for r in reviews:
-            totalScore += r.rating
-        score = totalScore / len(reviews)
-        return jsonify({'data': f"{score} ⭐"}), 200
-    
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        sort = request.args.get('sort', 'created_at')
+        order = request.args.get('order', 'desc')
+        
+        user = db.session.get(User, user_id)
+        if not user:
+            return jsonify({'ok': False, 'error': 'Usuario no encontrado'}), 404
+        
+        # Buscar todas las reseñas del usuario por email
+        query = Review.query.filter(
+            db.func.lower(Review.user_email) == user.email.lower()
+        )
+        
+        # Ordenamiento
+        if order == 'desc':
+            query = query.order_by(getattr(Review, sort).desc())
+        else:
+            query = query.order_by(getattr(Review, sort).asc())
+        
+        # Paginar
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        
+        return jsonify({
+            'data': [review.to_dict() for review in pagination.items],
+            'pagination': {
+                'page': pagination.page,
+                'per_page': pagination.per_page,
+                'total': pagination.total,
+                'total_pages': pagination.pages,
+                'has_prev': pagination.has_prev,
+                'has_next': pagination.has_next
+            }
+        }), 200
+        
     except Exception as e:
-        return jsonify({'data': "Ocurrió un error al obtener la puntuación de un sitio." + e}), 500
+        print(f"❌ Error al obtener reseñas del usuario: {e}")
+        return jsonify({'ok': False, 'error': str(e)}), 500

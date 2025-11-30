@@ -98,6 +98,7 @@ class Site(db.Model):
         Devuelve una representación de diccionario del objeto Site (SERIALIZACIÓN JSON).
         """
         from core.services.sites_service import SiteService
+        from core.services.review_service import ReviewService
         
         # Obtener la URL pre-firmada de la imagen de portada
         cover_url = None
@@ -116,7 +117,19 @@ class Site(db.Model):
         
         # Obtener tags del sitio (máximo 5 para el listado)
         tags_list = [{'id': assoc.tag.id, 'name': assoc.tag.name} for assoc in self.tag_associations.limit(5).all()]
+
+        # Calcular cantidad y promedio de reseñas aprobadas del sitio
+        approved_reviews = ReviewService.get_approved_reviews_by_site(self.id)
         
+        # Calcular estadísticas
+        reviews_count = len(approved_reviews)
+        
+        if reviews_count > 0:
+            total_rating = sum(review.rating for review in approved_reviews)
+            reviews_average = round(total_rating / reviews_count, 1)
+        else:
+            reviews_average = 0.0
+
         return {
             'id': self.id,
             'name': self.site_name,
@@ -134,5 +147,7 @@ class Site(db.Model):
             'state_name': state_name, 
             'views': self.views,
             'tags': tags_list,
-            'images': [image.to_dict() for image in self.images.all()]
+            'images': [image.to_dict() for image in self.images.all()],
+            'reviews_count': reviews_count,
+            'reviews_average': reviews_average
         }

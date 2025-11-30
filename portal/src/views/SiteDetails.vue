@@ -52,7 +52,12 @@
 
         <div class="col-md-7">
           <div class="card-body">
-            <h2 class="card-title mb-1">{{ result.name }} {{ siteScore }}</h2>
+            <h2 class="card-title mb-1">
+              {{ result.name }}
+              <span v-if="reviewsScore" class="badge bg-warning text-dark ms-2">
+                {{ reviewsScore }}
+              </span>
+            </h2>
             <div class="mb-2 text-muted">
               <small>{{ result.city }}{{ result.city && result.province ? ' / ' : '' }}{{ result.province }}</small>
               <span v-if="result.state_name" :class="['chip', stateChipClass, 'ms-2']">{{ result.state_name }}</span>
@@ -173,7 +178,6 @@ export default {
       canFavorite: false,
       reviews: [],
       reviewsLoading: false,
-      siteScore: 0
     }
   },
   created() {
@@ -186,7 +190,6 @@ export default {
     await this.getCurrentUser()
     if(this.currentUser && this.currentUser.id)
       await this.fetchFavoriteStatus()
-    await this.fetchSiteScore()
   },
   methods: {
     goBack() {
@@ -267,17 +270,6 @@ export default {
       } finally {
         this.loading = false
       }
-    },
-    async fetchSiteScore() {
-      if(!this.siteId) {
-        this.error = "No se especificó la ID del sitio."
-        return
-      }
-
-      const base = this.apiBaseUrl
-      const url = `${base}/api/reviews/score/${encodeURIComponent(this.siteId)}`
-      const response = await axios.get(url)
-      this.siteScore = response.data.data
     },
     async getCurrentUser() {
       const base = this.apiBaseUrl
@@ -455,6 +447,19 @@ export default {
     }
   }, 
   computed: {
+    reviewsScore() {
+      if (!this.result) return null
+      
+      const count = this.result.reviews_count || 0
+      const average = this.result.reviews_average || 0
+      
+      if (count === 0) {
+        return 'Sin calificaciones'
+      }
+      
+      const plural = count === 1 ? 'reseña' : 'reseñas'
+      return `⭐ ${average}/5 (${count} ${plural})`
+    },
     stateChipClass() {
       const s = (this.result?.state_name || '').toLowerCase()
       if (!s) return 'chip-default'
@@ -493,6 +498,13 @@ export default {
 <style scoped>
 .card {
   overflow: hidden;
+}
+
+.badge.bg-warning {
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.35rem 0.7rem;
+  vertical-align: middle;
 }
 
 #map {
