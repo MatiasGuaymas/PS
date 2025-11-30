@@ -2,6 +2,7 @@ from core.utils.pagination import paginate_query
 from core.models.Site import Site
 from core.models.SiteImage import SiteImage
 from core.models.Audit import Audit
+from core.models.Review import Review
 from core.models.UserFavorite import UserFavorite
 from core.database import db
 from core.utils.search import build_search_query,apply_ordering
@@ -9,7 +10,9 @@ import logging
 import os
 import mimetypes
 from werkzeug.datastructures import FileStorage
+
 logger = logging.getLogger(__name__)
+
 class SiteService:
     def get_sites_filtered(
         filters=None,
@@ -86,8 +89,36 @@ class SiteService:
                 query = query.group_by(Site.id)
                 query = query.having(func.count(HistoricSiteTag.tag_id) == len(tag_ids))
 
-        # Ordenar
-        query = apply_ordering(query, Site, order_by, sorted_by)
+        # Ordenamiento por Rating
+        if order_by == 'rating' or order_by == 'rating_avg':
+            from sqlalchemy import func
+            # Subconsulta para el promedio de rating
+            avg_rating_subquery = db.session.query(
+                Review.site_id,
+                func.avg(Review.rating).label('avg_rating')
+            ).filter(
+                Review.status == 'Aprobada'
+            ).group_by(
+                Review.site_id
+            ).subquery()
+            
+            # LEFT JOIN para incluir sitios sin reviews
+            query = query.outerjoin(
+                avg_rating_subquery,
+                Site.id == avg_rating_subquery.c.site_id
+            )
+            
+            # COALESCE para tratar NULL como 0
+            order_column = func.coalesce(avg_rating_subquery.c.avg_rating, 0)
+            
+            if sorted_by.lower() == 'desc':
+                query = query.order_by(order_column.desc())
+            else:
+                query = query.order_by(order_column.asc())
+        else:
+            # Ordenamiento normal para otras columnas
+            query = apply_ordering(query, Site, order_by, sorted_by)
+
         if paginate:
             return paginate_query(
                 query, page=page, per_page=per_page, order_by=order_by, sorted_by=sorted_by
