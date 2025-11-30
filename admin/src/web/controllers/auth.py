@@ -274,21 +274,21 @@ def logout():
             path='/'
         )
         
-        print("✅ Comandos de borrado enviados")
-        print(f"📋 Response Set-Cookie headers:")
+        print("Comandos de borrado enviados")
+        print(f" Response Set-Cookie headers:")
         set_cookie_headers = response.headers.getlist('Set-Cookie')
         if set_cookie_headers:
             for i, header in enumerate(set_cookie_headers, 1):
                 print(f"   [{i}] {header}")
         else:
-            print("   ⚠️ No hay headers Set-Cookie en la respuesta")
+            print("No hay headers Set-Cookie en la respuesta")
         
         print("=" * 80)
         
         return response
     else:
         # Logout tradicional con sesiones (Jinja2)
-        print("🚪 LOGOUT desde Jinja2")
+        print("LOGOUT desde Jinja2")
         session.clear()
         flash("Has cerrado sesión correctamente.", "success")
         return redirect(url_for("auth.login"))
@@ -386,7 +386,7 @@ def register():
             }
         }), 201)
         
-        # ✅ Establecer cookies JWT
+        # Establecer cookies JWT
         response.set_cookie(
             'access_token',
             access_token,

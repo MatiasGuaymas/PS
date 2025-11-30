@@ -502,7 +502,7 @@ def top_ranked():
         return jsonify({'data': sites_json}), 200
         
     except Exception as e:
-        print(f"❌ Error en top_ranked: {e}")
+        print(f" Error en top_ranked: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': 'Error obteniendo sitios mejor calificados', 'detail': str(e)}), 500

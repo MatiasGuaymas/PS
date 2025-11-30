@@ -15,7 +15,7 @@ const formData = ref({
   email: '',
 })
 
-// ✅ Funciones de navegación
+// Funciones de navegación
 const goToReviews = () => {
   router.push('/reviews')
 }
@@ -182,7 +182,7 @@ onMounted(() => {
                   Mis Actividades
                 </h5>
                 <div class="stats-grid">
-                  <!-- ✅ Tarjeta Reseñas - Clicable -->
+                  <!-- Tarjeta Reseñas - Clicable -->
                   <button 
                     @click="goToReviews" 
                     class="stat-item stat-clickable"
@@ -196,7 +196,7 @@ onMounted(() => {
                     <i class="bi bi-chevron-right ms-auto"></i>
                   </button>
 
-                  <!-- ✅ Tarjeta Favoritos - Clicable -->
+                  <!-- Tarjeta Favoritos - Clicable -->
                   <button 
                     @click="goToFavorites" 
                     class="stat-item stat-clickable"
@@ -287,7 +287,7 @@ onMounted(() => {
   margin-bottom: 1.5rem;
 }
 
-/* ✅ Estilo base de las tarjetas */
+/* Estilo base de las tarjetas */
 .stat-item {
   display: flex;
   align-items: center;
@@ -301,7 +301,7 @@ onMounted(() => {
   overflow: hidden;
 }
 
-/* ✅ Tarjeta clicable */
+/* Tarjeta clicable */
 .stat-clickable {
   cursor: pointer;
   background: transparent;
@@ -367,7 +367,7 @@ onMounted(() => {
   letter-spacing: 0.3px;
 }
 
-/* ✅ Chevron animado */
+/* Chevron animado */
 .stat-clickable .bi-chevron-right {
   font-size: 1.5rem;
   color: #667eea;

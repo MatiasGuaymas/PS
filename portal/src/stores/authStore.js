@@ -6,7 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://admin-grupo21.proy
 export const authStore = reactive({
   user: null,
   loading: true,
-  isAuthenticated: false,  // ✅ Inicializar como propiedad
+  isAuthenticated: false,  // Inicializar como propiedad
 
   async checkAuth() {
     this.loading = true
@@ -22,7 +22,7 @@ export const authStore = reactive({
         return true
       } else if (response.status === 401) {
         
-        // ✅ Intentar refrescar el token automáticamente
+        // Intentar refrescar el token automáticamente
         const refreshed = await this.refreshToken()
         
         if (refreshed) {
@@ -90,14 +90,14 @@ export const authStore = reactive({
     return true
     
   } catch (error) {
-    console.error('❌ Error en logout:', error)
+    console.error('Error en logout:', error)
     this.user = null
     this.isAuthenticated = false
     return false
   }
 },
 
-  // ✅ Nuevo método para limpiar cookies manualmente desde el cliente
+  // Nuevo método para limpiar cookies manualmente desde el cliente
   clearCookies() {
     
     // Intentar borrar las cookies configurándolas con fecha de expiración pasada
@@ -110,7 +110,7 @@ export const authStore = reactive({
     return this.isAuthenticated && this.user !== null
   },
 
-  // ✅ Método para verificar sesión válida
+  // Método para verificar sesión válida
   hasValidSession() {
     return this.isAuthenticated && this.user !== null
   }

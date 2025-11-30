@@ -170,7 +170,7 @@ def api_create_review():
         db.session.add(new_review)
         db.session.commit()
         
-        print(f"✅ Reseña creada: ID={new_review.id}. Email: {final_user_email}")
+        print(f"Reseña creada: ID={new_review.id}. Email: {final_user_email}")
 
         return jsonify({
             "ok": True,
@@ -181,7 +181,7 @@ def api_create_review():
     except Exception as e:
         db.session.rollback()
         print("-" * 50)
-        print(f"❌ ERROR DE BASE DE DATOS AL CREAR RESEÑA: {e}") 
+        print(f"ERROR DE BASE DE DATOS AL CREAR RESEÑA: {e}") 
         print("-" * 50)
         return jsonify({"ok": False, "error": "Error al crear la reseña (Consulta el log del servidor para más detalles)"}), 500
 
@@ -218,7 +218,7 @@ def api_get_public_reviews():
         }), 200
 
     except Exception as e:
-        print(f"Error al obtener reseñas públicas: {e}")
+        print(f" Error al obtener reseñas públicas: {e}")
         return jsonify({"ok": False, "error": "Error al procesar la solicitud."}), 500
     
 @reviewsAPI_blueprint.route("/reviews/<int:review_id>", methods=["GET"])
@@ -305,7 +305,7 @@ def api_update_review(review_id):
         
         db.session.commit()
         
-        print(f"✅ Reseña actualizada: ID={review_id}. Email: {review.user_email}. Updated_at: {review.updated_at}")
+        print(f" Reseña actualizada: ID={review_id}. Email: {review.user_email}. Updated_at: {review.updated_at}")
         
         return jsonify({
             "ok": True,
@@ -351,7 +351,7 @@ def api_delete_review(review_id):
             return jsonify({"ok": False, "error": "Reseña no encontrada"}), 404
 
         if review.user_email.lower() != email_from_payload.lower():
-            print(f"❌ BORRADO DENEGADO: Reseña de {review.user_email} intentada por {email_from_payload}")
+            print(f" BORRADO DENEGADO: Reseña de {review.user_email} intentada por {email_from_payload}")
             return jsonify({"ok": False, "error": "No estás autorizado para eliminar esta reseña."}), 403
 
         # Proceder a eliminar
@@ -364,7 +364,7 @@ def api_delete_review(review_id):
 
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Error al eliminar reseña: {e}")
+        print(f" Error al eliminar reseña: {e}")
         return jsonify({"ok": False, "error": "Error interno al eliminar la reseña"}), 500
 
 @reviewsAPI_blueprint.route("/reviews/list/<int:site_id>", methods=["GET"])
@@ -432,5 +432,5 @@ def api_get_user_reviews(user_id):
         }), 200
         
     except Exception as e:
-        print(f"❌ Error al obtener reseñas del usuario: {e}")
+        print(f" Error al obtener reseñas del usuario: {e}")
         return jsonify({'ok': False, 'error': str(e)}), 500
