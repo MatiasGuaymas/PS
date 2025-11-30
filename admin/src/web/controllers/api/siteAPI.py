@@ -454,3 +454,55 @@ def recently_added():
         
     except Exception as e:
         return jsonify({'error': 'Error obteniendo sitios recientes', 'detail': str(e)}), 500
+
+@sitesAPI_blueprint.route("/top-ranked", methods=["GET"])
+def top_ranked():
+    """
+    Obtiene los 4 sitios mejores calificados (mayor promedio de reseñas aprobadas).
+    Solo incluye sitios que tengan al menos una reseña aprobada.
+    
+    Query params:
+        - limit: cantidad de sitios a devolver (default: 4)
+    
+    Returns:
+        JSON con los sitios mejor calificados ordenados por reviews_average descendente
+    """
+    try:
+        limit = request.args.get('limit', 4, type=int)
+        
+        from core.models.Review import Review
+        from sqlalchemy import func
+        
+        avg_rating_subquery = db.session.query(
+            Review.site_id,
+            func.avg(Review.rating).label('avg_rating'),
+            func.count(Review.id).label('review_count')
+        ).filter(
+            Review.status == 'Aprobada'
+        ).group_by(
+            Review.site_id
+        ).subquery()
+        
+        sites = db.session.query(Site, avg_rating_subquery.c.avg_rating)\
+            .join(avg_rating_subquery, Site.id == avg_rating_subquery.c.site_id)\
+            .filter(
+                Site.active == True,
+                Site.deleted == False,
+                avg_rating_subquery.c.review_count > 0  # Al menos 1 reseña
+            )\
+            .order_by(avg_rating_subquery.c.avg_rating.desc())\
+            .limit(limit)\
+            .all()
+        
+        if not sites:
+            return jsonify({'data': [], 'message': 'No hay sitios con reseñas disponibles'}), 200
+        
+        sites_json = [site.to_dict() for site, _ in sites]
+        
+        return jsonify({'data': sites_json}), 200
+        
+    except Exception as e:
+        print(f"❌ Error en top_ranked: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Error obteniendo sitios mejor calificados', 'detail': str(e)}), 500

@@ -122,7 +122,7 @@ watch([isAuthenticated, userId], async () => {
         </div>
       </section>
 
-      <!-- TODO: Sección: Mejor Puntuados -->
+      <!-- Sección: Mejor Puntuados -->
       <section ref="topRatedRef" data-section="top-rated" class="sites-section">
         <div class="section-header">
           <div class="d-flex align-items-center">

@@ -61,13 +61,12 @@ export function useHomeSections() {
     }
   }
 
-  // TODO: !!!!
   const fetchTopRated = async () => {
     if (topRatedLoaded.value) return
     loadingTopRated.value = true
     try {
-      const { data } = await axios.get(`${API_BASE_URL}/api/sites/`, {
-        params: { sort: 'rating', order: 'desc', per_page: 4, page: 1 }
+      const { data } = await axios.get(`${API_BASE_URL}/api/sites/top-ranked`, {
+        params: { limit: 4 } 
       })
       topRated.value = extractSites(data).map(mapSiteData).filter(Boolean)
       topRatedLoaded.value = true
