@@ -41,6 +41,7 @@ const getFeatureFlag = async (flagName) => {
       } else {
         message = `Error ${error.response.status}: ${error.response.data?.message || 'Error del servidor.'}`
       }
+    }
 
     // Si hay cualquier error, tratamos la aplicación como BLOQUEADA y lanzamos el error
     throw new Error(`${message}`)
