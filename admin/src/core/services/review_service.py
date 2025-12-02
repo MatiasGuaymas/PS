@@ -288,7 +288,7 @@ class ReviewService:
             db.session.add(review)
             db.session.commit()
             
-            print(f"✅ Reseña creada exitosamente: ID={review.id}, Site={site_id}, User={user.email}")
+            print(f"Reseña creada exitosamente: ID={review.id}, Site={site_id}, User={user.email}")
             
             return review
             
@@ -296,7 +296,7 @@ class ReviewService:
             raise e
         except Exception as e:
             db.session.rollback()
-            print(f"❌ Error al crear reseña: {e}")
+            print(f"Error al crear reseña: {e}")
             raise Exception(f"Error al guardar la reseña: {str(e)}")
     #--------------------------------------------------------
 

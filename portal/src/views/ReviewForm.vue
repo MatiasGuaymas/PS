@@ -190,7 +190,7 @@ export default {
             this.currentUserEmail = response.data?.email || response.data?.data?.email;
         } catch (e) {
             // Si falla, al menos el campo se enviará como null, y el backend lo validará.
-            console.warn('❌ No se pudo obtener el email del usuario actual. Esto causará un error en el backend si no está logeado.');
+            console.warn('No se pudo obtener el email del usuario actual. Esto causará un error en el backend si no está logeado.');
             this.currentUserEmail = null;
         }
     },
@@ -324,7 +324,7 @@ export default {
 
 
     } catch (e) {
-        console.error('❌ Error al enviar reseña:', e);
+        console.error('Error al enviar reseña:', e);
         
         let message = 'Error al enviar la reseña.';
         if (!e.response) {

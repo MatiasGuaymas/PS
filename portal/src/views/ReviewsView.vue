@@ -150,13 +150,13 @@ onMounted(() => {
                   <!-- Columna izquierda: Info del sitio -->
                   <div class="col-md-3 text-center border-end">
                     <img 
-                      :src="review.site?.image || '/placeholder-site.jpg'" 
+                      :src="review.site?.cover_image_url || '/placeholder-site.jpg'" 
                       :alt="review.site?.name"
                       class="site-thumbnail mb-3"
                     >
                     <h6 class="fw-bold mb-2">{{ review.site?.name }}</h6>
                     <button 
-                      @click="goToSite(review.site?.id)" 
+                      @click="goToSite(review.site_id)" 
                       class="btn btn-sm btn-outline-primary"
                     >
                       <i class="bi bi-eye me-1"></i>
@@ -181,7 +181,7 @@ onMounted(() => {
 
                     <!-- Comentario -->
                     <div class="review-comment">
-                      <p class="mb-0">{{ review.comment }}</p>
+                      <p class="mb-0">{{ review.content }}</p>
                     </div>
 
                     <!-- Estado -->

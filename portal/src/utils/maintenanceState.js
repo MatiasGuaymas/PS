@@ -16,7 +16,6 @@ let ongoingRequest = null
 
 /**
  * Simula la obtención de la feature flag desde un endpoint del backend.
- * En tu caso, esto debe llamar al mismo endpoint que checkAccessCondition.
  * @param {string} flagName
  * @returns {Promise<{is_enabled: boolean, maintenance_message: string}>}
  */
@@ -41,6 +40,9 @@ const getFeatureFlag = async (flagName) => {
       } else {
         message = `Error ${error.response.status}: ${error.response.data?.message || 'Error del servidor.'}`
       }
+    } else if (error.request) {
+      // Error de red
+      message = 'No se pudo conectar con el servidor (error de red o timeout).'
     }
 
     // Si hay cualquier error, tratamos la aplicación como BLOQUEADA y lanzamos el error

@@ -86,7 +86,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Estilo para asegurar que el fondo claro sea uniforme */
+
 .access-denied-container {
   min-height: 100vh;
   background-color: var(--bs-light) !important; 
@@ -94,13 +94,11 @@ onUnmounted(() => {
 
 /* Icono grande y moderno */
 .display-1 {
-  font-size: 5.5rem; /* Un poco más grande para dominar visualmente */
-  color: var(--bs-danger); /* Asegura que el color de alerta sea el Danger de Bootstrap */
+  font-size: 5.5rem;
+  color: var(--bs-danger); 
 }
 
 .card {
-  /* Controla el ancho máximo para evitar que se vea muy estirado en pantallas grandes */
   max-width: 500px;
-  /* Espacio extra de padding/margin si es necesario */
 }
 </style>

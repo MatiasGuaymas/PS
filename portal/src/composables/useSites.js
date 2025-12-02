@@ -54,7 +54,9 @@ export function useSites() {
         opening_year: site.opening_year,
         category: { name: site.category_name },
         state: { name: site.state_name },
-        tags: site.tags || []
+        tags: site.tags || [],
+        reviews_average: site.reviews_average || 0,       
+        reviews_count: site.reviews_count || 0
       }))
       
       sites.value = sitesData

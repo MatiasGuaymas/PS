@@ -30,6 +30,20 @@ const displayTags = (tags) => {
   if (!tags) return []
   return tags.slice(0, 5)
 }
+
+// Verifica si tiene calificación
+const hasRating = (site) => {
+  return site.reviews_average && site.reviews_average > 0
+}
+
+// Obtener texto de calificación
+const getRatingText = (site) => {
+  if (!site.reviews_average || site.reviews_average === 0) {
+    return 'Sin calificaciones'
+  }
+  return site.reviews_average.toFixed(1)
+}
+
 </script>
 
 <template>
@@ -50,9 +64,15 @@ const displayTags = (tags) => {
       </div>
       
       <!-- Calificación -->
-      <div v-if="site.average_rating || site.rating" class="rating-badge">
-        <i class="bi bi-star-fill text-warning"></i>
-        <span class="fw-bold">{{ (site.average_rating || site.rating).toFixed(1) }}</span>
+      <div class="rating-badge" :class="{ 'no-rating': !hasRating(site) }">
+        <template v-if="hasRating(site)">
+          <i class="bi bi-star-fill text-warning"></i>
+          <span class="fw-bold">{{ getRatingText(site) }}</span>
+        </template>
+        <template v-else>
+          <i class="bi bi-star text-muted"></i>
+          <span class="text-muted small">Sin calificaciones</span>
+        </template>
       </div>
       
       <!-- Estado -->
@@ -137,6 +157,8 @@ const displayTags = (tags) => {
   transform: scale(1.05);
 }
 
+/* Califación */
+
 .rating-badge {
   position: absolute;
   top: 12px;
@@ -147,9 +169,20 @@ const displayTags = (tags) => {
   border-radius: 20px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.rating-badge.no-rating {
+  background: rgba(248, 249, 250, 0.95);
+  padding: 6px 10px;
+}
+
+.rating-badge.no-rating .small {
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 .state-badge {
@@ -227,6 +260,13 @@ const displayTags = (tags) => {
 @media (max-width: 576px) {
   .card-img-wrapper {
     height: 180px;
+  }
+  .rating-badge {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+  }
+  .rating-badge.no-rating .small {
+    font-size: 0.7rem;
   }
 }
 </style>

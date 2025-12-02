@@ -28,12 +28,12 @@ export function useHomeSections() {
       city: site.city || '',
       province: site.province || '',
       cover_image: site.cover_image_url || null,
-      average_rating: site.rating || site.average_rating || null,
       opening_year: site.opening_year || null,
       category: site.category || (site.category_name ? { name: site.category_name } : null),
       state: site.state || (site.state_name ? { name: site.state_name } : null),
       tags: site.tags || [],
-      rating: site.rating || site.average_rating || null
+      reviews_average: site.reviews_average || 0,       
+      reviews_count: site.reviews_count || 0,
     }
   }
 
@@ -61,13 +61,12 @@ export function useHomeSections() {
     }
   }
 
-  // TODO: !!!!
   const fetchTopRated = async () => {
     if (topRatedLoaded.value) return
     loadingTopRated.value = true
     try {
-      const { data } = await axios.get(`${API_BASE_URL}/api/sites/`, {
-        params: { sort: 'rating', order: 'desc', per_page: 4, page: 1 }
+      const { data } = await axios.get(`${API_BASE_URL}/api/sites/top-ranked`, {
+        params: { limit: 4 } 
       })
       topRated.value = extractSites(data).map(mapSiteData).filter(Boolean)
       topRatedLoaded.value = true

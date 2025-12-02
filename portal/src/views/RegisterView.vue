@@ -26,7 +26,7 @@ const error = ref('')
 const passwordVisible = ref(false)
 const confirmPasswordVisible = ref(false)
 
-// ✅ Estado para la imagen
+// Estado para la imagen
 const avatarFile = ref(null)
 const avatarPreview = ref(null)
 
@@ -57,7 +57,7 @@ const checkPasswordStrength = () => {
   }
 }
 
-// ✅ Manejar selección de imagen
+// Manejar selección de imagen
 const handleImageSelect = (event) => {
   const file = event.target.files[0]
   
@@ -90,7 +90,7 @@ const handleImageSelect = (event) => {
   error.value = ''
 }
 
-// ✅ Remover imagen seleccionada
+// Remover imagen seleccionada
 const removeImage = () => {
   avatarFile.value = null
   avatarPreview.value = null
@@ -191,7 +191,7 @@ const handleRegister = async () => {
       router.push('/')
     } else {
       const data = await response.json()
-      console.error('❌ Error en registro:', data)
+      console.error('Error en registro:', data)
       
       if (response.status === 409) {
         error.value = 'Este correo electrónico ya está registrado'
@@ -202,7 +202,7 @@ const handleRegister = async () => {
       }
     }
   } catch (err) {
-    console.error('❌ Error de red:', err)
+    console.error('Error de red:', err)
     error.value = 'Error de conexión. Verifica tu internet o intenta más tarde.'
   } finally {
     loading.value = false
@@ -238,7 +238,7 @@ const registerWithGoogle = () => {
               <!-- Formulario de registro -->
               <form @submit.prevent="handleRegister">
                 <div class="row g-3">
-                  <!-- ✅ Campo de imagen de perfil -->
+                  <!-- Campo de imagen de perfil -->
                   <div class="col-12">
                     <label class="form-label fw-semibold">
                       <i class="bi bi-camera me-1"></i>
