@@ -4,7 +4,7 @@ import { authStore } from '@/stores/authStore'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://grupo21.proyecto2025.linti.unlp.edu.ar'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://admin-grupo21.proyecto2025.linti.unlp.edu.ar'
 
 const router = useRouter()
 const favorites = ref([])

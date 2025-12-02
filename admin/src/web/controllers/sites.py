@@ -322,7 +322,6 @@ def create():
         
         if len(files) > 10:
             error_msg = f"Se pueden subir un máximo de 10 imágenes por sitio. Intentaste subir {len(files)} imágenes."
-            logger.warning(f"Usuario {current_user_id} intentó subir {len(files)} imágenes (límite: {MAX_IMAGES_PER_SITE})")
             errors.append(error_msg)
 
         for i, file in enumerate(files):
