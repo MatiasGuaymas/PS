@@ -369,7 +369,10 @@ export default {
       try {
         const base = this.apiBaseUrl
         const url = `${base}/api/sites/${encodeURIComponent(this.siteId)}/favorite`
-        const res = await axios.get(url, { params: { user_id: this.currentUser.id } })
+        const res = await axios.get(url, { 
+          params: { user_id: this.currentUser.id },
+          withCredentials: true
+        })
         if (res && res.data) {
           const st = res.data.status
           if (st === 'favorited' || st === 'ok') {
