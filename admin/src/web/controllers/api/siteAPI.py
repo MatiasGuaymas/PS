@@ -9,6 +9,7 @@ from sqlalchemy import or_, and_
 from core.services.sites_service import SiteService
 from core.models.UserFavorite import UserFavorite
 from core.utils.pagination import paginate_query
+from web.utils.jwt_utils import jwt_required
 
 
 sitesAPI_blueprint = Blueprint("sitesAPI", __name__, url_prefix="/api/sites")
@@ -186,8 +187,8 @@ def siteDetails(site_id):
     
     return jsonify({'data': json})
 
-
 @sitesAPI_blueprint.route("/<int:site_id>/favorite", methods=["GET"])
+@jwt_required
 def favorite_site(site_id):
     """
     Endpoint para marcar/desmarcar favorito (toggle).
